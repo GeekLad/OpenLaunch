@@ -1,0 +1,72 @@
+import { Connection, ConnectionConfig, Commitment, PublicKey } from "@solana/web3.js";
+import { ENV } from "@/config/environment";
+
+const DEFAULT_COMMITMENT: Commitment = "confirmed";
+
+const connectionConfig: ConnectionConfig = {
+  commitment: DEFAULT_COMMITMENT,
+  confirmTransactionInitialTimeout: 60000,
+};
+
+let connection: Connection | null = null;
+
+export function getConnection(): Connection {
+  if (!connection) {
+    connection = new Connection(ENV.RPC_URL, connectionConfig);
+  }
+  return connection;
+}
+
+export function createConnection(rpcUrl?: string, commitment?: Commitment): Connection {
+  const url = rpcUrl || ENV.RPC_URL;
+  const config: ConnectionConfig = {
+    ...connectionConfig,
+    commitment: commitment || DEFAULT_COMMITMENT,
+  };
+  return new Connection(url, config);
+}
+
+export async function getRecentBlockhash(connection: Connection) {
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+  return { blockhash, lastValidBlockHeight };
+}
+
+export async function confirmTransaction(
+  connection: Connection,
+  signature: string,
+  blockhash: string,
+  lastValidBlockHeight: number
+) {
+  const confirmation = await connection.confirmTransaction({
+    signature,
+    blockhash,
+    lastValidBlockHeight,
+  });
+
+  if (confirmation.value.err) {
+    throw new Error(`Transaction failed: ${confirmation.value.err}`);
+  }
+
+  return confirmation;
+}
+
+export async function getBalance(connection: Connection, publicKey: string) {
+  try {
+    const balance = await connection.getBalance(new PublicKey(publicKey));
+    return balance / 1e9; // Convert lamports to SOL
+  } catch (error) {
+    console.error("Error fetching balance:", error);
+    throw error;
+  }
+}
+
+// Utility to check if connection is healthy
+export async function checkConnection(connection: Connection): Promise<boolean> {
+  try {
+    const version = await connection.getVersion();
+    return !!version;
+  } catch (error) {
+    console.error("Connection health check failed:", error);
+    return false;
+  }
+}
