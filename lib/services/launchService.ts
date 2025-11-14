@@ -8,7 +8,8 @@ import { createDAMMv2Pool } from "@/lib/solana/poolUtils";
 import {
   uploadTokenAssets,
   mockIPFSUpload,
-  mockMetadataUpload
+  mockMetadataUpload,
+  type TokenAssetsUploadResult
 } from "@/lib/services/ipfsService";
 import { validateAndParsePrivateKey } from "@/lib/utils/keypairUtils";
 
@@ -105,11 +106,16 @@ export class TokenLaunchService {
 
       // Upload to IPFS (server-side API handles Pinata/Filebase, falls back to mock)
       let metadataUri: string;
+      let uploadResult: TokenAssetsUploadResult | null = null;
       try {
         // Upload via server-side API (tries Pinata, then Filebase)
-        const ipfsResult = await uploadTokenAssets(formData.logoFile, metadata);
-        metadataUri = ipfsResult.gateway;
+        uploadResult = await uploadTokenAssets(formData.logoFile, metadata);
+        metadataUri = uploadResult.metadataGateway;
+        // Update metadata with the complete metadata that includes image URL
+        metadata.image = uploadResult.imageGateway;
         console.log("✓ Uploaded to IPFS successfully");
+        console.log(`  Image URL: ${uploadResult.imageGateway}`);
+        console.log(`  Metadata URL: ${uploadResult.metadataGateway}`);
       } catch (uploadError) {
         console.warn("IPFS upload failed, using mock upload:", uploadError);
 
@@ -483,6 +489,7 @@ export class TokenLaunchService {
       const launchConfig: TokenLaunchConfig = {
         mint: mintResult.mint,
         metadata: metadata,
+        metadataUri: metadataUri, // IPFS URI where metadata JSON is stored
         totalSupply: ENV.TOTAL_SUPPLY,
         decimals: ENV.TOKEN_DECIMALS,
         quoteTokenMint: new PublicKey(ENV.QUOTE_TOKEN_MINT),

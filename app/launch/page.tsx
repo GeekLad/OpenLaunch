@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { TokenFormData, LaunchStatus, TokenLaunchConfig } from "@/types/token";
@@ -14,10 +15,12 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ENV } from "@/config/environment";
 
 export default function LaunchPage() {
+  const router = useRouter();
   const { publicKey, signAllTransactions } = useWallet();
   const [launchStatus, setLaunchStatus] = useState<LaunchStatus | null>(null);
   const [launchConfig, setLaunchConfig] = useState<TokenLaunchConfig | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
+  const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
 
   const handleLaunch = async (formData: TokenFormData) => {
     if (!publicKey || !signAllTransactions) {
@@ -33,14 +36,101 @@ export default function LaunchPage() {
     });
 
     try {
+      let finalStatus: LaunchStatus | null = null;
+
       const launchService = new TokenLaunchService((status) => {
         setLaunchStatus(status);
+        finalStatus = status; // Capture the final status
       });
 
       const config = await launchService.launchToken(formData, publicKey, signAllTransactions);
 
       setLaunchConfig(config);
       setIsLaunching(false);
+
+      // Save successful launch to database and redirect
+      // Check if we have a complete launch with all transaction signatures
+      if (finalStatus?.step === "complete" && finalStatus?.transactions) {
+        // Update status to show we're gathering token information
+        setLaunchStatus({
+          step: "complete",
+          message: "Gathering token information...",
+          progress: 100,
+          transactions: finalStatus.transactions,
+          launchTimeAdjusted: finalStatus.launchTimeAdjusted,
+          requestedLaunchTime: finalStatus.requestedLaunchTime,
+        });
+
+        setIsSavingToDatabase(true);
+
+        try {
+          console.log("[Database] Saving token launch to database...");
+
+          // Get the current slot for launch time tracking
+          const connection = await import("@/lib/solana/connection").then(m => m.getConnection());
+          const launchSlot = await connection.getSlot();
+
+          const response = await fetch("/api/tokens/create", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              // Token identifiers
+              mintAddress: config.mint.toBase58(),
+              poolAddress: config.poolAddress?.toBase58() || "",
+
+              // Token metadata
+              name: config.metadata.name,
+              symbol: config.metadata.symbol,
+              description: config.metadata.description || "",
+              logoUrl: config.metadata.image, // IPFS URL for the logo image
+              metadataUri: config.metadataUri || "", // IPFS URI for the metadata JSON
+
+              // Token configuration
+              decimals: config.decimals,
+              totalSupply: config.totalSupply.toString(),
+
+              // Pool configuration
+              initialPrice: config.initialPrice,
+              quoteTokenMint: config.quoteTokenMint.toBase58(),
+              poolLiquidityPercentage: ENV.POOL_LIQUIDITY_PERCENTAGE,
+
+              // Fee configuration
+              feeDecayDurationMinutes: config.feeSchedule?.decayDuration || ENV.FEE_DECAY_DURATION_MINUTES,
+              feeDecayPeriods: ENV.FEE_DECAY_PERIODS,
+
+              // Launch info
+              launchDate: config.launchTime || new Date(),
+              launchSlot: launchSlot,
+
+              // Transaction signatures
+              mintTxSignature: finalStatus.transactions.mintSignature || "",
+              metadataTxSignature: finalStatus.transactions.setupSignature || "",
+              poolTxSignature: finalStatus.transactions.poolSignature || "",
+
+              // Creator
+              creatorWallet: publicKey.toBase58(),
+            }),
+          });
+
+          if (response.ok) {
+            console.log("[Database] ✓ Token saved successfully");
+
+            // Redirect to token detail page immediately
+            router.push(`/token/${config.mint.toBase58()}`);
+          } else {
+            const error = await response.json();
+            console.error("[Database] Failed to save token:", error);
+            // Don't fail the launch if database save fails - it's not critical
+          }
+        } catch (dbError) {
+          console.error("[Database] Error saving to database:", dbError);
+          // Don't fail the launch if database save fails
+        } finally {
+          setIsSavingToDatabase(false);
+        }
+      }
     } catch (error) {
       console.error("Launch failed:", error);
       setIsLaunching(false);
@@ -109,53 +199,10 @@ export default function LaunchPage() {
                   <span className="font-medium capitalize">{launchStatus.step}</span>
                   <span className="text-muted-foreground">{launchStatus.progress.toFixed(1)}%</span>
                 </div>
-                {launchStatus.transactions && (
-                  <div className="mt-4 space-y-3">
-                    {launchStatus.transactions.mintSignature && (
-                      <div className="p-3 bg-secondary rounded-md">
-                        <p className="text-xs font-semibold mb-1 text-muted-foreground uppercase">
-                          Transaction 1: Mint Creation
-                        </p>
-                        <a
-                          href={getSolscanTxUrl(launchStatus.transactions.mintSignature)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline break-all font-mono"
-                        >
-                          {launchStatus.transactions.mintSignature}
-                        </a>
-                      </div>
-                    )}
-                    {launchStatus.transactions.setupSignature && (
-                      <div className="p-3 bg-secondary rounded-md">
-                        <p className="text-xs font-semibold mb-1 text-muted-foreground uppercase">
-                          Transaction 2: Token Setup & Metadata
-                        </p>
-                        <a
-                          href={getSolscanTxUrl(launchStatus.transactions.setupSignature)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline break-all font-mono"
-                        >
-                          {launchStatus.transactions.setupSignature}
-                        </a>
-                      </div>
-                    )}
-                    {launchStatus.transactions.poolSignature && (
-                      <div className="p-3 bg-secondary rounded-md">
-                        <p className="text-xs font-semibold mb-1 text-muted-foreground uppercase">
-                          Transaction 3: DAMMv2 Pool Creation
-                        </p>
-                        <a
-                          href={getSolscanTxUrl(launchStatus.transactions.poolSignature)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline break-all font-mono"
-                        >
-                          {launchStatus.transactions.poolSignature}
-                        </a>
-                      </div>
-                    )}
+                {isSavingToDatabase && (
+                  <div className="flex flex-col items-center justify-center py-8 space-y-3">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                    <p className="text-sm text-muted-foreground">Saving token data...</p>
                   </div>
                 )}
                 {launchStatus.error && (
@@ -169,93 +216,6 @@ export default function LaunchPage() {
           </Card>
         )}
 
-        {/* Launch Time Adjustment Warning */}
-        {launchStatus?.launchTimeAdjusted && launchStatus?.step === "complete" && (
-          <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950">
-            <CardHeader>
-              <CardTitle className="text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                <span>⚠️</span>
-                <span>Pool Launched Immediately</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <p className="text-amber-700 dark:text-amber-300">
-                  Your requested launch time had already expired, so the pool was launched immediately instead.
-                </p>
-                {launchStatus.requestedLaunchTime && (
-                  <div className="mt-3 p-3 bg-amber-100 dark:bg-amber-900 rounded-md">
-                    <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1">
-                      Requested Launch Time:
-                    </p>
-                    <p className="text-sm font-mono text-amber-800 dark:text-amber-200">
-                      {new Date(launchStatus.requestedLaunchTime).toLocaleString()}
-                    </p>
-                  </div>
-                )}
-                <p className="text-amber-700 dark:text-amber-300 mt-2">
-                  The pool is now active and trading is enabled.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Success Summary */}
-        {launchConfig && launchStatus?.step === "complete" && (
-          <Card className="border-green-500 bg-green-50 dark:bg-green-950">
-            <CardHeader>
-              <CardTitle className="text-green-600 dark:text-green-400">
-                Token Launched Successfully!
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="font-medium">Token Name:</span>
-                  <span>{launchConfig.metadata.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Token Symbol:</span>
-                  <span>{launchConfig.metadata.symbol}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Mint Address:</span>
-                  <a
-                    href={getSolscanTokenUrl(launchConfig.mint.toBase58())}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline text-sm"
-                  >
-                    {launchConfig.mint.toBase58().slice(0, 8)}...
-                    {launchConfig.mint.toBase58().slice(-8)}
-                  </a>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Total Supply:</span>
-                  <span>{launchConfig.totalSupply.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Decimals:</span>
-                  <span>{launchConfig.decimals}</span>
-                </div>
-                {launchConfig.poolAddress && (
-                  <div className="flex justify-between">
-                    <span className="font-medium">Pool Address:</span>
-                    <a
-                      href={`https://app.meteora.ag/dammv2/${launchConfig.poolAddress.toBase58()}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline text-sm"
-                    >
-                      View on Meteora →
-                    </a>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
           {/* Launch Form */}
           {publicKey && !isLaunching && launchStatus?.step !== "complete" && (

@@ -80,16 +80,26 @@ export async function uploadMetadataToIPFS(metadata: TokenMetadata): Promise<IPF
   }
 }
 
+export interface TokenAssetsUploadResult {
+  metadataUri: string;
+  metadataGateway: string;
+  metadataCid: string;
+  imageUri: string;
+  imageGateway: string;
+  imageCid: string;
+  completeMetadata: TokenMetadata;
+}
+
 /**
  * Uploads both image and metadata to IPFS
  * @param logoFile - Logo image file
  * @param metadata - Token metadata (without image URI)
- * @returns Metadata IPFS URI with image URI included
+ * @returns Complete upload result with both image and metadata URIs
  */
 export async function uploadTokenAssets(
   logoFile: File,
   metadata: Omit<TokenMetadata, "image">
-): Promise<IPFSUploadResult> {
+): Promise<TokenAssetsUploadResult> {
   // First, upload the image
   const imageResult = await uploadFileToIPFS(logoFile);
 
@@ -101,7 +111,15 @@ export async function uploadTokenAssets(
 
   const metadataResult = await uploadMetadataToIPFS(completeMetadata);
 
-  return metadataResult;
+  return {
+    metadataUri: metadataResult.uri,
+    metadataGateway: metadataResult.gateway,
+    metadataCid: metadataResult.cid,
+    imageUri: imageResult.uri,
+    imageGateway: imageResult.gateway,
+    imageCid: imageResult.cid,
+    completeMetadata,
+  };
 }
 
 /**

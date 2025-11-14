@@ -8,6 +8,30 @@ const nextConfig: NextConfig = {
     // Remove this in production
     ignoreBuildErrors: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.ipfs.w3s.link',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ipfs.io',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.ipfs.io',
+      },
+      {
+        protocol: 'https',
+        hostname: 'gateway.pinata.cloud',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.mypinata.cloud',
+      },
+    ],
+  },
   turbopack: {
     resolveAlias: {
       // Add any necessary aliases

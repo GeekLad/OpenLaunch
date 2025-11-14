@@ -53,6 +53,7 @@ export interface TokenFormData {
 export interface TokenLaunchConfig {
   mint: PublicKey;
   metadata: TokenMetadata;
+  metadataUri?: string; // IPFS URI where the metadata JSON is stored
   totalSupply: number;
   decimals: number;
   quoteTokenMint: PublicKey;
