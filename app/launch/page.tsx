@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { TokenFormData, LaunchStatus, TokenLaunchConfig } from "@/types/token";
@@ -9,6 +11,7 @@ import { TokenLaunchService } from "@/lib/services/launchService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSolscanTxUrl, getSolscanTokenUrl } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ENV } from "@/config/environment";
 
 export default function LaunchPage() {
   const { publicKey, signAllTransactions } = useWallet();
@@ -51,21 +54,30 @@ export default function LaunchPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mx-auto max-w-4xl space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen flex flex-col">
+      {/* Header with Logo */}
+      <header className="border-b">
+        <div className="container mx-auto flex h-20 items-center justify-between px-4">
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/logo.svg" alt={ENV.APP_NAME} width={200} height={70} className="h-16 w-auto" />
+          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <WalletButton />
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto max-w-4xl space-y-8">
+          {/* Page Title */}
           <div>
             <h1 className="text-4xl font-bold">Launch Your Meme Token</h1>
             <p className="mt-2 text-muted-foreground">
               Deploy your token on Solana with DAMMv2 liquidity
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <WalletButton />
-          </div>
-        </div>
 
         {/* Connection Check */}
         {!publicKey && (
@@ -245,10 +257,11 @@ export default function LaunchPage() {
           </Card>
         )}
 
-        {/* Launch Form */}
-        {publicKey && !isLaunching && launchStatus?.step !== "complete" && (
-          <TokenLaunchForm onSubmit={handleLaunch} isLoading={isLaunching} />
-        )}
+          {/* Launch Form */}
+          {publicKey && !isLaunching && launchStatus?.step !== "complete" && (
+            <TokenLaunchForm onSubmit={handleLaunch} isLoading={isLaunching} />
+          )}
+        </div>
       </div>
     </div>
   );

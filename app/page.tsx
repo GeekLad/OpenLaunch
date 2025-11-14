@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -10,10 +11,10 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       {/* Header */}
       <header className="border-b">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">{appName}</h1>
-          </div>
+        <div className="container mx-auto flex h-20 items-center justify-between px-4">
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/logo.svg" alt={appName} width={200} height={70} className="h-16 w-auto" />
+          </Link>
           <nav className="flex items-center gap-4">
             <ThemeToggle />
             <Link href="/launch">
@@ -27,6 +28,9 @@ export default function Home() {
       <main className="flex-1">
         <section className="container mx-auto px-4 py-24">
           <div className="mx-auto max-w-4xl text-center">
+            <div className="mb-12 flex justify-center">
+              <Image src="/logo.svg" alt={appName} width={800} height={300} className="h-48 sm:h-56 w-auto" priority />
+            </div>
             <h2 className="text-5xl font-bold tracking-tight sm:text-6xl">
               Open Source Meme Token Launchpad
             </h2>

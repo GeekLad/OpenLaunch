@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: `${ENV.APP_NAME} - Meme Token Launchpad`,
   description: "Launch your meme token on Solana with DAMMv2 liquidity",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

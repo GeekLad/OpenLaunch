@@ -1,126 +1,81 @@
-# OpenLaunch - Meme Token DAMMv2 Launchpad
+<div align="center">
+  <img src="public/logo.svg" alt="OpenLaunch" width="400">
 
-A client-side decentralized application for launching SPL tokens on Solana with DAMMv2 liquidity integration and permanent authority revocation.
+  # OpenLaunch - Meme Token Launchpad
+
+  A client-side decentralized application for launching SPL tokens on Solana with DAMMv2 liquidity integration and permanent authority revocation.
+</div>
 
 ## Features
 
-- **Client-Side Deployment**: All transactions are signed by the user's connected wallet
+- **Client-Side Deployment**: All transactions signed by user's connected wallet
 - **DAMMv2 Integration**: Single-sided liquidity deployment using Meteora's Dynamic AMM
-- **Security First**: Mint and freeze authorities are permanently revoked
-- **Fee Scheduling**: Configure dynamic fees that decay over time
-- **Timed Launch**: Schedule your token launch for a specific date and time
-- **IPFS Metadata**: Token metadata and images stored on IPFS
+- **Security First**: Mint and freeze authorities permanently revoked
+- **Fee Scheduling**: Dynamic fees with exponential decay over time
+- **Timed Launch**: Schedule token launches for specific dates and times
+- **IPFS Metadata**: Token metadata and images stored on IPFS (Pinata or Filebase)
 - **Real-time Status**: Live progress updates during token deployment
+- **Configurable Supply**: Customizable token supply and pool liquidity allocation
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14+ with TypeScript
+- **Frontend**: Next.js 16 with TypeScript, React 19
 - **Styling**: Tailwind CSS + Shadcn/ui components
 - **Blockchain**: Solana Web3.js, SPL Token
-- **Wallet**: Solana Wallet Adapter
-- **Metadata**: Metaplex Token Metadata
-- **Storage**: IPFS (Pinata)
+- **Wallet**: Solana Wallet Adapter (Phantom, Solflare, etc.)
+- **Metadata**: Metaplex Token Metadata (Umi SDK)
+- **AMM**: Meteora CP-AMM SDK v1.2.3
+- **Storage**: IPFS (Pinata or Filebase)
 - **Form Handling**: React Hook Form + Zod validation
+
+## Quick Start
+
+See [INSTALLATION.md](INSTALLATION.md) for detailed installation instructions.
+
+```bash
+# Clone and install
+git clone <repository-url>
+cd openlaunch
+npm install
+
+# Configure environment
+cp .env.local.example .env.local
+
+# Start development server
+npm run dev
+```
 
 ## Project Structure
 
 ```
 openlaunch/
 ├── app/                          # Next.js app directory
-│   ├── launch/                   # Token launch page
-│   ├── layout.tsx               # Root layout with providers
-│   ├── page.tsx                 # Landing page
-│   └── globals.css              # Global styles
+│   ├── launch/page.tsx           # Token launch page
+│   ├── layout.tsx                # Root layout with providers
+│   ├── page.tsx                  # Landing page
+│   └── globals.css               # Global styles
 ├── components/
 │   ├── forms/
-│   │   └── TokenLaunchForm.tsx  # Main token creation form
+│   │   └── TokenLaunchForm.tsx   # Main token creation form
 │   ├── providers/
-│   │   └── SolanaProvider.tsx   # Wallet adapter provider
-│   └── ui/                      # Reusable UI components
+│   │   └── SolanaProvider.tsx    # Wallet adapter provider
+│   └── ui/                       # Reusable UI components
 ├── lib/
 │   ├── solana/
-│   │   ├── connection.ts        # Solana RPC connection
-│   │   ├── tokenUtils.ts        # Token mint operations
-│   │   ├── metadataUtils.ts     # Metadata creation
-│   │   └── poolUtils.ts         # DAMMv2 pool integration
+│   │   ├── connection.ts         # Solana RPC connection
+│   │   ├── tokenUtils.ts         # Token mint operations
+│   │   ├── metadataUtils.ts      # Metadata creation (Metaplex Umi)
+│   │   └── poolUtils.ts          # DAMMv2 pool integration
 │   ├── services/
-│   │   ├── ipfsService.ts       # IPFS upload service
-│   │   └── launchService.ts     # Main token launch orchestration
-│   └── utils.ts                 # Utility functions
+│   │   ├── ipfsService.ts        # IPFS upload service
+│   │   └── launchService.ts      # Main token launch orchestration
+│   └── utils.ts                  # Utility functions
 ├── types/
-│   └── token.ts                 # TypeScript type definitions
+│   └── token.ts                  # TypeScript type definitions
 ├── config/
-│   └── environment.ts           # Environment configuration
-└── .env.local.example           # Environment variables template
+│   └── environment.ts            # Environment configuration
+└── .env.local.example            # Environment variables template
 ```
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+ installed
-- A Solana wallet (Phantom, Solflare, etc.)
-- SOL for transaction fees
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd openlaunch
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create environment configuration:
-```bash
-cp .env.local.example .env.local
-```
-
-4. Configure environment variables in `.env.local`:
-```env
-# Solana Configuration
-NEXT_PUBLIC_RPC_URL=https://api.mainnet-beta.solana.com
-NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta
-NEXT_PUBLIC_QUOTE_TOKEN_MINT=So11111111111111111111111111111111111111112
-
-# Token Configuration
-NEXT_PUBLIC_TOKEN_DECIMALS=9
-NEXT_PUBLIC_TOTAL_SUPPLY=1000000000
-
-# Metadata Configuration
-# NEXT_PUBLIC_METADATA_MUTABLE=false  # Set to 'true' to allow metadata updates (default: false)
-
-# Pricing
-NEXT_PUBLIC_INITIAL_PRICE=0.00001
-NEXT_PUBLIC_PRICE_RANGE_MIN=0.000001
-NEXT_PUBLIC_PRICE_RANGE_MAX=0.0001
-
-# Fee Schedule
-NEXT_PUBLIC_FEE_DECAY_DURATION_MINUTES=60
-
-# IPFS Gateway (Public)
-NEXT_PUBLIC_IPFS_GATEWAY=https://ipfs.io/ipfs/
-NEXT_PUBLIC_MAX_IMAGE_SIZE_MB=1
-
-# IPFS Upload Service (Private - Server-side only)
-# Choose ONE option below:
-# Option 1: Pinata
-PINATA_API_KEY=your_api_key
-PINATA_SECRET_KEY=your_secret_key
-# Option 2: Filebase
-# FILEBASE_API_KEY=your_api_key
-```
-
-5. Run the development server:
-```bash
-npm run dev
-```
-
-6. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Usage
 
@@ -128,12 +83,13 @@ npm run dev
 
 1. **Connect Wallet**: Click "Connect Wallet" and select your Solana wallet
 2. **Fill Token Details**:
-   - Token Symbol (e.g., DOGE)
-   - Token Name (e.g., Dogecoin)
-   - Upload logo image (PNG/JPG/GIF/WebP, max 1MB by default, configurable)
+   - Token Symbol (e.g., DOGE, max 10 chars)
+   - Token Name (e.g., Dogecoin, max 32 chars)
+   - Upload logo image (PNG/JPG/GIF/WebP, max 1MB by default)
 3. **Configure Fee Schedule** (optional):
    - Enable fee scheduler
-   - Set starting and ending fee rates
+   - Set starting and ending fee rates (0.01% - 100%)
+   - Fee decay duration (default 60 minutes)
 4. **Set Launch Time** (optional):
    - Enable timed launch
    - Choose launch date and time
@@ -143,110 +99,141 @@ npm run dev
 
 ### Transaction Flow
 
-The launch process executes the following steps in 3 transactions (single approval):
+The launch process executes the following in 3 transactions (single approval):
 
-1. **Mint Creation**: Creates the SPL token mint with 9 decimals
-2. **Token Setup**: Mints 100% of supply, creates metadata, and revokes authorities
+1. **Mint Creation**: Creates SPL token mint with 9 decimals
+2. **Token Setup**: Mints supply, creates metadata, revokes authorities (combined)
 3. **Pool Creation**: Creates DAMMv2 pool with single-sided liquidity and optional timed launch
-
-## DAMMv2 Integration
-
-The DAMMv2 pool integration is **fully implemented** using the `@meteora-ag/cp-amm-sdk`:
-
-- **Single-sided liquidity**: 100% token supply deposited with 0 SOL
-- **Dynamic fees**: Configurable fee scheduler with exponential decay
-- **Timed launch**: Optional scheduled activation at a specific timestamp
-- **Liquidity locking**: 100% of liquidity permanently locked
-- **Fee collection**: Collects fees in quote token (SOL) only
-
-Key implementation in [lib/solana/poolUtils.ts](lib/solana/poolUtils.ts):
-   - `createDAMMv2Pool()`: Creates pool with custom configuration
-   - `priceToSqrtPrice()`: Converts human-readable price to Q64 format
-   - `getPoolInfo()`: Fetches pool state information
 
 ## Configuration
 
+### Key Environment Variables
+
+```env
+# Network (use devnet for testing)
+NEXT_PUBLIC_RPC_URL=https://api.devnet.solana.com
+NEXT_PUBLIC_SOLANA_NETWORK=devnet
+
+# Token Defaults
+NEXT_PUBLIC_TOKEN_DECIMALS=9
+NEXT_PUBLIC_TOTAL_SUPPLY=1000000000
+
+# Pool Configuration
+NEXT_PUBLIC_POOL_LIQUIDITY_PERCENTAGE=1  # 1 = 100% to pool
+
+# Pricing (affects initial market cap)
+NEXT_PUBLIC_INITIAL_PRICE=0.0000001      # 100 SOL market cap
+NEXT_PUBLIC_PRICE_RANGE_MIN=0.0000001
+NEXT_PUBLIC_PRICE_RANGE_MAX=0.001        # 1M SOL market cap
+
+# Fee Schedule
+NEXT_PUBLIC_FEE_DECAY_DURATION_MINUTES=60
+NEXT_PUBLIC_FEE_DECAY_PERIODS=60
+
+# Metadata (default: immutable for maximum trust)
+# NEXT_PUBLIC_METADATA_MUTABLE=false
+
+# IPFS (Server-side only, no NEXT_PUBLIC_ prefix)
+# Option 1: Filebase (RECOMMENDED - 5GB free)
+FILEBASE_API_KEY=your_key
+# Option 2: Pinata (1GB free)
+# PINATA_API_KEY=your_key
+# PINATA_SECRET_KEY=your_secret
+```
+
+See [.env.local.example](.env.local.example) for complete configuration options.
+
 ### Token Parameters
 
-All token parameters are configured via environment variables:
-
-- **TOTAL_SUPPLY**: Default 1,000,000,000 tokens
-- **TOKEN_DECIMALS**: Fixed at 9 decimals
-- **QUOTE_TOKEN_MINT**: Fixed to SOL (Wrapped SOL)
+- **Total Supply**: Configurable via `NEXT_PUBLIC_TOTAL_SUPPLY` (default: 1 billion)
+- **Decimals**: Fixed at 9 decimals
+- **Quote Token**: Fixed to SOL (Wrapped SOL: `So11111111111111111111111111111111111111112`)
+- **Pool Liquidity**: Configurable percentage via `NEXT_PUBLIC_POOL_LIQUIDITY_PERCENTAGE`
 
 ### Metadata Configuration
 
-- **METADATA_MUTABLE**: Controls whether token metadata can be updated after creation
-  - Default: `false` (metadata is immutable)
-  - Set to `true` to allow metadata updates
-  - **Security Note**: Immutable metadata (default) provides maximum trust and transparency
-  - Mutable metadata allows updates but may reduce community trust
+- **Immutability**: Default is `false` (immutable) for maximum trust
+- Set `NEXT_PUBLIC_METADATA_MUTABLE=true` to allow metadata updates after creation
+- **Recommendation**: Keep immutable for community trust and transparency
 
 ### Fee Schedule
 
-- **Starting Fee Rate**: Default 50%
-- **Ending Fee Rate**: Default 1%
-- **Decay Duration**: Default 60 minutes
+Fee decay uses exponential curve over configured duration:
+- **Starting Fee**: Configurable (default: 50%)
+- **Ending Fee**: Configurable (default: 1%)
+- **Decay Duration**: Configurable (default: 60 minutes)
+- **Decay Periods**: Controls frequency of fee updates (default: 60)
 
-### Pricing
+## DAMMv2 Integration
 
-- **Initial Price**: 0.00001 SOL
-- **Price Range Min**: 0.000001 SOL
-- **Price Range Max**: 0.0001 SOL
+Fully implemented using `@meteora-ag/cp-amm-sdk` v1.2.3:
 
-## Security Considerations
+- **Single-sided liquidity**: Configurable percentage of token supply with 0 SOL
+- **Dynamic fees**: Exponential decay fee scheduler
+- **Timed launch**: Optional scheduled activation
+- **Liquidity locking**: 100% of liquidity permanently locked
+- **Fee collection**: Quote token (SOL) only
 
-- All transactions are client-side and signed by the user's wallet
+Implementation in [lib/solana/poolUtils.ts](lib/solana/poolUtils.ts:1-1):
+- `createDAMMv2Pool()`: Pool creation with custom configuration
+- `priceToSqrtPrice()`: Price conversion to Q64 format
+- `getPoolInfo()`: Fetch pool state information
+- `poolExists()`: Check if pool exists
+
+## Security
+
+- All transactions are client-side and signed by user's wallet
 - No backend custody of private keys or funds
-- Mint and freeze authorities are permanently revoked after deployment
-- Token metadata is immutable by default (configurable via `NEXT_PUBLIC_METADATA_MUTABLE`)
-- IPFS metadata is immutable once uploaded
-- Smart contract interactions should be audited before mainnet deployment
+- Mint and freeze authorities permanently revoked after deployment
+- Token metadata immutable by default (configurable)
+- IPFS metadata immutable once uploaded
+- IPFS credentials server-side only (never exposed to client)
 
 ## Development
 
-### Build for Production
-
 ```bash
+# Development server
+npm run dev
+
+# Build for production
 npm run build
-```
 
-### Run Production Server
-
-```bash
+# Start production server
 npm run start
-```
 
-### Lint Code
-
-```bash
+# Lint code
 npm run lint
 ```
 
 ## Troubleshooting
 
 ### Wallet Connection Issues
-
-- Ensure your wallet extension is installed and unlocked
-- Try refreshing the page
-- Check that you're on the correct network (mainnet-beta or devnet)
+- Ensure wallet extension is installed and unlocked
+- Refresh the page
+- Check correct network (mainnet-beta or devnet)
 
 ### Transaction Failures
-
-- Ensure you have sufficient SOL for transaction fees
+- Ensure sufficient SOL for transaction fees (~0.1 SOL)
 - Check RPC connection status
 - Verify all form inputs are valid
 
 ### IPFS Upload Errors
+- Verify credentials in `.env.local` (without `NEXT_PUBLIC_` prefix)
+- Check file size (max configured in `NEXT_PUBLIC_MAX_IMAGE_SIZE_MB`)
+- App falls back to mock uploads for testing without credentials
 
-- Verify IPFS service credentials in `.env.local` (PINATA_API_KEY/PINATA_SECRET_KEY or FILEBASE_API_KEY)
-- Note: API keys are now server-side only (no NEXT_PUBLIC_ prefix) for security
-- Check file size (configurable via NEXT_PUBLIC_MAX_IMAGE_SIZE_MB, default 1MB)
-- Fallback to mock upload for testing without credentials
+## Resources
+
+- [Solana Documentation](https://docs.solana.com/)
+- [Meteora Documentation](https://docs.meteora.ag/)
+- [Metaplex Documentation](https://docs.metaplex.com/)
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Solana Wallet Adapter](https://github.com/solana-labs/wallet-adapter)
+- [Solana Cookbook](https://solanacookbook.com/)
 
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
+Contributions are welcome! Please:
 
 1. Fork the repository
 2. Create a feature branch
@@ -258,21 +245,12 @@ Contributions are welcome! Please follow these steps:
 
 MIT License - see LICENSE file for details
 
-## Resources
-
-- [Solana Documentation](https://docs.solana.com/)
-- [Meteora Documentation](https://docs.meteora.ag/)
-- [Metaplex Documentation](https://docs.metaplex.com/)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Solana Wallet Adapter](https://github.com/solana-labs/wallet-adapter)
-
 ## Support
 
-For issues and questions:
-- Open an issue on GitHub
-- Join our Discord community
-- Check existing documentation
+- Open an issue on GitHub for bugs
+- Join our Discord community for discussions
+- Check [INSTALLATION.md](INSTALLATION.md) for setup help
 
 ---
 
-Built with 🚀 for the Solana community
+Built for the Solana community
