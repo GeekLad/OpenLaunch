@@ -1,17 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletButton } from "@/components/wallet/WalletButton";
 import { TokenFormData, LaunchStatus, TokenLaunchConfig } from "@/types/token";
 import { TokenLaunchForm } from "@/components/forms/TokenLaunchForm";
 import { TokenLaunchService } from "@/lib/services/launchService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getSolscanTxUrl, getSolscanTokenUrl } from "@/lib/utils";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ENV } from "@/config/environment";
 
 export default function LaunchPage() {
@@ -144,22 +139,7 @@ export default function LaunchPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header with Logo */}
-      <header className="border-b">
-        <div className="container mx-auto flex h-20 items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt={ENV.APP_NAME} width={200} height={70} className="h-16 w-auto" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <WalletButton />
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         <div className="mx-auto max-w-4xl space-y-8">
           {/* Page Title */}
           <div>
@@ -222,7 +202,6 @@ export default function LaunchPage() {
             <TokenLaunchForm onSubmit={handleLaunch} isLoading={isLaunching} />
           )}
         </div>
-      </div>
     </div>
   );
 }

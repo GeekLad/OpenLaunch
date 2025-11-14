@@ -2,13 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { WalletButton } from "@/components/wallet/WalletButton";
 import { TokenCard } from "@/components/tokens/TokenCard";
-import { ENV } from "@/config/environment";
 import type { Token } from "@/lib/db/schema";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -81,23 +77,8 @@ export default function TokensPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto flex h-20 items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt={ENV.APP_NAME} width={200} height={70} className="h-16 w-auto" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <WalletButton />
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="mx-auto max-w-7xl space-y-6">
+    <div className="container mx-auto px-4 py-8">
+      <div className="mx-auto max-w-7xl space-y-6">
           {/* Page Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -235,7 +216,6 @@ export default function TokensPage() {
               )}
             </>
           )}
-        </div>
       </div>
     </div>
   );

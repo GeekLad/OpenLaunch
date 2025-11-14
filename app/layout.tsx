@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { SolanaProvider } from "@/components/providers/SolanaProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { Header } from "@/components/layout/Header";
 import { ENV } from "@/config/environment";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -24,7 +25,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ThemeProvider>
-          <SolanaProvider>{children}</SolanaProvider>
+          <SolanaProvider>
+            <div className="min-h-screen flex flex-col">
+              <Header />
+              <main className="flex-1">{children}</main>
+            </div>
+          </SolanaProvider>
         </ThemeProvider>
       </body>
     </html>

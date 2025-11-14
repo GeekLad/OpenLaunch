@@ -4,9 +4,6 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { WalletButton } from "@/components/wallet/WalletButton";
-import { ENV } from "@/config/environment";
 import type { Token } from "@/lib/db/schema";
 import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,27 +50,13 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <header className="border-b">
-          <div className="container mx-auto flex h-20 items-center justify-between px-4">
-            <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo.svg" alt={ENV.APP_NAME} width={200} height={70} className="h-16 w-auto" />
-            </Link>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <WalletButton />
-            </div>
-          </div>
-        </header>
-
-        <div className="container mx-auto px-4 py-8">
-          <div className="mx-auto max-w-4xl">
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-center">Loading token details...</p>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto max-w-4xl">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-center">Loading token details...</p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -81,34 +64,20 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
 
   if (error || !token) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <header className="border-b">
-          <div className="container mx-auto flex h-20 items-center justify-between px-4">
-            <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo.svg" alt={ENV.APP_NAME} width={200} height={70} className="h-16 w-auto" />
-            </Link>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <WalletButton />
-            </div>
-          </div>
-        </header>
-
-        <div className="container mx-auto px-4 py-8">
-          <div className="mx-auto max-w-4xl">
-            <Card className="border-red-500 bg-red-50 dark:bg-red-950">
-              <CardContent className="pt-6">
-                <p className="text-center text-red-600 dark:text-red-400">
-                  {error || "Token not found"}
-                </p>
-                <div className="mt-4 text-center">
-                  <Link href="/launch" className="text-primary hover:underline">
-                    ← Back to Launch
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto max-w-4xl">
+          <Card className="border-red-500 bg-red-50 dark:bg-red-950">
+            <CardContent className="pt-6">
+              <p className="text-center text-red-600 dark:text-red-400">
+                {error || "Token not found"}
+              </p>
+              <div className="mt-4 text-center">
+                <Link href="/launch" className="text-primary hover:underline">
+                  ← Back to Launch
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -118,23 +87,8 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
   const isUpcoming = launchDate > new Date();
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto flex h-20 items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt={ENV.APP_NAME} width={200} height={70} className="h-16 w-auto" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <WalletButton />
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="mx-auto max-w-4xl space-y-6">
+    <div className="container mx-auto px-4 py-8">
+      <div className="mx-auto max-w-4xl space-y-6">
           {/* Back Link */}
           <Link href="/launch" className="text-sm text-muted-foreground hover:text-primary">
             ← Back to Launch
@@ -292,7 +246,6 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
               </ul>
             </CardContent>
           </Card>
-        </div>
       </div>
     </div>
   );

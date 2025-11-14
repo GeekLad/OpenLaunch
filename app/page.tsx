@@ -2,30 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ENV } from "@/config/environment";
 
 export default function Home() {
   const appName = ENV.APP_NAME;
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto flex h-20 items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt={appName} width={200} height={70} className="h-16 w-auto" />
-          </Link>
-          <nav className="flex items-center gap-4">
-            <ThemeToggle />
-            <Link href="/launch">
-              <Button>Launch Token</Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
-
+    <>
       {/* Hero Section */}
-      <main className="flex-1">
         <section className="container mx-auto px-4 py-24">
           <div className="mx-auto max-w-4xl text-center">
             <div className="mb-12 flex justify-center">
@@ -180,7 +163,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-      </main>
 
       {/* Footer */}
       <footer className="w-full flex items-center justify-center py-3 fixed bottom-0 bg-background border-t">
@@ -192,6 +174,6 @@ export default function Home() {
           <p className="text-primary underline hover:text-primary/80 transition-colors">Buy him a coffee or a lambo</p>
         </Link>
       </footer>
-    </div>
+    </>
   );
 }
