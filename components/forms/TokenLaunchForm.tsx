@@ -68,6 +68,10 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   const [enableFeeScheduler, setEnableFeeScheduler] = useState(true);
   const [enableTimedLaunch, setEnableTimedLaunch] = useState(false);
   const [enableCustomPrivateKey, setEnableCustomPrivateKey] = useState(false);
+  const [launchDate, setLaunchDate] = useState<string>("");
+  const [launchHour, setLaunchHour] = useState<string>("");
+  const [launchMinute, setLaunchMinute] = useState<string>("");
+  const [launchPeriod, setLaunchPeriod] = useState<"AM" | "PM">("AM");
 
   const {
     register,
@@ -92,6 +96,91 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
 
   // Check if all required fields are filled
   const isFormValid = !!(symbol && name && logoFile && !fileSizeWarning);
+
+  // Helper function to update the datetime and validate it's not in the past
+  const updateDateTime = (dateStr: string, hourStr: string, minuteStr: string, period: "AM" | "PM") => {
+    if (!dateStr || hourStr === "" || minuteStr === "") {
+      return;
+    }
+
+    let hour = parseInt(hourStr);
+    const minute = parseInt(minuteStr);
+
+    if (isNaN(hour) || isNaN(minute) || hour < 1 || hour > 12 || minute < 0 || minute > 59) {
+      return;
+    }
+
+    // Convert 12-hour to 24-hour format
+    let hour24 = hour;
+    if (period === "AM") {
+      if (hour === 12) hour24 = 0; // 12 AM is 00:00
+    } else {
+      if (hour !== 12) hour24 = hour + 12; // PM adds 12, except for 12 PM
+    }
+
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const newDate = new Date(year, month - 1, day, hour24, minute, 0, 0);
+
+    // Check if the selected date/time is in the past
+    const now = new Date();
+    if (newDate < now) {
+      // Don't set a date in the past
+      return;
+    }
+
+    setValue("launchDateTime", newDate);
+  };
+
+  // Get minimum time values when today is selected (in 12-hour format)
+  const getMinTime = () => {
+    if (!launchDate) return { minHour: 1, minMinute: 0 };
+
+    const today = new Date().toISOString().split('T')[0];
+    if (launchDate === today) {
+      const now = new Date();
+      const currentHour24 = now.getHours();
+      const currentMinute = now.getMinutes();
+
+      // Convert current 24-hour to 12-hour
+      let currentHour12 = currentHour24 % 12;
+      if (currentHour12 === 0) currentHour12 = 12;
+      const currentPeriod = currentHour24 >= 12 ? "PM" : "AM";
+
+      // Convert selected 12-hour to 24-hour
+      const selectedHour12 = parseInt(launchHour);
+      if (isNaN(selectedHour12)) return { minHour: 1, minMinute: 0 };
+
+      let selectedHour24 = selectedHour12;
+      if (launchPeriod === "AM") {
+        if (selectedHour12 === 12) selectedHour24 = 0;
+      } else {
+        if (selectedHour12 !== 12) selectedHour24 = selectedHour12 + 12;
+      }
+
+      // If selected period is before current period (AM when it's PM), no restriction
+      if (launchPeriod === "AM" && currentPeriod === "PM") {
+        return { minHour: 1, minMinute: 0 };
+      }
+
+      // If selected period is after current period (PM when it's AM), no restriction
+      if (launchPeriod === "PM" && currentPeriod === "AM") {
+        return { minHour: 1, minMinute: 0 };
+      }
+
+      // Same period - check the hour
+      if (selectedHour24 === currentHour24) {
+        return { minHour: currentHour12, minMinute: currentMinute + 1 };
+      }
+
+      if (selectedHour24 < currentHour24) {
+        return { minHour: currentHour12, minMinute: 0 };
+      }
+
+      return { minHour: 1, minMinute: 0 };
+    }
+
+    return { minHour: 1, minMinute: 0 };
+  };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -235,17 +324,152 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
             <Label htmlFor="enableTimedLaunch">Enable Timed Launch</Label>
           </div>
 
-          {enableTimedLaunch && (
+{enableTimedLaunch && (
             <div className="space-y-2">
-              <Label htmlFor="launchDateTime">Launch Date & Time</Label>
-              <Input
-                id="launchDateTime"
-                type="datetime-local"
-                {...register("launchDateTime", {
-                  valueAsDate: true,
-                })}
-                disabled={isLoading}
-              />
+              <Label>
+                Launch Date & Time (Local Time: {Intl.DateTimeFormat().resolvedOptions().timeZone} UTC{new Date().getTimezoneOffset() <= 0 ? '+' : '-'}{Math.abs(new Date().getTimezoneOffset() / 60).toString().padStart(2, '0')}:{(Math.abs(new Date().getTimezoneOffset()) % 60).toString().padStart(2, '0')})
+              </Label>
+              <div className="flex gap-1.5 items-end">
+                <div className="flex-1 max-w-[200px]">
+                  <Input
+                    id="launchDate"
+                    type="date"
+                    value={launchDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => {
+                      const dateValue = e.target.value;
+                      setLaunchDate(dateValue);
+                      updateDateTime(dateValue, launchHour, launchMinute, launchPeriod);
+                    }}
+                    onClick={(e) => {
+                      // Initialize with today's date if empty
+                      if (!launchDate) {
+                        const today = new Date().toISOString().split('T')[0];
+                        setLaunchDate(today);
+                        updateDateTime(today, launchHour, launchMinute, launchPeriod);
+                      }
+                    }}
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="w-16">
+                  <Input
+                    id="launchHour"
+                    type="number"
+                    min={getMinTime().minHour.toString()}
+                    max="12"
+                    value={launchHour}
+                    placeholder="HH"
+                    onChange={(e) => {
+                      let value = e.target.value;
+                      const numValue = parseInt(value);
+
+                      // Enforce 12-hour format (1-12)
+                      if (!isNaN(numValue)) {
+                        if (numValue > 12) value = "12";
+                        if (numValue < 1) value = "1";
+
+                        const minTime = getMinTime();
+                        if (numValue < minTime.minHour) {
+                          value = minTime.minHour.toString();
+                        }
+                      }
+
+                      setLaunchHour(value);
+                      updateDateTime(launchDate, value, launchMinute, launchPeriod);
+                    }}
+                    onBlur={(e) => {
+                      // Add zero-padding on blur
+                      const value = e.target.value;
+                      if (value && !isNaN(parseInt(value))) {
+                        const paddedValue = value.padStart(2, '0');
+                        setLaunchHour(paddedValue);
+                      }
+                    }}
+                    onClick={(e) => {
+                      // Initialize with next hour if empty
+                      if (!launchHour) {
+                        const now = new Date();
+                        const nextHour24 = (now.getHours() + 1) % 24;
+                        let nextHour12 = nextHour24 % 12;
+                        if (nextHour12 === 0) nextHour12 = 12;
+                        const period = nextHour24 >= 12 ? "PM" : "AM";
+                        const hourStr = nextHour12.toString().padStart(2, '0');
+                        setLaunchHour(hourStr);
+                        setLaunchMinute("00");
+                        setLaunchPeriod(period);
+                        updateDateTime(launchDate, hourStr, "00", period);
+                      }
+                    }}
+                    disabled={isLoading}
+                    className="text-center"
+                  />
+                </div>
+                <span className="text-lg font-bold pb-2">:</span>
+                <div className="w-16">
+                  <Input
+                    id="launchMinute"
+                    type="number"
+                    min={getMinTime().minMinute.toString()}
+                    max="59"
+                    value={launchMinute}
+                    placeholder="MM"
+                    onChange={(e) => {
+                      let value = e.target.value;
+                      const numValue = parseInt(value);
+
+                      // Enforce 0-59 range for minutes
+                      if (!isNaN(numValue)) {
+                        if (numValue > 59) value = "59";
+                        if (numValue < 0) value = "0";
+
+                        // Enforce minimum minute for current hour on today
+                        const minTime = getMinTime();
+                        const selectedHour = parseInt(launchHour);
+                        if (!isNaN(selectedHour) && selectedHour === minTime.minHour && numValue < minTime.minMinute) {
+                          value = minTime.minMinute.toString();
+                        }
+                      }
+
+                      setLaunchMinute(value);
+                      updateDateTime(launchDate, launchHour, value, launchPeriod);
+                    }}
+                    onBlur={(e) => {
+                      // Add zero-padding on blur
+                      const value = e.target.value;
+                      if (value && !isNaN(parseInt(value))) {
+                        const paddedValue = value.padStart(2, '0');
+                        setLaunchMinute(paddedValue);
+                      }
+                    }}
+                    onClick={(e) => {
+                      // Initialize with 0 minutes if empty
+                      if (!launchMinute) {
+                        setLaunchMinute("00");
+                        updateDateTime(launchDate, launchHour, "00", launchPeriod);
+                      }
+                    }}
+                    disabled={isLoading}
+                    className="text-center"
+                  />
+                </div>
+                <div className="w-16">
+                  <select
+                    id="launchPeriod"
+                    value={launchPeriod}
+                    onChange={(e) => {
+                      const period = e.target.value as "AM" | "PM";
+                      setLaunchPeriod(period);
+                      updateDateTime(launchDate, launchHour, launchMinute, period);
+                    }}
+                    disabled={isLoading}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-2 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-center font-medium"
+                  >
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
+              </div>
               {errors.launchDateTime && (
                 <p className="text-sm text-destructive">{errors.launchDateTime.message}</p>
               )}
