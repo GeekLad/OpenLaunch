@@ -505,6 +505,56 @@ export async function getLeaderboard(limit: number = 100): Promise<LeaderboardEn
   return leaderboard;
 }
 
+/**
+ * Get tokens sorted by launch date
+ */
+export async function getTokensByDate(
+  limit: number = 20,
+  offset: number = 0,
+  sortOrder: 'asc' | 'desc' = 'desc'
+): Promise<Token[]> {
+  const orderByDirection = sortOrder === 'asc' ? asc : desc;
+
+  return await db
+    .select()
+    .from(tokens)
+    .orderBy(orderByDirection(tokens.launchDate))
+    .limit(limit)
+    .offset(offset);
+}
+
+/**
+ * Get tokens sorted by cumulative fees (with launch date as tiebreaker)
+ */
+export async function getTokensByFees(
+  limit: number = 20,
+  offset: number = 0,
+  sortOrder: 'asc' | 'desc' = 'desc'
+): Promise<Token[]> {
+  const orderByDirection = sortOrder === 'asc' ? asc : desc;
+
+  return await db
+    .select()
+    .from(tokens)
+    .orderBy(
+      orderByDirection(tokens.cumulativeFeesSnapshot),
+      desc(tokens.launchDate) // Tiebreaker: newest first
+    )
+    .limit(limit)
+    .offset(offset);
+}
+
+/**
+ * Get total count of tokens
+ */
+export async function getTotalTokenCount(): Promise<number> {
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(tokens);
+
+  return count;
+}
+
 // Export all functions as a service object for easier importing
 export const dbService = {
   // Token operations
@@ -515,6 +565,9 @@ export const dbService = {
   listTokens,
   searchTokens,
   updateCumulativeFeesSnapshot,
+  getTokensByDate,
+  getTokensByFees,
+  getTotalTokenCount,
 
   // Pool stats operations
   createPoolStatsSnapshot,
