@@ -62,6 +62,17 @@ export default function Home() {
 
                 <Card className="border-primary bg-primary/5">
                   <CardHeader>
+                    <CardTitle className="text-primary">⚡ No Graduation Wait</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-base">
+                      Your token is instantly tradable! No bonding curves, no waiting for graduation. Launch directly into a full liquidity pool.
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-primary bg-primary/5">
+                  <CardHeader>
                     <CardTitle className="text-primary">💰 Earn Fees Forever</CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -89,17 +100,6 @@ export default function Home() {
                   <CardContent>
                     <CardDescription className="text-base">
                       Got a vanity contract address? Bring it! Perfect for nerds who want that extra flex on their token launch.
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-primary bg-primary/5">
-                  <CardHeader>
-                    <CardTitle className="text-primary">⚡ No Graduation Wait</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-base">
-                      Your token is instantly tradable! No bonding curves, no waiting for graduation. Launch directly into a full liquidity pool.
                     </CardDescription>
                   </CardContent>
                 </Card>
@@ -179,10 +179,14 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2025 {appName}. Built for the Solana community.</p>
-        </div>
+      <footer className="w-full flex items-center justify-center py-3 fixed bottom-0 bg-background border-t">
+        <Link
+          className="flex items-center gap-1 text-current"
+          href="https://tiplink.io/blinks/donate?dest=D2yGetspd22V3UFHTudRN1s7bU6DF7JNaLBCn2NQ2KHd"
+        >
+          <span className="text-muted-foreground">Made with ❤️ by GeekLad&nbsp;</span>
+          <p className="text-primary underline hover:text-primary/80 transition-colors">Buy him a coffee or a lambo</p>
+        </Link>
       </footer>
     </div>
   );
