@@ -157,6 +157,38 @@ export default function LaunchPage() {
           </Card>
         )}
 
+        {/* Launch Time Adjustment Warning */}
+        {launchStatus?.launchTimeAdjusted && launchStatus?.step === "complete" && (
+          <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950">
+            <CardHeader>
+              <CardTitle className="text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>Pool Launched Immediately</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <p className="text-amber-700 dark:text-amber-300">
+                  Your requested launch time had already expired, so the pool was launched immediately instead.
+                </p>
+                {launchStatus.requestedLaunchTime && (
+                  <div className="mt-3 p-3 bg-amber-100 dark:bg-amber-900 rounded-md">
+                    <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1">
+                      Requested Launch Time:
+                    </p>
+                    <p className="text-sm font-mono text-amber-800 dark:text-amber-200">
+                      {new Date(launchStatus.requestedLaunchTime).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+                <p className="text-amber-700 dark:text-amber-300 mt-2">
+                  The pool is now active and trading is enabled.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Success Summary */}
         {launchConfig && launchStatus?.step === "complete" && (
           <Card className="border-green-500 bg-green-50 dark:bg-green-950">

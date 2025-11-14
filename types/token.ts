@@ -83,6 +83,9 @@ export interface LaunchStatus {
     setupSignature?: string;
     poolSignature?: string;
   };
+  // Flag to indicate if timed launch was adjusted to immediate
+  launchTimeAdjusted?: boolean;
+  requestedLaunchTime?: Date;
 }
 
 export interface PoolConfig {

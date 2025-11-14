@@ -173,20 +173,6 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Token Description *</Label>
-            <textarea
-              id="description"
-              placeholder="Describe your token..."
-              {...register("description")}
-              disabled={isLoading}
-              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            {errors.description && (
-              <p className="text-sm text-destructive">{errors.description.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="logoFile">Logo Image *</Label>
             <Input
               id="logoFile"
@@ -212,6 +198,59 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
               <p className="text-sm text-destructive">{errors.logoFile.message as string}</p>
             )}
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Token Description</Label>
+            <textarea
+              id="description"
+              placeholder="Describe your token..."
+              {...register("description")}
+              disabled={isLoading}
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            {errors.description && (
+              <p className="text-sm text-destructive">{errors.description.message}</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Launch Time Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Launch Time</CardTitle>
+          <CardDescription>Schedule when your token becomes tradeable</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="enableTimedLaunch"
+              {...register("enableTimedLaunch")}
+              checked={enableTimedLaunch}
+              onChange={(e) => setEnableTimedLaunch(e.target.checked)}
+              disabled={isLoading}
+              className="h-4 w-4"
+            />
+            <Label htmlFor="enableTimedLaunch">Enable Timed Launch</Label>
+          </div>
+
+          {enableTimedLaunch && (
+            <div className="space-y-2">
+              <Label htmlFor="launchDateTime">Launch Date & Time</Label>
+              <Input
+                id="launchDateTime"
+                type="datetime-local"
+                {...register("launchDateTime", {
+                  valueAsDate: true,
+                })}
+                disabled={isLoading}
+              />
+              {errors.launchDateTime && (
+                <p className="text-sm text-destructive">{errors.launchDateTime.message}</p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -264,45 +303,6 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                   <p className="text-sm text-destructive">{errors.endingFeeRate.message}</p>
                 )}
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Launch Time Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Launch Time</CardTitle>
-          <CardDescription>Schedule when your token becomes tradeable</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="enableTimedLaunch"
-              {...register("enableTimedLaunch")}
-              checked={enableTimedLaunch}
-              onChange={(e) => setEnableTimedLaunch(e.target.checked)}
-              disabled={isLoading}
-              className="h-4 w-4"
-            />
-            <Label htmlFor="enableTimedLaunch">Enable Timed Launch</Label>
-          </div>
-
-          {enableTimedLaunch && (
-            <div className="space-y-2">
-              <Label htmlFor="launchDateTime">Launch Date & Time</Label>
-              <Input
-                id="launchDateTime"
-                type="datetime-local"
-                {...register("launchDateTime", {
-                  valueAsDate: true,
-                })}
-                disabled={isLoading}
-              />
-              {errors.launchDateTime && (
-                <p className="text-sm text-destructive">{errors.launchDateTime.message}</p>
-              )}
             </div>
           )}
         </CardContent>

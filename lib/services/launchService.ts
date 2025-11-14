@@ -192,7 +192,7 @@ export class TokenLaunchService {
 
       const { TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
 
-      const poolResult = await createDAMMv2Pool({
+      let poolResult = await createDAMMv2Pool({
         connection: this.connection,
         payer: walletPublicKey,
         tokenAMint: mintResult.mint,
@@ -215,6 +215,84 @@ export class TokenLaunchService {
       poolResult.transaction.recentBlockhash = blockhash;
       poolResult.transaction.feePayer = walletPublicKey;
 
+      // Track if launch time was adjusted
+      let launchTimeAdjusted = false;
+      let requestedLaunchTime: Date | undefined = undefined;
+
+      // Step 4.5: Check if launch time is in the past and auto-adjust
+      this.updateStatus({
+        step: "signing",
+        message: "Validating pool configuration...",
+        progress: 75,
+      });
+
+      console.log("Checking pool launch time validity...");
+      console.log(`  enableTimedLaunch: ${formData.enableTimedLaunch}`);
+      console.log(`  launchDateTime: ${formData.launchDateTime}`);
+
+      // Check if launch time is in the past or too close to current time (within 2 minutes buffer)
+      if (formData.enableTimedLaunch && formData.launchDateTime) {
+        const now = new Date();
+        const launchTime = new Date(formData.launchDateTime);
+        const timeUntilLaunch = launchTime.getTime() - now.getTime();
+        const twoMinutesInMs = 2 * 60 * 1000;
+
+        console.log(`  Current time: ${now.toISOString()}`);
+        console.log(`  Launch time: ${launchTime.toISOString()}`);
+        console.log(`  Time until launch: ${Math.floor(timeUntilLaunch / 1000)} seconds`);
+
+        if (timeUntilLaunch < twoMinutesInMs) {
+          console.warn(
+            '⚠️ Launch time is too close to current time or in the past.\n' +
+            `  Requested: ${launchTime.toISOString()}\n` +
+            `  Current:   ${now.toISOString()}\n` +
+            `  Difference: ${Math.floor(timeUntilLaunch / 1000)} seconds\n` +
+            'Automatically adjusting to immediate activation...'
+          );
+
+          // Track the adjustment
+          launchTimeAdjusted = true;
+          requestedLaunchTime = formData.launchDateTime;
+
+          this.updateStatus({
+            step: "signing",
+            message: "Adjusting to immediate launch due to expired time...",
+            progress: 77,
+            launchTimeAdjusted: true,
+            requestedLaunchTime: formData.launchDateTime,
+          });
+
+          // Re-create pool with immediate activation
+          poolResult = await createDAMMv2Pool({
+            connection: this.connection,
+            payer: walletPublicKey,
+            tokenAMint: mintResult.mint,
+            tokenBMint: new PublicKey(ENV.QUOTE_TOKEN_MINT),
+            tokenAAmount: poolTokenAmount,
+            tokenADecimals: ENV.TOKEN_DECIMALS,
+            tokenBDecimals: 9,
+            initialPrice: ENV.INITIAL_PRICE,
+            tokenAProgram: TOKEN_PROGRAM_ID,
+            tokenBProgram: TOKEN_PROGRAM_ID,
+            launchTime: undefined, // Immediate activation
+            feeSchedule: formData.enableFeeScheduler ? {
+              enabled: true,
+              startRate: formData.startingFeeRate,
+              endRate: formData.endingFeeRate,
+              decayDuration: ENV.FEE_DECAY_DURATION_MINUTES,
+            } : undefined,
+          });
+
+          poolResult.transaction.recentBlockhash = blockhash;
+          poolResult.transaction.feePayer = walletPublicKey;
+
+          console.log("✓ Pool recreated for immediate activation");
+        } else {
+          console.log(`✓ Launch time is valid (${Math.floor(timeUntilLaunch / 1000)} seconds in the future)`);
+        }
+      }
+
+
       // Step 5: Sign all transactions at once (single user approval!)
       this.updateStatus({
         step: "signing",
@@ -231,7 +309,7 @@ export class TokenLaunchService {
       console.log("Requesting user signature for all 3 transactions at once...");
       const signedTransactions = await signAllTransactions(allTransactions);
 
-      // Add keypair signatures to transactions that need them
+      // Add keypair signatures after wallet signing
       signedTransactions[0].partialSign(mintKeypair); // Mint transaction
       signedTransactions[2].partialSign(poolResult.positionNft); // Pool transaction
 
@@ -276,15 +354,116 @@ export class TokenLaunchService {
         },
       });
 
-      const poolSignature = await this.connection.sendRawTransaction(signedTransactions[2].serialize());
-      await confirmTransaction(this.connection, poolSignature, blockhash, lastValidBlockHeight);
-      console.log(
-        `✓ DAMMv2 pool created:\n` +
-        `  Pool: ${poolResult.pool.toBase58()}\n` +
-        `  Position: ${poolResult.position.toBase58()}\n` +
-        `  Position NFT: ${poolResult.positionNft.publicKey.toBase58()}\n` +
-        `  Signature: ${poolSignature}`
-      );
+      let poolSignature: string;
+
+      try {
+        poolSignature = await this.connection.sendRawTransaction(signedTransactions[2].serialize());
+        await confirmTransaction(this.connection, poolSignature, blockhash, lastValidBlockHeight);
+        console.log(
+          `✓ DAMMv2 pool created:\n` +
+          `  Pool: ${poolResult.pool.toBase58()}\n` +
+          `  Position: ${poolResult.position.toBase58()}\n` +
+          `  Position NFT: ${poolResult.positionNft.publicKey.toBase58()}\n` +
+          `  Signature: ${poolSignature}`
+        );
+      } catch (poolError: any) {
+        // Check if this is an InvalidActivationPoint error
+        const errorMessage = poolError?.message || '';
+        const errorLogs = poolError?.logs?.join('\n') || '';
+
+        const isActivationError =
+          errorMessage.includes('InvalidActivationPoint') ||
+          errorMessage.includes('0x177b') ||
+          errorMessage.includes('6011') ||
+          errorLogs.includes('InvalidActivationPoint') ||
+          errorLogs.includes('0x177b') ||
+          errorLogs.includes('6011');
+
+        if (isActivationError && formData.enableTimedLaunch && formData.launchDateTime && !launchTimeAdjusted) {
+          console.warn(
+            '⚠️ Pool creation failed with InvalidActivationPoint error.\n' +
+            'Launch time expired between validation and submission.\n' +
+            'Recreating pool for immediate activation and requesting new approval...'
+          );
+
+          // Track the adjustment
+          launchTimeAdjusted = true;
+          requestedLaunchTime = formData.launchDateTime;
+
+          this.updateStatus({
+            step: "pool",
+            message: "Launch time expired - recreating pool for immediate launch...",
+            progress: 92,
+            transactions: {
+              mintSignature,
+              setupSignature,
+            },
+            launchTimeAdjusted: true,
+            requestedLaunchTime: formData.launchDateTime,
+          });
+
+          // Re-create pool with immediate activation
+          const newPoolResult = await createDAMMv2Pool({
+            connection: this.connection,
+            payer: walletPublicKey,
+            tokenAMint: mintResult.mint,
+            tokenBMint: new PublicKey(ENV.QUOTE_TOKEN_MINT),
+            tokenAAmount: poolTokenAmount,
+            tokenADecimals: ENV.TOKEN_DECIMALS,
+            tokenBDecimals: 9,
+            initialPrice: ENV.INITIAL_PRICE,
+            tokenAProgram: TOKEN_PROGRAM_ID,
+            tokenBProgram: TOKEN_PROGRAM_ID,
+            launchTime: undefined, // Immediate activation
+            feeSchedule: formData.enableFeeScheduler ? {
+              enabled: true,
+              startRate: formData.startingFeeRate,
+              endRate: formData.endingFeeRate,
+              decayDuration: ENV.FEE_DECAY_DURATION_MINUTES,
+            } : undefined,
+          });
+
+          // Get fresh blockhash for the retry
+          const { blockhash: newBlockhash, lastValidBlockHeight: newLastValidBlockHeight } =
+            await getRecentBlockhash(this.connection);
+
+          newPoolResult.transaction.recentBlockhash = newBlockhash;
+          newPoolResult.transaction.feePayer = walletPublicKey;
+
+          this.updateStatus({
+            step: "signing",
+            message: "Please approve the corrected pool transaction...",
+            progress: 93,
+          });
+
+          console.log("Requesting user signature for corrected pool transaction...");
+          const [signedPoolTx] = await signAllTransactions([newPoolResult.transaction]);
+          signedPoolTx.partialSign(newPoolResult.positionNft);
+
+          this.updateStatus({
+            step: "pool",
+            message: "Submitting corrected pool transaction...",
+            progress: 95,
+          });
+
+          poolSignature = await this.connection.sendRawTransaction(signedPoolTx.serialize());
+          await confirmTransaction(this.connection, poolSignature, newBlockhash, newLastValidBlockHeight);
+
+          // Update poolResult for the final config
+          poolResult = newPoolResult;
+
+          console.log(
+            `✓ DAMMv2 pool created (immediate activation):\n` +
+            `  Pool: ${poolResult.pool.toBase58()}\n` +
+            `  Position: ${poolResult.position.toBase58()}\n` +
+            `  Position NFT: ${poolResult.positionNft.publicKey.toBase58()}\n` +
+            `  Signature: ${poolSignature}`
+          );
+        } else {
+          // Different error or already adjusted - rethrow
+          throw poolError;
+        }
+      }
 
       // Step 7: Complete
       this.updateStatus({
@@ -297,6 +476,8 @@ export class TokenLaunchService {
           setupSignature,
           poolSignature,
         },
+        launchTimeAdjusted,
+        requestedLaunchTime,
       });
 
       const launchConfig: TokenLaunchConfig = {
