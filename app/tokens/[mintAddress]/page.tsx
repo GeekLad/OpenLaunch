@@ -169,16 +169,24 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                   </div>
 
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase">
-                      Launch Pool
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-medium text-muted-foreground uppercase">
+                        Launch Pool
+                      </p>
+                      <span className="inline-flex items-center rounded-md bg-purple-50 dark:bg-purple-950 px-2 py-0.5 text-xs font-medium text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                        Meteora DAMMv2
+                      </span>
+                    </div>
                     <a
                       href={`https://app.meteora.ag/dammv2/${token.poolAddress}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline font-mono"
+                      className="text-sm text-primary hover:underline font-mono flex items-center gap-1"
                     >
-                      {token.poolAddress}
+                      <span className="truncate">{token.poolAddress}</span>
+                      <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
                     </a>
                   </div>
                 </div>
@@ -198,9 +206,12 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                   href={getSolscanTxUrl(token.mintTxSignature)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary hover:underline text-sm font-mono break-all"
+                  className="text-primary hover:underline text-sm font-mono flex items-start gap-1"
                 >
-                  {token.mintTxSignature}
+                  <span className="break-all">{token.mintTxSignature}</span>
+                  <svg className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
                 </a>
               </div>
               <div>
@@ -209,9 +220,12 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                   href={getSolscanTxUrl(token.metadataTxSignature)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary hover:underline text-sm font-mono break-all"
+                  className="text-primary hover:underline text-sm font-mono flex items-start gap-1"
                 >
-                  {token.metadataTxSignature}
+                  <span className="break-all">{token.metadataTxSignature}</span>
+                  <svg className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
                 </a>
               </div>
               <div>
@@ -220,9 +234,12 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                   href={getSolscanTxUrl(token.poolTxSignature)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary hover:underline text-sm font-mono break-all"
+                  className="text-primary hover:underline text-sm font-mono flex items-start gap-1"
                 >
-                  {token.poolTxSignature}
+                  <span className="break-all">{token.poolTxSignature}</span>
+                  <svg className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
                 </a>
               </div>
             </CardContent>
