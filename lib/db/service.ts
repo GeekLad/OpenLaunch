@@ -1,7 +1,7 @@
 import { db } from './client';
 import { tokens, poolStatsHistory, feeUpdateSchedule } from './schema';
 import type { Token, NewToken, PoolStatsHistory, NewPoolStatsHistory, FeeUpdateSchedule, NewFeeUpdateSchedule } from './schema';
-import { eq, desc, asc, like, or, and, lt, gte, sql } from 'drizzle-orm';
+import { eq, desc, asc, like, or, and, lt, lte, gt, gte, sql } from 'drizzle-orm';
 
 /**
  * Database Service Layer
@@ -511,13 +511,22 @@ export async function getLeaderboard(limit: number = 100): Promise<LeaderboardEn
 export async function getTokensByDate(
   limit: number = 20,
   offset: number = 0,
-  sortOrder: 'asc' | 'desc' = 'desc'
+  sortOrder: 'asc' | 'desc' = 'desc',
+  statusFilter?: 'all' | 'live' | 'upcoming'
 ): Promise<Token[]> {
   const orderByDirection = sortOrder === 'asc' ? asc : desc;
+  const now = new Date();
 
-  return await db
-    .select()
-    .from(tokens)
+  let query = db.select().from(tokens);
+
+  // Apply status filter
+  if (statusFilter === 'live') {
+    query = query.where(lte(tokens.launchDate, now));
+  } else if (statusFilter === 'upcoming') {
+    query = query.where(gt(tokens.launchDate, now));
+  }
+
+  return await query
     .orderBy(orderByDirection(tokens.launchDate))
     .limit(limit)
     .offset(offset);
@@ -529,13 +538,22 @@ export async function getTokensByDate(
 export async function getTokensByFees(
   limit: number = 20,
   offset: number = 0,
-  sortOrder: 'asc' | 'desc' = 'desc'
+  sortOrder: 'asc' | 'desc' = 'desc',
+  statusFilter?: 'all' | 'live' | 'upcoming'
 ): Promise<Token[]> {
   const orderByDirection = sortOrder === 'asc' ? asc : desc;
+  const now = new Date();
 
-  return await db
-    .select()
-    .from(tokens)
+  let query = db.select().from(tokens);
+
+  // Apply status filter
+  if (statusFilter === 'live') {
+    query = query.where(lte(tokens.launchDate, now));
+  } else if (statusFilter === 'upcoming') {
+    query = query.where(gt(tokens.launchDate, now));
+  }
+
+  return await query
     .orderBy(
       orderByDirection(tokens.cumulativeFeesSnapshot),
       desc(tokens.launchDate) // Tiebreaker: newest first
@@ -547,11 +565,18 @@ export async function getTokensByFees(
 /**
  * Get total count of tokens
  */
-export async function getTotalTokenCount(): Promise<number> {
-  const [{ count }] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(tokens);
+export async function getTotalTokenCount(statusFilter?: 'all' | 'live' | 'upcoming'): Promise<number> {
+  const now = new Date();
+  let query = db.select({ count: sql<number>`count(*)` }).from(tokens);
 
+  // Apply status filter
+  if (statusFilter === 'live') {
+    query = query.where(lte(tokens.launchDate, now));
+  } else if (statusFilter === 'upcoming') {
+    query = query.where(gt(tokens.launchDate, now));
+  }
+
+  const [{ count }] = await query;
   return count;
 }
 

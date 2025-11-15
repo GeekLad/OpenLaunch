@@ -21,6 +21,10 @@ interface SortData {
   sortOrder: string;
 }
 
+interface FilterData {
+  status: string;
+}
+
 export default function TokensPage() {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,14 +40,17 @@ export default function TokensPage() {
     sortBy: "date",
     sortOrder: "desc",
   });
+  const [filter, setFilter] = useState<FilterData>({
+    status: "all",
+  });
 
-  const fetchTokens = async (page: number, sortBy: string, sortOrder: string) => {
+  const fetchTokens = async (page: number, sortBy: string, sortOrder: string, statusFilter: string) => {
     setLoading(true);
     setError(null);
 
     try {
       const response = await fetch(
-        `/api/tokens/list?page=${page}&limit=20&sortBy=${sortBy}&sortOrder=${sortOrder}`
+        `/api/tokens/list?page=${page}&limit=20&sortBy=${sortBy}&sortOrder=${sortOrder}&status=${statusFilter}`
       );
 
       if (!response.ok) {
@@ -54,6 +61,7 @@ export default function TokensPage() {
       setTokens(data.tokens);
       setPagination(data.pagination);
       setSort(data.sort);
+      setFilter(data.filter);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -62,17 +70,21 @@ export default function TokensPage() {
   };
 
   useEffect(() => {
-    fetchTokens(pagination.page, sort.sortBy, sort.sortOrder);
+    fetchTokens(pagination.page, sort.sortBy, sort.sortOrder, filter.status);
   }, []);
 
   const handleSortChange = (newSortBy: string) => {
     const newSortOrder = sort.sortBy === newSortBy && sort.sortOrder === "desc" ? "asc" : "desc";
-    fetchTokens(1, newSortBy, newSortOrder);
+    fetchTokens(1, newSortBy, newSortOrder, filter.status);
+  };
+
+  const handleStatusFilterChange = (newStatus: string) => {
+    fetchTokens(1, sort.sortBy, sort.sortOrder, newStatus);
   };
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > pagination.totalPages) return;
-    fetchTokens(newPage, sort.sortBy, sort.sortOrder);
+    fetchTokens(newPage, sort.sortBy, sort.sortOrder, filter.status);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -85,7 +97,7 @@ export default function TokensPage() {
               <h1 className="text-4xl font-bold">Token Launches</h1>
               <p className="mt-2 text-muted-foreground">
                 {pagination.totalCount > 0
-                  ? `${pagination.totalCount} token${pagination.totalCount === 1 ? "" : "s"} launched`
+                  ? `${pagination.totalCount} token${pagination.totalCount === 1 ? "" : "s"} ${filter.status === "all" ? "" : filter.status}`
                   : "No tokens launched yet"}
               </p>
             </div>
@@ -95,26 +107,62 @@ export default function TokensPage() {
             </Link>
           </div>
 
-          {/* Sort Controls */}
-          <div className="flex gap-2">
-            <Button
-              variant={sort.sortBy === "date" ? "default" : "outline"}
-              onClick={() => handleSortChange("date")}
-            >
-              Sort by Date
-              {sort.sortBy === "date" && (
-                <span className="ml-1">{sort.sortOrder === "desc" ? "↓" : "↑"}</span>
-              )}
-            </Button>
-            <Button
-              variant={sort.sortBy === "fees" ? "default" : "outline"}
-              onClick={() => handleSortChange("fees")}
-            >
-              Sort by Fees
-              {sort.sortBy === "fees" && (
-                <span className="ml-1">{sort.sortOrder === "desc" ? "↓" : "↑"}</span>
-              )}
-            </Button>
+          {/* Filter and Sort Controls */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Status Filter */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium text-muted-foreground">Status:</span>
+              <div className="flex gap-2">
+                <Button
+                  variant={filter.status === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleStatusFilterChange("all")}
+                >
+                  All
+                </Button>
+                <Button
+                  variant={filter.status === "live" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleStatusFilterChange("live")}
+                >
+                  Live
+                </Button>
+                <Button
+                  variant={filter.status === "upcoming" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleStatusFilterChange("upcoming")}
+                >
+                  Upcoming
+                </Button>
+              </div>
+            </div>
+
+            {/* Sort Controls */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium text-muted-foreground">Sort:</span>
+              <div className="flex gap-2">
+                <Button
+                  variant={sort.sortBy === "date" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleSortChange("date")}
+                >
+                  Date
+                  {sort.sortBy === "date" && (
+                    <span className="ml-1">{sort.sortOrder === "desc" ? "↓" : "↑"}</span>
+                  )}
+                </Button>
+                <Button
+                  variant={sort.sortBy === "fees" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleSortChange("fees")}
+                >
+                  Fees
+                  {sort.sortBy === "fees" && (
+                    <span className="ml-1">{sort.sortOrder === "desc" ? "↓" : "↑"}</span>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Loading State */}

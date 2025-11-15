@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "20");
     const sortBy = searchParams.get("sortBy") || "date"; // 'date' or 'fees'
     const sortOrder = searchParams.get("sortOrder") || "desc"; // 'asc' or 'desc'
+    const statusFilter = searchParams.get("status") || "all"; // 'all', 'live', or 'upcoming'
 
     // Validate parameters
     if (page < 1 || limit < 1 || limit > 100) {
@@ -31,19 +32,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (!["all", "live", "upcoming"].includes(statusFilter)) {
+      return NextResponse.json(
+        { error: "Invalid status parameter. Must be 'all', 'live', or 'upcoming'" },
+        { status: 400 }
+      );
+    }
+
     // Calculate offset
     const offset = (page - 1) * limit;
 
-    // Get tokens based on sort criteria
+    // Get tokens based on sort criteria and status filter
     let tokens;
     if (sortBy === "fees") {
-      tokens = await dbService.getTokensByFees(limit, offset, sortOrder as "asc" | "desc");
+      tokens = await dbService.getTokensByFees(limit, offset, sortOrder as "asc" | "desc", statusFilter as "all" | "live" | "upcoming");
     } else {
-      tokens = await dbService.getTokensByDate(limit, offset, sortOrder as "asc" | "desc");
+      tokens = await dbService.getTokensByDate(limit, offset, sortOrder as "asc" | "desc", statusFilter as "all" | "live" | "upcoming");
     }
 
-    // Get total count for pagination metadata
-    const totalCount = await dbService.getTotalTokenCount();
+    // Get total count for pagination metadata with filter
+    const totalCount = await dbService.getTotalTokenCount(statusFilter as "all" | "live" | "upcoming");
     const totalPages = Math.ceil(totalCount / limit);
     const hasMore = page < totalPages;
 
@@ -59,6 +67,9 @@ export async function GET(request: NextRequest) {
       sort: {
         sortBy,
         sortOrder,
+      },
+      filter: {
+        status: statusFilter,
       },
     });
   } catch (error) {
