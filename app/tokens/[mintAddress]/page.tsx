@@ -5,10 +5,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Token } from "@/lib/db/schema";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Countdown } from "@/components/ui/countdown";
 import { getSolscanTxUrl } from "@/lib/utils";
+import { ExternalLinks } from "@/components/token-detail/ExternalLinks";
 
 interface TokenDetailPageProps {
   params: Promise<{
@@ -194,10 +195,21 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
             </CardHeader>
           </Card>
 
+
+          {/* External Links */}
+          <ExternalLinks
+            mintAddress={token.mintAddress}
+            poolAddress={token.poolAddress}
+            metadataUri={token.metadataUri}
+          />
+          
           {/* Transaction History */}
           <Card>
             <CardHeader>
-              <CardTitle>Transaction History</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Transaction History
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <div>
@@ -243,16 +255,6 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                 </a>
               </div>
             </CardContent>
-          </Card>
-
-          {/* Placeholder for Phase 6 Features */}
-          <Card className="border-dashed">
-            <CardHeader>
-              <CardTitle>Coming Soon</CardTitle>
-              <CardDescription>
-                Live trading statistics and charts
-              </CardDescription>
-            </CardHeader>
           </Card>
       </div>
     </div>
