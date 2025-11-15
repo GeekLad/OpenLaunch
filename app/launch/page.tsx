@@ -113,7 +113,7 @@ export default function LaunchPage() {
             console.log("[Database] ✓ Token saved successfully");
 
             // Redirect to token detail page immediately
-            router.push(`/token/${config.mint.toBase58()}`);
+            router.push(`/tokens/${config.mint.toBase58()}`);
           } else {
             const error = await response.json();
             console.error("[Database] Failed to save token:", error);

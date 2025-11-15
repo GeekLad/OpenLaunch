@@ -8,6 +8,7 @@ import type { Token } from "@/lib/db/schema";
 import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Countdown } from "@/components/ui/countdown";
+import { getSolscanTxUrl } from "@/lib/utils";
 
 interface TokenDetailPageProps {
   params: Promise<{
@@ -73,11 +74,6 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
               <p className="text-center text-red-600 dark:text-red-400">
                 {error || "Token not found"}
               </p>
-              <div className="mt-4 text-center">
-                <Link href="/launch" className="text-primary hover:underline">
-                  ← Back to Launch
-                </Link>
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -95,11 +91,6 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mx-auto max-w-4xl space-y-6">
-          {/* Back Link */}
-          <Link href="/launch" className="text-sm text-muted-foreground hover:text-primary">
-            ← Back to Launch
-          </Link>
-
           {/* Launch Status */}
           {isUpcoming ? (
             <Card className="border-blue-500 bg-blue-50 dark:bg-blue-950">
@@ -179,7 +170,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
 
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase">
-                      Pool Address
+                      Launch Pool
                     </p>
                     <a
                       href={`https://app.meteora.ag/dammv2/${token.poolAddress}`}
@@ -202,9 +193,9 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
             </CardHeader>
             <CardContent className="space-y-2">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-1">MINT TRANSACTION</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase">Create token</p>
                 <a
-                  href={`https://solscan.io/tx/${token.mintTxSignature}`}
+                  href={getSolscanTxUrl(token.mintTxSignature)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline text-sm font-mono break-all"
@@ -213,9 +204,9 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                 </a>
               </div>
               <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-1">METADATA TRANSACTION</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase">Configure and mint token</p>
                 <a
-                  href={`https://solscan.io/tx/${token.metadataTxSignature}`}
+                  href={getSolscanTxUrl(token.metadataTxSignature)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline text-sm font-mono break-all"
@@ -224,9 +215,9 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                 </a>
               </div>
               <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-1">POOL TRANSACTION</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase">Create launch pool</p>
                 <a
-                  href={`https://solscan.io/tx/${token.poolTxSignature}`}
+                  href={getSolscanTxUrl(token.poolTxSignature)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline text-sm font-mono break-all"

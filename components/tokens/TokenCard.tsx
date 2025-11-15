@@ -22,7 +22,7 @@ export function TokenCard({ token }: TokenCardProps) {
   };
 
   return (
-    <Link href={`/token/${token.mintAddress}`}>
+    <Link href={`/tokens/${token.mintAddress}`}>
       <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
         <CardHeader className="pb-3">
           <div className="flex items-start gap-3">
