@@ -97,6 +97,14 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   // Check if all required fields are filled
   const isFormValid = !!(symbol && name && logoFile && !fileSizeWarning);
 
+  // Helper function to get local date string in YYYY-MM-DD format
+  const getLocalDateString = (date: Date = new Date()): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Helper function to update the datetime and validate it's not in the past
   const updateDateTime = (dateStr: string, hourStr: string, minuteStr: string, period: "AM" | "PM") => {
     if (!dateStr || hourStr === "" || minuteStr === "") {
@@ -135,7 +143,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   const getMinTime = () => {
     if (!launchDate) return { minHour: 1, minMinute: 0 };
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     if (launchDate === today) {
       const now = new Date();
       const currentHour24 = now.getHours();
@@ -335,7 +343,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                     id="launchDate"
                     type="date"
                     value={launchDate}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={getLocalDateString()}
                     onChange={(e) => {
                       const dateValue = e.target.value;
                       setLaunchDate(dateValue);
@@ -344,7 +352,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                     onClick={(e) => {
                       // Initialize with today's date if empty
                       if (!launchDate) {
-                        const today = new Date().toISOString().split('T')[0];
+                        const today = getLocalDateString();
                         setLaunchDate(today);
                         updateDateTime(today, launchHour, launchMinute, launchPeriod);
                       }
@@ -356,35 +364,35 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                   <Input
                     id="launchHour"
                     type="number"
-                    min={getMinTime().minHour.toString()}
+                    min="1"
                     max="12"
                     value={launchHour}
                     placeholder="HH"
                     onChange={(e) => {
-                      let value = e.target.value;
-                      const numValue = parseInt(value);
-
-                      // Enforce 12-hour format (1-12)
-                      if (!isNaN(numValue)) {
-                        if (numValue > 12) value = "12";
-                        if (numValue < 1) value = "1";
-
-                        const minTime = getMinTime();
-                        if (numValue < minTime.minHour) {
-                          value = minTime.minHour.toString();
-                        }
-                      }
-
-                      setLaunchHour(value);
-                      updateDateTime(launchDate, value, launchMinute, launchPeriod);
+                      // Allow free typing, just store the value
+                      setLaunchHour(e.target.value);
                     }}
                     onBlur={(e) => {
-                      // Add zero-padding on blur
-                      const value = e.target.value;
-                      if (value && !isNaN(parseInt(value))) {
-                        const paddedValue = value.padStart(2, '0');
-                        setLaunchHour(paddedValue);
+                      let value = e.target.value;
+                      if (!value) return;
+
+                      let numValue = parseInt(value);
+                      if (isNaN(numValue)) return;
+
+                      // Enforce 12-hour format (1-12)
+                      if (numValue > 12) numValue = 12;
+                      if (numValue < 1) numValue = 1;
+
+                      // Enforce minimum hour for today
+                      const minTime = getMinTime();
+                      if (numValue < minTime.minHour) {
+                        numValue = minTime.minHour;
                       }
+
+                      // Add zero-padding and update
+                      const paddedValue = numValue.toString().padStart(2, '0');
+                      setLaunchHour(paddedValue);
+                      updateDateTime(launchDate, paddedValue, launchMinute, launchPeriod);
                     }}
                     onClick={(e) => {
                       // Initialize with next hour if empty
@@ -410,37 +418,36 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                   <Input
                     id="launchMinute"
                     type="number"
-                    min={getMinTime().minMinute.toString()}
+                    min="0"
                     max="59"
                     value={launchMinute}
                     placeholder="MM"
                     onChange={(e) => {
-                      let value = e.target.value;
-                      const numValue = parseInt(value);
-
-                      // Enforce 0-59 range for minutes
-                      if (!isNaN(numValue)) {
-                        if (numValue > 59) value = "59";
-                        if (numValue < 0) value = "0";
-
-                        // Enforce minimum minute for current hour on today
-                        const minTime = getMinTime();
-                        const selectedHour = parseInt(launchHour);
-                        if (!isNaN(selectedHour) && selectedHour === minTime.minHour && numValue < minTime.minMinute) {
-                          value = minTime.minMinute.toString();
-                        }
-                      }
-
-                      setLaunchMinute(value);
-                      updateDateTime(launchDate, launchHour, value, launchPeriod);
+                      // Allow free typing, just store the value
+                      setLaunchMinute(e.target.value);
                     }}
                     onBlur={(e) => {
-                      // Add zero-padding on blur
-                      const value = e.target.value;
-                      if (value && !isNaN(parseInt(value))) {
-                        const paddedValue = value.padStart(2, '0');
-                        setLaunchMinute(paddedValue);
+                      let value = e.target.value;
+                      if (!value) return;
+
+                      let numValue = parseInt(value);
+                      if (isNaN(numValue)) return;
+
+                      // Enforce 0-59 range for minutes
+                      if (numValue > 59) numValue = 59;
+                      if (numValue < 0) numValue = 0;
+
+                      // Enforce minimum minute for current hour on today
+                      const minTime = getMinTime();
+                      const selectedHour = parseInt(launchHour);
+                      if (!isNaN(selectedHour) && selectedHour === minTime.minHour && numValue < minTime.minMinute) {
+                        numValue = minTime.minMinute;
                       }
+
+                      // Add zero-padding and update
+                      const paddedValue = numValue.toString().padStart(2, '0');
+                      setLaunchMinute(paddedValue);
+                      updateDateTime(launchDate, launchHour, paddedValue, launchPeriod);
                     }}
                     onClick={(e) => {
                       // Initialize with 0 minutes if empty

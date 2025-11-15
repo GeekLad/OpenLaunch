@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import type { Token } from "@/lib/db/schema";
 import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Countdown } from "@/components/ui/countdown";
 
 interface TokenDetailPageProps {
   params: Promise<{
@@ -20,6 +21,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [hasLaunched, setHasLaunched] = useState(false);
 
   const copyToClipboard = async (text: string) => {
     await navigator.clipboard.writeText(text);
@@ -84,7 +86,11 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
   }
 
   const launchDate = new Date(token.launchDate);
-  const isUpcoming = launchDate > new Date();
+  const isUpcoming = !hasLaunched && launchDate > new Date();
+
+  const handleCountdownComplete = () => {
+    setHasLaunched(true);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -102,9 +108,12 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                   🚀 Upcoming Launch
                 </CardTitle>
                 <CardDescription className="text-blue-600 dark:text-blue-300">
-                  This token will launch on {launchDate.toLocaleString()}
+                  Launches on {launchDate.toLocaleString()}
                 </CardDescription>
               </CardHeader>
+              <CardContent>
+                <Countdown targetDate={launchDate} onComplete={handleCountdownComplete} />
+              </CardContent>
             </Card>
           ) : (
             <Card className="border-green-500 bg-green-50 dark:bg-green-950">

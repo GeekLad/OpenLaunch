@@ -1,7 +1,11 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { Token } from "@/lib/db/schema";
+import { CompactCountdown } from "@/components/ui/countdown";
 
 interface TokenCardProps {
   token: Token;
@@ -9,8 +13,13 @@ interface TokenCardProps {
 
 export function TokenCard({ token }: TokenCardProps) {
   const launchDate = new Date(token.launchDate);
-  const isUpcoming = launchDate > new Date();
+  const [hasLaunched, setHasLaunched] = useState(false);
+  const isUpcoming = !hasLaunched && launchDate > new Date();
   const fees = BigInt(token.cumulativeFeesSnapshot);
+
+  const handleCountdownComplete = () => {
+    setHasLaunched(true);
+  };
 
   return (
     <Link href={`/token/${token.mintAddress}`}>
@@ -55,14 +64,18 @@ export function TokenCard({ token }: TokenCardProps) {
         </CardHeader>
 
         <CardContent className="space-y-3">
-          {/* Launch Date */}
+          {/* Launch Date / Countdown */}
           <div>
             <p className="text-xs text-muted-foreground uppercase mb-1">
-              {isUpcoming ? "Launches" : "Launched"}
+              {isUpcoming ? "Launches In" : "Launched"}
             </p>
-            <p className="text-sm font-mono">
-              {launchDate.toLocaleDateString()} {launchDate.toLocaleTimeString()}
-            </p>
+            {isUpcoming ? (
+              <CompactCountdown targetDate={launchDate} onComplete={handleCountdownComplete} />
+            ) : (
+              <p className="text-sm font-mono">
+                {launchDate.toLocaleDateString()} {launchDate.toLocaleTimeString()}
+              </p>
+            )}
           </div>
 
           {/* Cumulative Fees */}
