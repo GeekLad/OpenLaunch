@@ -555,6 +555,17 @@ export async function getTotalTokenCount(): Promise<number> {
   return count;
 }
 
+/**
+ * Get all tokens (no pagination)
+ * Used by cron jobs and background services
+ */
+export async function getAllTokens(): Promise<Token[]> {
+  return await db
+    .select()
+    .from(tokens)
+    .orderBy(desc(tokens.launchDate));
+}
+
 // Export all functions as a service object for easier importing
 export const dbService = {
   // Token operations
@@ -563,6 +574,7 @@ export const dbService = {
   getTokenByPoolAddress,
   getTokenById,
   listTokens,
+  getAllTokens,
   searchTokens,
   updateCumulativeFeesSnapshot,
   getTokensByDate,

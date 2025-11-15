@@ -5,6 +5,7 @@ import { SolanaProvider } from "@/components/providers/SolanaProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Header } from "@/components/layout/Header";
 import { ENV } from "@/config/environment";
+import "@/lib/init"; // Initialize cron jobs and other services
 
 const inter = Inter({ subsets: ["latin"] });
 
