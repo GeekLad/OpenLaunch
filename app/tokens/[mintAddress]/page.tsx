@@ -250,18 +250,9 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
             <CardHeader>
               <CardTitle>Coming Soon</CardTitle>
               <CardDescription>
-                More features will be available in future phases:
+                Live trading statistics and charts
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                <li>Live trading statistics and charts</li>
-                <li>Real-time fee updates via WebSocket</li>
-                <li>Countdown timer for upcoming launches</li>
-                <li>Fee leaderboard ranking</li>
-                <li>Social sharing buttons</li>
-              </ul>
-            </CardContent>
           </Card>
       </div>
     </div>
