@@ -6,7 +6,8 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ENV } from "@/config/environment";
-import "@/lib/init"; // Initialize cron jobs and other services
+import "../app/init";
+
 
 const inter = Inter({ subsets: ["latin"] });
 
