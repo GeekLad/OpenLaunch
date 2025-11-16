@@ -11,22 +11,27 @@
 - **Client-Side Deployment**: All transactions signed by user's connected wallet
 - **DAMMv2 Integration**: Single-sided liquidity deployment using Meteora's Dynamic AMM
 - **Security First**: Mint and freeze authorities permanently revoked
-- **Fee Scheduling**: Dynamic fees with exponential decay over time
+- **Fee Scheduling**: Dynamic fees with exponential decay over time with automated updates
 - **Timed Launch**: Schedule token launches for specific dates and times
 - **IPFS Metadata**: Token metadata and images stored on IPFS (Pinata or Filebase)
 - **Real-time Status**: Live progress updates during token deployment
+- **Token Database**: Complete token launch history with search and filtering
+- **Token Explorer**: Browse launched tokens with pagination and sorting
+- **Fee Tracking**: Automated fee collection and statistics tracking
 - **Configurable Supply**: Customizable token supply and pool liquidity allocation
 
 ## Tech Stack
 
 - **Frontend**: Next.js 16 with TypeScript, React 19
 - **Styling**: Tailwind CSS + Shadcn/ui components
+- **Database**: Drizzle ORM with SQLite (database-agnostic design)
 - **Blockchain**: Solana Web3.js, SPL Token
 - **Wallet**: Solana Wallet Adapter (Phantom, Solflare, etc.)
 - **Metadata**: Metaplex Token Metadata (Umi SDK)
 - **AMM**: Meteora CP-AMM SDK v1.2.3
 - **Storage**: IPFS (Pinata or Filebase)
 - **Form Handling**: React Hook Form + Zod validation
+- **Background Jobs**: Node-cron for fee updates
 
 ## Quick Start
 
@@ -41,6 +46,9 @@ npm install
 # Configure environment
 cp .env.local.example .env.local
 
+# Set up database
+npm run db:migrate
+
 # Start development server
 npm run dev
 ```
@@ -50,30 +58,44 @@ npm run dev
 ```
 openlaunch/
 ├── app/                          # Next.js app directory
+│   ├── api/                      # API routes
+│   │   ├── ipfs/                 # IPFS upload endpoints
+│   │   │   ├── upload-file/      # Image upload to IPFS
+│   │   │   └── upload-metadata/  # Metadata JSON upload
+│   │   └── tokens/               # Token CRUD operations
+│   │       ├── create/           # Create token record
+│   │       ├── list/             # List tokens with pagination
+│   │       ├── update-fees/      # Update fee statistics
+│   │       └── [mintAddress]/    # Get token details
 │   ├── launch/page.tsx           # Token launch page
+│   ├── tokens/                   # Token explorer pages
+│   │   ├── page.tsx              # Token listing with pagination
+│   │   └── [mintAddress]/        # Individual token details
 │   ├── layout.tsx                # Root layout with providers
 │   ├── page.tsx                  # Landing page
 │   └── globals.css               # Global styles
 ├── components/
 │   ├── forms/
 │   │   └── TokenLaunchForm.tsx   # Main token creation form
-│   ├── providers/
-│   │   └── SolanaProvider.tsx    # Wallet adapter provider
-│   └── ui/                       # Reusable UI components
+│   ├── layout/                   # Header, Footer components
+│   ├── providers/                # Solana and Theme providers
+│   ├── token-detail/             # Token detail page components
+│   ├── tokens/                   # Token card components
+│   ├── ui/                       # Reusable UI components
+│   └── wallet/                   # Wallet connection components
 ├── lib/
-│   ├── solana/
-│   │   ├── connection.ts         # Solana RPC connection
-│   │   ├── tokenUtils.ts         # Token mint operations
-│   │   ├── metadataUtils.ts      # Metadata creation (Metaplex Umi)
-│   │   └── poolUtils.ts          # DAMMv2 pool integration
-│   ├── services/
-│   │   ├── ipfsService.ts        # IPFS upload service
-│   │   └── launchService.ts      # Main token launch orchestration
-│   └── utils.ts                  # Utility functions
-├── types/
-│   └── token.ts                  # TypeScript type definitions
-├── config/
-│   └── environment.ts            # Environment configuration
+│   ├── cron/                     # Background job scheduling
+│   ├── db/                       # Database layer (Drizzle ORM)
+│   │   ├── migrations/           # Database migration files
+│   │   └── schema/               # Database table definitions
+│   ├── meteora/                  # Meteora DAMMv2 integration
+│   ├── services/                 # Business logic services
+│   ├── solana/                   # Solana blockchain utilities
+│   └── utils/                    # Utility functions
+├── scripts/                      # Standalone scripts
+│   └── fee-updater.mjs           # Fee updater cron service
+├── types/                        # TypeScript type definitions
+├── config/                       # Environment configuration
 └── .env.local.example            # Environment variables template
 ```
 
@@ -93,9 +115,25 @@ openlaunch/
 4. **Set Launch Time** (optional):
    - Enable timed launch
    - Choose launch date and time
-5. **Add Social Links** (optional):
+5. **Advanced Options** (optional):
+   - Bring Your Own CA: Use a custom private key for vanity addresses
+6. **Add Social Links** (optional):
    - Website, Twitter, Telegram, Discord
-6. **Launch**: Click "Launch Token" and approve transactions in your wallet
+7. **Launch**: Click "Launch Token" and approve transactions in your wallet
+
+### Token Explorer
+
+Browse and search launched tokens:
+
+- **Token Listing**: View all launched tokens with pagination
+- **Search**: Full-text search across name, symbol, description, and addresses
+- **Filtering**: Filter by status (All, Live, Upcoming)
+- **Sorting**: Sort by launch date or fee earnings
+- **Token Details**: View comprehensive token information including:
+  - Transaction history with Solscan links
+  - Pool information with Meteora integration
+  - Launch status and countdown timers
+  - External links to DexScreener, BirdEye, etc.
 
 ### Transaction Flow
 
@@ -122,9 +160,9 @@ NEXT_PUBLIC_TOTAL_SUPPLY=1000000000
 NEXT_PUBLIC_POOL_LIQUIDITY_PERCENTAGE=1  # 1 = 100% to pool
 
 # Pricing (affects initial market cap)
-NEXT_PUBLIC_INITIAL_PRICE=0.0000001      # 100 SOL market cap
-NEXT_PUBLIC_PRICE_RANGE_MIN=0.0000001
-NEXT_PUBLIC_PRICE_RANGE_MAX=0.001        # 1M SOL market cap
+NEXT_PUBLIC_INITIAL_PRICE=0.00001       # 100 SOL market cap
+NEXT_PUBLIC_PRICE_RANGE_MIN=0.000001
+NEXT_PUBLIC_PRICE_RANGE_MAX=0.0001      # 1M SOL market cap
 
 # Fee Schedule
 NEXT_PUBLIC_FEE_DECAY_DURATION_MINUTES=60
@@ -180,6 +218,47 @@ Implementation in [lib/solana/poolUtils.ts](lib/solana/poolUtils.ts:1-1):
 - `getPoolInfo()`: Fetch pool state information
 - `poolExists()`: Check if pool exists
 
+## API Routes
+
+The application includes a complete REST API for token management:
+
+### Token Operations
+- `GET /api/tokens/list` - List tokens with pagination, sorting, and filtering
+- `GET /api/tokens/[mintAddress]` - Get individual token details
+- `POST /api/tokens/create` - Create new token record (used after launch)
+- `POST /api/tokens/update-fees` - Update token fee statistics
+
+### IPFS Operations
+- `POST /api/ipfs/upload-file` - Upload images to IPFS
+- `POST /api/ipfs/upload-metadata` - Upload metadata JSON to IPFS
+
+### Database Features
+- Full-text search across token metadata
+- Pagination and sorting (by date or fees)
+- Status filtering (all, live, upcoming)
+- Fee tracking and historical data
+- Automated background updates via cron jobs
+
+## Background Services
+
+### Fee Updater Service
+
+Automated fee collection and statistics tracking system:
+
+- **Standalone Script**: `scripts/fee-updater.mjs` can run independently
+- **Cron Integration**: Automatically starts in production with `NODE_ENV=production`
+- **Age-based Polling**: Update frequency adapts based on token age
+- **Error Tracking**: Built-in error handling and retry logic
+- **Database Integration**: Updates fee statistics and pool history
+
+```bash
+# Run standalone fee updater
+node scripts/fee-updater.mjs
+
+# Enable cron in development
+ENABLE_CRON=true npm run dev
+```
+
 ## Security
 
 - All transactions are client-side and signed by user's wallet
@@ -188,6 +267,8 @@ Implementation in [lib/solana/poolUtils.ts](lib/solana/poolUtils.ts:1-1):
 - Token metadata immutable by default (configurable)
 - IPFS metadata immutable once uploaded
 - IPFS credentials server-side only (never exposed to client)
+- Database uses SQLite with WAL mode for better concurrency
+- All sensitive environment variables are server-side only
 
 ## Development
 
@@ -203,6 +284,16 @@ npm run start
 
 # Lint code
 npm run lint
+
+# Database operations
+npm run db:generate    # Generate migrations from schema changes
+npm run db:migrate     # Apply pending migrations
+npm run db:seed        # Populate database with sample data
+npm run db:test        # Verify database operations
+npm run db:studio      # Open visual database browser
+
+# Fee updater service (standalone)
+node scripts/fee-updater.mjs
 ```
 
 ## Troubleshooting
@@ -248,7 +339,7 @@ MIT License - see LICENSE file for details
 ## Support
 
 - Open an issue on GitHub for bugs
-- Join our Discord community for discussions
+- Join our [Discord community](https://discord.gg/XF83PypJDh)
 - Check [INSTALLATION.md](INSTALLATION.md) for setup help
 
 ---

@@ -34,9 +34,11 @@ npm install
 This will install all required packages including:
 - Next.js 16
 - React 19
+- Drizzle ORM with SQLite
 - Solana Web3.js
 - Meteora CP-AMM SDK
 - Metaplex Token Metadata
+- Node-cron for background jobs
 - And all other dependencies
 
 ## Step 3: Environment Configuration
@@ -70,9 +72,9 @@ NEXT_PUBLIC_TOTAL_SUPPLY=1000000000
 NEXT_PUBLIC_POOL_LIQUIDITY_PERCENTAGE=1
 
 # Pricing (100 SOL starting market cap)
-NEXT_PUBLIC_INITIAL_PRICE=0.0000001
-NEXT_PUBLIC_PRICE_RANGE_MIN=0.0000001
-NEXT_PUBLIC_PRICE_RANGE_MAX=0.001
+NEXT_PUBLIC_INITIAL_PRICE=0.00001
+NEXT_PUBLIC_PRICE_RANGE_MIN=0.000001
+NEXT_PUBLIC_PRICE_RANGE_MAX=0.0001
 
 # Fee Schedule
 NEXT_PUBLIC_FEE_DECAY_DURATION_MINUTES=60
@@ -135,7 +137,17 @@ PINATA_SECRET_KEY=your_pinata_secret_key
 
 **Note**: IPFS credentials are server-side only (no `NEXT_PUBLIC_` prefix) for security. For testing without credentials, the app will use mock uploads.
 
-## Step 5: Start Development Server
+## Step 5: Set Up Database
+
+```bash
+# Run database migrations
+npm run db:migrate
+
+# (Optional) Seed with sample data for testing
+npm run db:seed
+```
+
+## Step 6: Start Development Server
 
 ```bash
 npm run dev
@@ -143,13 +155,13 @@ npm run dev
 
 The application will start at [http://localhost:3000](http://localhost:3000)
 
-## Step 6: Get Test SOL (Devnet Only)
+## Step 7: Get Test SOL (Devnet Only)
 
 1. Visit [Solana Faucet](https://faucet.solana.com/)
 2. Enter your wallet address
 3. Request devnet SOL (you'll get 1-2 SOL per request)
 
-## Step 7: Connect Your Wallet
+## Step 8: Connect Your Wallet
 
 1. Open [http://localhost:3000](http://localhost:3000) in your browser
 2. Click "Connect Wallet" in the top right
@@ -157,7 +169,7 @@ The application will start at [http://localhost:3000](http://localhost:3000)
 4. Approve the connection
 5. **Important**: Ensure your wallet is set to the correct network (devnet or mainnet-beta)
 
-## Step 8: Launch Your First Token
+## Step 9: Launch Your First Token
 
 1. Navigate to the "Launch" page
 2. Fill in token details:
@@ -287,9 +299,9 @@ pm2 startup
 | `NEXT_PUBLIC_TOKEN_DECIMALS` | No | 9 | Token decimals |
 | `NEXT_PUBLIC_TOTAL_SUPPLY` | No | 1000000000 | Default token supply |
 | `NEXT_PUBLIC_POOL_LIQUIDITY_PERCENTAGE` | No | 1 | Pool liquidity (0-1) |
-| `NEXT_PUBLIC_INITIAL_PRICE` | No | 0.0000001 | Initial token price |
-| `NEXT_PUBLIC_PRICE_RANGE_MIN` | No | 0.0000001 | Minimum price |
-| `NEXT_PUBLIC_PRICE_RANGE_MAX` | No | 0.001 | Maximum price |
+| `NEXT_PUBLIC_INITIAL_PRICE` | No | 0.00001 | Initial token price |
+| `NEXT_PUBLIC_PRICE_RANGE_MIN` | No | 0.000001 | Minimum price |
+| `NEXT_PUBLIC_PRICE_RANGE_MAX` | No | 0.0001 | Maximum price |
 | `NEXT_PUBLIC_FEE_DECAY_DURATION_MINUTES` | No | 60 | Fee decay duration |
 | `NEXT_PUBLIC_FEE_DECAY_PERIODS` | No | 60 | Fee decay periods |
 | `NEXT_PUBLIC_MAX_IMAGE_SIZE_MB` | No | 1 | Max logo size |
@@ -317,6 +329,16 @@ npm run build                  # Build for production
 npm run start                  # Start production server
 npm run lint                   # Run linter
 
+# Database Operations
+npm run db:generate            # Generate migrations
+npm run db:migrate             # Apply migrations
+npm run db:seed                # Seed sample data
+npm run db:test                # Test database ops
+npm run db:studio              # Visual database browser
+
+# Background Services
+node scripts/fee-updater.mjs   # Run fee updater standalone
+
 # Dependencies
 npm install                    # Install dependencies
 npm install <package>          # Add new package
@@ -331,7 +353,7 @@ rm -rf node_modules            # Remove dependencies
 
 - 📖 [README.md](README.md) - Main documentation
 - 🐛 [GitHub Issues](https://github.com/your-repo/issues) - Bug reports
-- 💬 Discord - Community support
+- 💬 Discord: https://discord.gg/XF83PypJDh - Community support
 - 📚 [Resources](README.md#resources) - External documentation
 
 ## Success Checklist
@@ -351,4 +373,4 @@ rm -rf node_modules            # Remove dependencies
 
 **Ready to launch?** Visit [http://localhost:3000/launch](http://localhost:3000/launch)
 
-**Need help?** Open an issue or check the [README](README.md) for more information.
+**Need help?** Join our Discord at https://discord.gg/XF83PypJDh or open an issue.
