@@ -24,12 +24,31 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [hasLaunched, setHasLaunched] = useState(false);
+  const [truncMintAddress, setTruncMintAddress] = useState("");
+  const [truncPoolAddress, setTruncPoolAddress] = useState("");
+
+  function useIsMobile() {
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+      const check = () => setIsMobile(window.innerWidth < 768);
+      check();
+      window.addEventListener("resize", check);
+      return () => window.removeEventListener("resize", check);
+    }, []);
+    return isMobile;
+  }
+
+  const isMobile = useIsMobile();
 
   const copyToClipboard = async (text: string) => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const truncString = (address: string, offset=5) => {
+    return address.slice(0, offset) + "..." + address.slice(-offset);
+  }
 
   useEffect(() => {
     async function fetchToken() {
@@ -42,6 +61,8 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
 
         const data = await response.json();
         setToken(data.token);
+        setTruncMintAddress(truncString(data.token.mintAddress));
+        setTruncPoolAddress(truncString(data.token.poolAddress));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load token");
       } finally {
@@ -152,7 +173,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                     </p>
                     <div className="flex items-center gap-2">
                       <code className="text-sm font-mono bg-secondary px-2 py-1 rounded">
-                        {token.mintAddress}
+                        {isMobile ? truncMintAddress : token.mintAddress}
                       </code>
                       <Button
                         variant="outline"
@@ -184,7 +205,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                       rel="noopener noreferrer"
                       className="text-sm text-primary hover:underline font-mono flex items-center gap-1"
                     >
-                      <span className="truncate">{token.poolAddress}</span>
+                      <span className="truncate">{isMobile ? truncPoolAddress : token.poolAddress}</span>
                       <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
@@ -220,7 +241,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                   rel="noopener noreferrer"
                   className="text-primary hover:underline text-sm font-mono flex items-start gap-1"
                 >
-                  <span className="break-all">{token.mintTxSignature}</span>
+                  <span className="break-all">{isMobile ? truncString(token.mintTxSignature) : token.mintTxSignature}</span>
                   <svg className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
@@ -234,7 +255,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                   rel="noopener noreferrer"
                   className="text-primary hover:underline text-sm font-mono flex items-start gap-1"
                 >
-                  <span className="break-all">{token.metadataTxSignature}</span>
+                  <span className="break-all">{isMobile ? truncString(token.metadataTxSignature) : token.metadataTxSignature}</span>
                   <svg className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
@@ -248,7 +269,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                   rel="noopener noreferrer"
                   className="text-primary hover:underline text-sm font-mono flex items-start gap-1"
                 >
-                  <span className="break-all">{token.poolTxSignature}</span>
+                  <span className="break-all">{isMobile ? truncString(token.poolTxSignature) : token.poolTxSignature}</span>
                   <svg className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
