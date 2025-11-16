@@ -49,7 +49,7 @@ export default function Home() {
 
                 <Card className="border-primary bg-primary/5">
                   <CardHeader>
-                    <CardTitle className="text-primary">⚡ No Graduation Wait</CardTitle>
+                    <CardTitle className="text-primary">🎓 No Graduation Wait</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <CardDescription className="text-base">
@@ -163,17 +163,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-      {/* Footer */}
-      <footer className="w-full flex items-center justify-center py-3 fixed bottom-0 bg-background border-t">
-        <Link
-          className="flex items-center gap-1 text-current"
-          href="https://tiplink.io/blinks/donate?dest=D2yGetspd22V3UFHTudRN1s7bU6DF7JNaLBCn2NQ2KHd"
-        >
-          <span className="text-muted-foreground">Made with ❤️ by GeekLad&nbsp;</span>
-          <p className="text-primary underline hover:text-primary/80 transition-colors">Buy him a coffee or a lambo</p>
-        </Link>
-      </footer>
     </>
   );
 }
