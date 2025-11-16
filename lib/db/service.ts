@@ -218,7 +218,7 @@ export async function listTokens(params: TokenListParams = {}): Promise<Paginate
     .select()
     .from(tokens)
     .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
-    .orderBy(orderByDirection(orderByColumn), desc(tokens.launchDate)) // Tiebreaker: newest first
+    .orderBy(desc(tokens.featured), orderByDirection(orderByColumn), desc(tokens.launchDate)) // Featured first, then sort, then newest
     .limit(limit)
     .offset(offset);
 
@@ -485,6 +485,7 @@ export async function getLeaderboard(limit: number = 100): Promise<LeaderboardEn
     })
     .from(tokens)
     .orderBy(
+      desc(tokens.featured),
       desc(tokens.cumulativeFeesSnapshot),
       desc(tokens.launchDate) // Tiebreaker: newest first
     )
@@ -517,17 +518,19 @@ export async function getTokensByDate(
   const orderByDirection = sortOrder === 'asc' ? asc : desc;
   const now = new Date();
 
-  let query = db.select().from(tokens);
-
-  // Apply status filter
+  // Build WHERE conditions
+  const whereConditions = [];
   if (statusFilter === 'live') {
-    query = query.where(lte(tokens.launchDate, now));
+    whereConditions.push(lte(tokens.launchDate, now));
   } else if (statusFilter === 'upcoming') {
-    query = query.where(gt(tokens.launchDate, now));
+    whereConditions.push(gt(tokens.launchDate, now));
   }
 
-  return await query
-    .orderBy(orderByDirection(tokens.launchDate))
+  return await db
+    .select()
+    .from(tokens)
+    .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
+    .orderBy(desc(tokens.featured), orderByDirection(tokens.launchDate))
     .limit(limit)
     .offset(offset);
 }
@@ -544,17 +547,20 @@ export async function getTokensByFees(
   const orderByDirection = sortOrder === 'asc' ? asc : desc;
   const now = new Date();
 
-  let query = db.select().from(tokens);
-
-  // Apply status filter
+  // Build WHERE conditions
+  const whereConditions = [];
   if (statusFilter === 'live') {
-    query = query.where(lte(tokens.launchDate, now));
+    whereConditions.push(lte(tokens.launchDate, now));
   } else if (statusFilter === 'upcoming') {
-    query = query.where(gt(tokens.launchDate, now));
+    whereConditions.push(gt(tokens.launchDate, now));
   }
 
-  return await query
+  return await db
+    .select()
+    .from(tokens)
+    .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
     .orderBy(
+      desc(tokens.featured),
       orderByDirection(tokens.cumulativeFeesSnapshot),
       desc(tokens.launchDate) // Tiebreaker: newest first
     )
@@ -567,16 +573,20 @@ export async function getTokensByFees(
  */
 export async function getTotalTokenCount(statusFilter?: 'all' | 'live' | 'upcoming'): Promise<number> {
   const now = new Date();
-  let query = db.select({ count: sql<number>`count(*)` }).from(tokens);
-
-  // Apply status filter
+  
+  // Build WHERE conditions
+  const whereConditions = [];
   if (statusFilter === 'live') {
-    query = query.where(lte(tokens.launchDate, now));
+    whereConditions.push(lte(tokens.launchDate, now));
   } else if (statusFilter === 'upcoming') {
-    query = query.where(gt(tokens.launchDate, now));
+    whereConditions.push(gt(tokens.launchDate, now));
   }
 
-  const [{ count }] = await query;
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(tokens)
+    .where(whereConditions.length > 0 ? and(...whereConditions) : undefined);
+  
   return count;
 }
 
@@ -588,7 +598,7 @@ export async function getAllTokens(): Promise<Token[]> {
   return await db
     .select()
     .from(tokens)
-    .orderBy(desc(tokens.launchDate));
+    .orderBy(desc(tokens.featured), desc(tokens.launchDate));
 }
 
 // Export all functions as a service object for easier importing

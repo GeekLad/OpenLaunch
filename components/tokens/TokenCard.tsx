@@ -46,20 +46,32 @@ export function TokenCard({ token }: TokenCardProps) {
               <p className="text-sm text-muted-foreground truncate">{token.name}</p>
             </div>
 
-            {/* Status Badge */}
-            {isUpcoming ? (
-              <div className="flex-shrink-0">
-                <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-950 px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                  Upcoming
-                </span>
-              </div>
-            ) : (
-              <div className="flex-shrink-0">
-                <span className="inline-flex items-center rounded-full bg-green-50 dark:bg-green-950 px-2 py-1 text-xs font-medium text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800">
-                  Live
-                </span>
-              </div>
-            )}
+            {/* Status Badges */}
+            <div className="flex flex-col gap-1 items-end">
+              {/* Featured Badge */}
+              {token.featured && (
+                <div className="flex-shrink-0">
+                  <span className="inline-flex items-center rounded-full bg-yellow-50 dark:bg-yellow-950 px-2 py-1 text-xs font-medium text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
+                    ⭐ Featured
+                  </span>
+                </div>
+              )}
+              
+              {/* Status Badge */}
+              {isUpcoming ? (
+                <div className="flex-shrink-0">
+                  <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-950 px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                    Upcoming
+                  </span>
+                </div>
+              ) : (
+                <div className="flex-shrink-0">
+                  <span className="inline-flex items-center rounded-full bg-green-50 dark:bg-green-950 px-2 py-1 text-xs font-medium text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800">
+                    Live
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </CardHeader>
 

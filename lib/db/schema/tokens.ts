@@ -12,6 +12,9 @@ export const tokens = sqliteTable('tokens', {
   mintAddress: text('mint_address').notNull().unique(),
   poolAddress: text('pool_address').notNull().unique(),
 
+  // Featured flag for highlighting tokens
+  featured: integer('featured', { mode: 'boolean' }).notNull().default(false),
+
   // Token metadata
   name: text('name').notNull(),
   symbol: text('symbol').notNull(),

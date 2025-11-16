@@ -2,6 +2,7 @@ CREATE TABLE `tokens` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`mint_address` text NOT NULL,
 	`pool_address` text NOT NULL,
+	`featured` integer DEFAULT false NOT NULL,
 	`name` text NOT NULL,
 	`symbol` text NOT NULL,
 	`description` text,
