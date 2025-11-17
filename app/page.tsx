@@ -18,7 +18,7 @@ export default function Home() {
               Open Source Meme Token Launchpad
             </h2>
             <p className="mt-6 text-lg leading-8 text-muted-foreground">
-              Launch cheap, earn forever - Powered by Meteora's gud tek
+              Launch cheap, earn forever - Powered by Meteora&apos;s gud tek
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link href="/launch">

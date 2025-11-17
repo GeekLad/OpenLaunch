@@ -105,7 +105,7 @@ function parseBase58PrivateKey(input: string): KeypairValidationResult {
       isValid: true,
       keypair,
     };
-  } catch (error) {
+  } catch (_error) {
     return {
       isValid: false,
       error: "Invalid base58 format. Please check your private key.",

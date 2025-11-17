@@ -19,10 +19,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Load theme from localStorage on mount
   useEffect(() => {
     const storedTheme = localStorage.getItem("theme") as Theme | null;
-    if (storedTheme) {
-      setThemeState(storedTheme);
-    }
-    setMounted(true);
+    
+    // Defer all state updates to avoid cascading renders
+    const timer = setTimeout(() => {
+      setMounted(true);
+      if (storedTheme) {
+        setThemeState(storedTheme);
+      }
+    }, 0);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   // Update document class and localStorage when theme changes

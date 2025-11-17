@@ -9,7 +9,7 @@ function initializeApp() {
   console.log('[Init Route] Initializing application...');
   
   // Import and run initialization
-  require('@/lib/init');
+  import('@/lib/init');
   
   isInitialized = true;
   console.log('[Init Route] ✓ Application initialized');

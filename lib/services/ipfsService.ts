@@ -133,7 +133,7 @@ export async function uploadTokenAssets(
  * @param file - File to mock upload
  * @returns Mock IPFS URI
  */
-export async function mockIPFSUpload(file: File): Promise<IPFSUploadResult> {
+export async function mockIPFSUpload(_file: File): Promise<IPFSUploadResult> {
   // Simulate upload delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -151,7 +151,7 @@ export async function mockIPFSUpload(file: File): Promise<IPFSUploadResult> {
  * @param metadata - Metadata to mock upload
  * @returns Mock IPFS URI
  */
-export async function mockMetadataUpload(metadata: TokenMetadata): Promise<IPFSUploadResult> {
+export async function mockMetadataUpload(_metadata: TokenMetadata): Promise<IPFSUploadResult> {
   // Simulate upload delay
   await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -207,7 +207,7 @@ export function ipfsToHttp(ipfsUri: string, gateway?: string): string {
  * @param gateway - Optional custom gateway URL
  * @returns Parsed JSON content
  */
-export async function fetchFromIPFS<T = any>(ipfsUri: string, gateway?: string): Promise<T> {
+export async function fetchFromIPFS<T = unknown>(ipfsUri: string, gateway?: string): Promise<T> {
   const httpUrl = ipfsToHttp(ipfsUri, gateway);
 
   try {

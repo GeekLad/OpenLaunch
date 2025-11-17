@@ -1,6 +1,6 @@
 import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js";
 import { CpAmm, type PoolFeesParams, bpsToFeeNumerator, getFeeSchedulerParams, BaseFeeMode, CollectFeeMode, getDynamicFeeParams } from "@meteora-ag/cp-amm-sdk";
-import { getMint, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { getMint, Mint, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import BN from "bn.js";
 import { ENV } from "@/config/environment";
 
@@ -25,7 +25,6 @@ export function priceToSqrtPrice(price: number, tokenADecimals: number, tokenBDe
 
   // Convert to Q64 format (multiply by 2^64)
   // Use string representation to avoid precision issues with large numbers
-  const Q64_SHIFT = 64;
   const sqrtPriceScaled = sqrtPrice * Math.pow(2, 32); // Scale by 2^32 first (safe range)
   const sqrtPriceBN = new BN(Math.floor(sqrtPriceScaled)).shln(32); // Then shift left by 32 more bits (total 2^64)
 
@@ -119,7 +118,7 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
   // Use provided token programs or auto-detect
   let tokenAProgram: PublicKey;
   let tokenBProgram: PublicKey;
-  let tokenAMintInfo: any = undefined;
+  let tokenAMintInfo: Mint | undefined;
   let isTokenA2022 = false;
 
   if (providedTokenAProgram) {
@@ -142,7 +141,7 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
   }
 
   // Convert token amount to BN with proper decimals
-  let tokenAAmountBN = new BN(tokenAAmount).mul(new BN(10).pow(new BN(tokenADecimals)));
+  const tokenAAmountBN = new BN(tokenAAmount).mul(new BN(10).pow(new BN(tokenADecimals)));
 
   // Handle TOKEN_2022 transfer fees if applicable
   // Note: For simplicity, we're not implementing full transfer fee calculation here
@@ -158,7 +157,7 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
 
   // Calculate liquidity delta using single-sided helper
   // This is critical for one-sided pools - only token A is deposited
-  const tokenAInfo = isTokenA2022 ? {
+  const tokenAInfo = isTokenA2022 && tokenAMintInfo ? {
     mint: tokenAMintInfo,
     currentEpoch: 0, // You should fetch actual epoch in production
   } : undefined;
@@ -354,7 +353,7 @@ export async function poolExists(
   try {
     const accountInfo = await connection.getAccountInfo(poolAddress);
     return accountInfo !== null;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }

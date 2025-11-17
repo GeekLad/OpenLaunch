@@ -71,7 +71,7 @@ export default function TokensPage() {
 
   useEffect(() => {
     fetchTokens(pagination.page, sort.sortBy, sort.sortOrder, filter.status);
-  }, []);
+  }, [pagination.page, sort.sortBy, sort.sortOrder, filter.status]);
 
   const handleSortChange = (newSortBy: string) => {
     const newSortOrder = sort.sortBy === newSortBy && sort.sortOrder === "desc" ? "asc" : "desc";

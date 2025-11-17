@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import Image from "next/image";
 import { TokenFormData } from "@/types/token";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -111,7 +112,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
       return;
     }
 
-    let hour = parseInt(hourStr);
+    const hour = parseInt(hourStr);
     const minute = parseInt(minuteStr);
 
     if (isNaN(hour) || isNaN(minute) || hour < 1 || hour > 12 || minute < 0 || minute > 59) {
@@ -288,7 +289,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
             )}
             {logoPreview && (
               <div className="mt-2">
-                <img src={logoPreview} alt="Logo preview" className="h-24 w-24 rounded-lg object-cover" />
+                <Image src={logoPreview} alt="Logo preview" width={96} height={96} className="h-24 w-24 rounded-lg object-cover" />
               </div>
             )}
             {errors.logoFile && (
@@ -368,16 +369,16 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                     max="12"
                     value={launchHour}
                     placeholder="HH"
-                    onChange={(e) => {
-                      // Allow free typing, just store the value
-                      setLaunchHour(e.target.value);
-                    }}
-                    onBlur={(e) => {
-                      let value = e.target.value;
-                      if (!value) return;
+                     onChange={(e) => {
+                       // Allow free typing, just store the value
+                       setLaunchHour(e.target.value);
+                     }}
+                     onBlur={(e) => {
+                       const value = e.target.value;
+                       if (!value) return;
 
-                      let numValue = parseInt(value);
-                      if (isNaN(numValue)) return;
+                       let numValue = parseInt(value);
+                       if (isNaN(numValue)) return;
 
                       // Enforce 12-hour format (1-12)
                       if (numValue > 12) numValue = 12;
@@ -394,9 +395,9 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                       setLaunchHour(paddedValue);
                       updateDateTime(launchDate, paddedValue, launchMinute, launchPeriod);
                     }}
-                    onClick={(e) => {
-                      // Initialize with next hour if empty
-                      if (!launchHour) {
+                    onClick={(_e) => {
+                       // Initialize with next hour if empty
+                       if (!launchHour) {
                         const now = new Date();
                         const nextHour24 = (now.getHours() + 1) % 24;
                         let nextHour12 = nextHour24 % 12;
@@ -422,16 +423,16 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                     max="59"
                     value={launchMinute}
                     placeholder="MM"
-                    onChange={(e) => {
-                      // Allow free typing, just store the value
-                      setLaunchMinute(e.target.value);
-                    }}
-                    onBlur={(e) => {
-                      let value = e.target.value;
-                      if (!value) return;
+                     onChange={(e) => {
+                       // Allow free typing, just store the value
+                       setLaunchMinute(e.target.value);
+                     }}
+                     onBlur={(e) => {
+                       const value = e.target.value;
+                       if (!value) return;
 
-                      let numValue = parseInt(value);
-                      if (isNaN(numValue)) return;
+                       let numValue = parseInt(value);
+                       if (isNaN(numValue)) return;
 
                       // Enforce 0-59 range for minutes
                       if (numValue > 59) numValue = 59;
@@ -449,9 +450,9 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                       setLaunchMinute(paddedValue);
                       updateDateTime(launchDate, launchHour, paddedValue, launchPeriod);
                     }}
-                    onClick={(e) => {
-                      // Initialize with 0 minutes if empty
-                      if (!launchMinute) {
+                    onClick={(_e) => {
+                       // Initialize with 0 minutes if empty
+                       if (!launchMinute) {
                         setLaunchMinute("00");
                         updateDateTime(launchDate, launchHour, "00", launchPeriod);
                       }

@@ -62,7 +62,7 @@ export function Countdown({ targetDate, onComplete }: CountdownProps) {
     return null;
   }
 
-  const hasHoursOrDays = timeRemaining.days > 0 || timeRemaining.hours > 0;
+
 
   return (
     <div className="flex gap-2 items-center justify-center">

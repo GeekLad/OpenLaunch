@@ -1,6 +1,6 @@
 import { db } from './client';
 import { tokens, poolStatsHistory, feeUpdateSchedule } from './schema';
-import type { Token, NewToken, PoolStatsHistory, NewPoolStatsHistory, FeeUpdateSchedule, NewFeeUpdateSchedule } from './schema';
+import type { Token, PoolStatsHistory, FeeUpdateSchedule } from './schema';
 import { eq, desc, asc, like, or, and, lt, lte, gt, gte, sql } from 'drizzle-orm';
 
 /**

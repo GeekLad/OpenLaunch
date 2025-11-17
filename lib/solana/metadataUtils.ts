@@ -180,7 +180,7 @@ export async function metadataExists(
     try {
         const accountInfo = await connection.getAccountInfo(metadataAccount);
         return accountInfo !== null;
-    } catch (error) {
+    } catch (_error) {
         return false;
     }
 }

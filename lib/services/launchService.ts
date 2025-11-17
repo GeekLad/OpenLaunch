@@ -372,10 +372,10 @@ export class TokenLaunchService {
           `  Position NFT: ${poolResult.positionNft.publicKey.toBase58()}\n` +
           `  Signature: ${poolSignature}`
         );
-      } catch (poolError: any) {
+      } catch (poolError: unknown) {
         // Check if this is an InvalidActivationPoint error
-        const errorMessage = poolError?.message || '';
-        const errorLogs = poolError?.logs?.join('\n') || '';
+        const errorMessage = (poolError as Error & { logs?: string[] })?.message || '';
+        const errorLogs = (poolError as Error & { logs?: string[] })?.logs?.join('\n') || '';
 
         const isActivationError =
           errorMessage.includes('InvalidActivationPoint') ||
