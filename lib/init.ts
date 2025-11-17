@@ -41,13 +41,18 @@ async function initializeApplication() {
 }
 
 // Run initialization only once
+// Skip initialization during build time
 let isInitialized = false;
-if (!isInitialized && typeof window === 'undefined') {
+const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build';
+
+if (!isInitialized && typeof window === 'undefined' && !isBuildTime) {
   initializeApplication().catch((error) => {
     console.error("[App Init] Failed to initialize application:", error);
     process.exit(1);
   });
   isInitialized = true;
+} else if (isBuildTime) {
+  console.log("[App Init] Skipping initialization during build time");
 }
 
 export {}; // Make this a module

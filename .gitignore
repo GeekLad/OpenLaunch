@@ -42,6 +42,9 @@ next-env.d.ts
 /data/*.db
 /data/*.db-shm
 /data/*.db-wal
+/docker/data/*.db
+/docker/data/*.db-shm
+/docker/data/*.db-wal
 
 # work in progress documentation
 /wip

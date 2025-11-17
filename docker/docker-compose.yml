@@ -45,11 +45,18 @@ services:
       - FILEBASE_API_KEY=${FILEBASE_API_KEY}
       
       # Database Configuration
-      - DATABASE_URL=${DATABASE_URL:-file:./data/openlaunch.db}
-      
+      - DATABASE_URL=${DATABASE_URL:-./data/openlaunch.db}
+      - DATABASE_TYPE=${DATABASE_TYPE:-sqlite}
+
+      # Meteora API Polling Configuration
+      - FEE_UPDATE_INTERVAL_0_1H=${FEE_UPDATE_INTERVAL_0_1H:-1}
+      - FEE_UPDATE_INTERVAL_1_24H=${FEE_UPDATE_INTERVAL_1_24H:-5}
+      - FEE_UPDATE_INTERVAL_1_4D=${FEE_UPDATE_INTERVAL_1_4D:-10}
+      - FEE_UPDATE_INTERVAL_4D_PLUS=${FEE_UPDATE_INTERVAL_4D_PLUS:-60}
+
       # Cron Configuration
       - ENABLE_CRON=${ENABLE_CRON:-true}
-      
+
       # Node Environment
       - NODE_ENV=production
     volumes:
