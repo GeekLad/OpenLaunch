@@ -31,6 +31,9 @@ export const ENV = {
 
   // Metadata Configuration
   METADATA_MUTABLE: process.env.NEXT_PUBLIC_METADATA_MUTABLE === 'true', // Defaults to false (metadata is immutable)
+  
+  // Launchpad Configuration
+  LAUNCHPAD_URL: process.env.NEXT_PUBLIC_LAUNCHPAD_URL, // Optional launchpad URL for token metadata
 
   // Fee Update Intervals (in minutes)
   FEE_UPDATE_INTERVAL_0_1H: process.env.FEE_UPDATE_INTERVAL_0_1H || '1', // First hour: every 1 minute

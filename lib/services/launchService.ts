@@ -101,6 +101,7 @@ export class TokenLaunchService {
           twitter: formData.twitterUrl,
           telegram: formData.telegramUrl,
           discord: formData.discordUrl,
+          launchpad: ENV.LAUNCHPAD_URL,
         }
       );
 

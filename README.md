@@ -210,6 +210,9 @@ NEXT_PUBLIC_FEE_DECAY_PERIODS=60
 # Metadata (default: immutable for maximum trust)
 # NEXT_PUBLIC_METADATA_MUTABLE=false
 
+# Launchpad URL (optional - will be added to token metadata)
+# NEXT_PUBLIC_LAUNCHPAD_URL=https://your-launchpad.com
+
 # IPFS (Server-side only, no NEXT_PUBLIC_ prefix)
 # Option 1: Filebase (RECOMMENDED - 5GB free)
 FILEBASE_API_KEY=your_key

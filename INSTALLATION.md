@@ -86,6 +86,9 @@ NEXT_PUBLIC_MAX_IMAGE_SIZE_MB=1
 # Metadata - keep immutable for maximum trust
 # NEXT_PUBLIC_METADATA_MUTABLE=false
 
+# Launchpad URL - Optional (will be added to token metadata)
+# NEXT_PUBLIC_LAUNCHPAD_URL=https://your-launchpad.com
+
 # IPFS - Optional for testing (will use mock if not set)
 # Get free API key from https://filebase.com (5GB free)
 # FILEBASE_API_KEY=your_filebase_api_key
@@ -306,6 +309,7 @@ pm2 startup
 | `NEXT_PUBLIC_FEE_DECAY_PERIODS` | No | 60 | Fee decay periods |
 | `NEXT_PUBLIC_MAX_IMAGE_SIZE_MB` | No | 1 | Max logo size |
 | `NEXT_PUBLIC_METADATA_MUTABLE` | No | false | Allow metadata updates |
+| `NEXT_PUBLIC_LAUNCHPAD_URL` | No | - | Launchpad URL for token metadata |
 | `FILEBASE_API_KEY` | No | - | Filebase API key (server-side) |
 | `PINATA_API_KEY` | No | - | Pinata API key (server-side) |
 | `PINATA_SECRET_KEY` | No | - | Pinata secret (server-side) |

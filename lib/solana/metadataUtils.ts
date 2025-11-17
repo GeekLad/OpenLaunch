@@ -251,6 +251,7 @@ export function buildMetadata(
         twitter?: string;
         telegram?: string;
         discord?: string;
+        launchpad?: string;
     },
 ): TokenMetadata {
     const metadata: TokenMetadata = {
@@ -280,6 +281,10 @@ export function buildMetadata(
 
     if (socials?.discord) {
         attributes.push({ trait_type: "Discord", value: socials.discord });
+    }
+
+    if (socials?.launchpad) {
+        attributes.push({ trait_type: "Launchpad", value: socials.launchpad });
     }
 
     if (attributes.length > 0) {
