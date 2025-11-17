@@ -143,7 +143,7 @@ export function ExternalLinks({ mintAddress, poolAddress, metadataUri }: Externa
         </svg>
       ),
     },
-  ].filter(Boolean) as Array<{ name: string; url: string; icon: JSX.Element }>;
+  ].filter(Boolean) as Array<{ name: string; url: string; icon: React.ReactElement }>;
 
   return (
     <>

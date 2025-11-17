@@ -76,8 +76,8 @@ export async function createMetadataAccount(
     const createMetadataInstruction = createMetadataAccountV3(umi, {
         metadata: metadataPubkey,
         mint: mintPubkey,
-        mintAuthority: mintAuthorityPubkey,
-        payer: payerPubkey,
+        mintAuthority: createNoopSigner(mintAuthorityPubkey),
+        payer: createNoopSigner(payerPubkey),
         updateAuthority: updateAuthorityPubkey,
         data: {
             name: metadata.name,
@@ -180,7 +180,7 @@ export async function metadataExists(
     try {
         const accountInfo = await connection.getAccountInfo(metadataAccount);
         return accountInfo !== null;
-    } catch (_error) {
+    } catch {
         return false;
     }
 }

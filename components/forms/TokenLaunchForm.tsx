@@ -350,7 +350,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                       setLaunchDate(dateValue);
                       updateDateTime(dateValue, launchHour, launchMinute, launchPeriod);
                     }}
-                    onClick={(e) => {
+                    onClick={() => {
                       // Initialize with today's date if empty
                       if (!launchDate) {
                         const today = getLocalDateString();
@@ -395,7 +395,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                       setLaunchHour(paddedValue);
                       updateDateTime(launchDate, paddedValue, launchMinute, launchPeriod);
                     }}
-                    onClick={(_e) => {
+                    onClick={() => {
                        // Initialize with next hour if empty
                        if (!launchHour) {
                         const now = new Date();
@@ -450,7 +450,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                       setLaunchMinute(paddedValue);
                       updateDateTime(launchDate, launchHour, paddedValue, launchPeriod);
                     }}
-                    onClick={(_e) => {
+                    onClick={() => {
                        // Initialize with 0 minutes if empty
                        if (!launchMinute) {
                         setLaunchMinute("00");

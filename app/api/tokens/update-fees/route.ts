@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PublicKey } from "@solana/web3.js";
 import { getPoolMetrics } from "@/lib/meteora/client";
+import { getCurrentPoolPrice } from "@/lib/solana/poolUtils";
+import { getConnection } from "@/lib/solana/connection";
+import { getSolPriceWithFallback } from "@/lib/services/priceService";
 import * as dbService from "@/lib/db/service";
 
 /**
@@ -41,14 +45,27 @@ export async function POST(request: NextRequest) {
         cumulativeFeesLamports.toString()
       );
 
+      // Get current price from pool and SOL price
+      const connection = getConnection();
+      const [currentPrice, solPrice] = await Promise.all([
+        getCurrentPoolPrice(
+          connection,
+          new PublicKey(token.poolAddress),
+          token.decimals || 9,
+          9 // SOL decimals
+        ),
+        getSolPriceWithFallback(),
+      ]);
+
       // Save to pool stats history
-      await dbService.createPoolStatsSnapshot({
-        tokenId: tokenId,
-        poolAddress: token.poolAddress,
+      await dbService.createPoolStatsSnapshot(tokenId, token.poolAddress, {
         totalFeesGenerated: cumulativeFeesLamports.toString(),
-        tradingVolume24h: Math.floor(metrics.volume24h * 1e9).toString(),
-        totalValueLocked: Math.floor(metrics.tvl * 1e9).toString(),
-        currentPrice: 0,
+        fees24h: Math.floor(metrics.lp_fee24h * 1e9).toString(),
+        volume24h: Math.floor(metrics.volume24h * 1e9).toString(),
+        currentLiquidity: Math.floor(metrics.tvl * 1e9).toString(),
+        currentPrice: currentPrice || 0,
+        currentPriceUsd: (currentPrice || 0) * solPrice,
+        priceChange24h: 0, // TODO: Calculate from historical data
       });
 
       return NextResponse.json({
@@ -80,18 +97,31 @@ export async function POST(request: NextRequest) {
 
       // Update cumulative fees snapshot
       await dbService.updateCumulativeFeesSnapshot(
-        token.id,
+        token.id.toString(),
         cumulativeFeesLamports.toString()
       );
 
+      // Get current price from pool and SOL price
+      const connection = getConnection();
+      const [currentPrice, solPrice] = await Promise.all([
+        getCurrentPoolPrice(
+          connection,
+          new PublicKey(poolAddress),
+          token.decimals || 9,
+          9 // SOL decimals
+        ),
+        getSolPriceWithFallback(),
+      ]);
+
       // Save to pool stats history
-      await dbService.createPoolStatsSnapshot({
-        tokenId: token.id,
-        poolAddress: poolAddress,
+      await dbService.createPoolStatsSnapshot(token.id, poolAddress, {
         totalFeesGenerated: cumulativeFeesLamports.toString(),
-        tradingVolume24h: Math.floor(metrics.volume24h * 1e9).toString(),
-        totalValueLocked: Math.floor(metrics.tvl * 1e9).toString(),
-        currentPrice: 0,
+        fees24h: Math.floor(metrics.lp_fee24h * 1e9).toString(),
+        volume24h: Math.floor(metrics.volume24h * 1e9).toString(),
+        currentLiquidity: Math.floor(metrics.tvl * 1e9).toString(),
+        currentPrice: currentPrice || 0,
+        currentPriceUsd: (currentPrice || 0) * solPrice,
+        priceChange24h: 0, // TODO: Calculate from historical data
       });
 
       return NextResponse.json({
@@ -104,6 +134,7 @@ export async function POST(request: NextRequest) {
       // Update all tokens
       const tokens = await dbService.getAllTokens();
       const results = [];
+      const connection = getConnection();
 
       for (const token of tokens) {
         try {
@@ -113,17 +144,29 @@ export async function POST(request: NextRequest) {
             const cumulativeFeesLamports = Math.floor(metrics.lp_fee30d * 1e9);
 
             await dbService.updateCumulativeFeesSnapshot(
-              token.id,
+              token.id.toString(),
               cumulativeFeesLamports.toString()
             );
 
-            await dbService.createPoolStatsSnapshot({
-              tokenId: token.id,
-              poolAddress: token.poolAddress,
+            // Get current price from pool and SOL price
+            const [currentPrice, solPrice] = await Promise.all([
+              getCurrentPoolPrice(
+                connection,
+                new PublicKey(token.poolAddress),
+                token.decimals || 9,
+                9 // SOL decimals
+              ),
+              getSolPriceWithFallback(),
+            ]);
+
+            await dbService.createPoolStatsSnapshot(token.id, token.poolAddress, {
               totalFeesGenerated: cumulativeFeesLamports.toString(),
-              tradingVolume24h: Math.floor(metrics.volume24h * 1e9).toString(),
-              totalValueLocked: Math.floor(metrics.tvl * 1e9).toString(),
-              currentPrice: 0,
+              fees24h: Math.floor(metrics.lp_fee24h * 1e9).toString(),
+              volume24h: Math.floor(metrics.volume24h * 1e9).toString(),
+              currentLiquidity: Math.floor(metrics.tvl * 1e9).toString(),
+              currentPrice: currentPrice || 0,
+              currentPriceUsd: (currentPrice || 0) * solPrice,
+              priceChange24h: 0, // TODO: Calculate from historical data
             });
 
             results.push({

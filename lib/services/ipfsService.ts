@@ -133,6 +133,7 @@ export async function uploadTokenAssets(
  * @param file - File to mock upload
  * @returns Mock IPFS URI
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function mockIPFSUpload(_file: File): Promise<IPFSUploadResult> {
   // Simulate upload delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -151,6 +152,7 @@ export async function mockIPFSUpload(_file: File): Promise<IPFSUploadResult> {
  * @param metadata - Metadata to mock upload
  * @returns Mock IPFS URI
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function mockMetadataUpload(_metadata: TokenMetadata): Promise<IPFSUploadResult> {
   // Simulate upload delay
   await new Promise((resolve) => setTimeout(resolve, 500));

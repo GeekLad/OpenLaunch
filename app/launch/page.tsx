@@ -13,6 +13,7 @@ export default function LaunchPage() {
   const router = useRouter();
   const { publicKey, signAllTransactions } = useWallet();
   const [launchStatus, setLaunchStatus] = useState<LaunchStatus | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [launchConfig, setLaunchConfig] = useState<TokenLaunchConfig | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
@@ -31,7 +32,7 @@ export default function LaunchPage() {
     });
 
     try {
-      let finalStatus: LaunchStatus | null = null;
+      let finalStatus: LaunchStatus | undefined;
 
       const launchService = new TokenLaunchService((status) => {
         setLaunchStatus(status);
@@ -45,15 +46,15 @@ export default function LaunchPage() {
 
       // Save successful launch to database and redirect
       // Check if we have a complete launch with all transaction signatures
-      if (finalStatus?.step === "complete" && finalStatus?.transactions) {
+      if (finalStatus && finalStatus.step === "complete" && finalStatus.transactions) {
         // Update status to show we're gathering token information
         setLaunchStatus({
           step: "complete",
           message: "Gathering token information...",
           progress: 100,
-          transactions: finalStatus.transactions,
-          launchTimeAdjusted: finalStatus.launchTimeAdjusted,
-          requestedLaunchTime: finalStatus.requestedLaunchTime,
+          transactions: finalStatus!.transactions,
+          launchTimeAdjusted: finalStatus!.launchTimeAdjusted,
+          requestedLaunchTime: finalStatus!.requestedLaunchTime,
         });
 
         setIsSavingToDatabase(true);
@@ -100,9 +101,9 @@ export default function LaunchPage() {
               launchSlot: launchSlot,
 
               // Transaction signatures
-              mintTxSignature: finalStatus.transactions.mintSignature || "",
-              metadataTxSignature: finalStatus.transactions.setupSignature || "",
-              poolTxSignature: finalStatus.transactions.poolSignature || "",
+              mintTxSignature: finalStatus!.transactions.mintSignature || "",
+              metadataTxSignature: finalStatus!.transactions.setupSignature || "",
+              poolTxSignature: finalStatus!.transactions.poolSignature || "",
 
               // Creator
               creatorWallet: publicKey.toBase58(),

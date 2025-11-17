@@ -2,7 +2,8 @@
 
 import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _filename = fileURLToPath(import.meta.url);
 
 // Set up environment
 process.env.NODE_ENV = process.env.NODE_ENV || "production";

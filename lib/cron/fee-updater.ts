@@ -1,7 +1,11 @@
 import * as cron from "node-cron";
+import { PublicKey } from "@solana/web3.js";
 import { getPoolMetrics } from "@/lib/meteora/client";
 import { calculateNextUpdateTime } from "@/lib/meteora/polling-strategy";
 import * as dbService from "@/lib/db/service";
+import { getCurrentPoolPrice } from "@/lib/solana/poolUtils";
+import { getConnection } from "@/lib/solana/connection";
+import { getSolPriceWithFallback } from "@/lib/services/priceService";
 
 /**
  * Background cron service to automatically update pool fees
@@ -55,15 +59,30 @@ export async function updateTokenFees() {
             cumulativeFeesLamports.toString()
           );
 
+          // Get current price from pool and SOL price
+          const connection = getConnection();
+          const [currentPrice, solPrice] = await Promise.all([
+            getCurrentPoolPrice(
+              connection,
+              new PublicKey(token.poolAddress),
+              token.decimals || 9,
+              9 // SOL decimals
+            ),
+            getSolPriceWithFallback(),
+          ]);
+
           // Save to pool stats history
           await dbService.createPoolStatsSnapshot(
             token.id,
             token.poolAddress,
             {
               totalFeesGenerated: cumulativeFeesLamports.toString(),
+              fees24h: Math.floor(metrics.lp_fee24h * 1e9).toString(),
               volume24h: Math.floor(metrics.volume24h * 1e9).toString(),
               currentLiquidity: Math.floor(metrics.tvl * 1e9).toString(),
-              currentPrice: 0, // Price not available in metrics
+              currentPrice: currentPrice || 0,
+              currentPriceUsd: (currentPrice || 0) * solPrice,
+              priceChange24h: 0, // TODO: Calculate from historical data
             }
           );
 

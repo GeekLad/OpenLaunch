@@ -311,6 +311,30 @@ export interface PoolInfo {
 }
 
 /**
+ * Gets the current price from a pool
+ * @param connection - Solana connection
+ * @param poolAddress - Pool public key
+ * @param tokenADecimals - Decimals of token A (base token)
+ * @param tokenBDecimals - Decimals of token B (quote token, usually SOL)
+ * @returns Current price in terms of token B per token A
+ */
+export async function getCurrentPoolPrice(
+  connection: Connection,
+  poolAddress: PublicKey,
+  tokenADecimals: number = 9,
+  tokenBDecimals: number = 9
+): Promise<number | null> {
+  try {
+    const poolInfo = await getPoolInfo(connection, poolAddress);
+    // Convert sqrt price to human-readable price
+    return sqrtPriceToPrice(poolInfo.sqrtPrice, tokenADecimals, tokenBDecimals);
+  } catch (error) {
+    console.error(`Error getting current price for pool ${poolAddress}:`, error);
+    return null;
+  }
+}
+
+/**
  * Fetches pool information from DAMMv2
  * @param connection - Solana connection
  * @param poolAddress - Pool public key
@@ -353,7 +377,7 @@ export async function poolExists(
   try {
     const accountInfo = await connection.getAccountInfo(poolAddress);
     return accountInfo !== null;
-  } catch (_error) {
+  } catch {
     return false;
   }
 }
