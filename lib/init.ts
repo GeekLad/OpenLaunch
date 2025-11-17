@@ -10,11 +10,11 @@ import { startFeeUpdaterCron, getCronStatus } from "./cron/fee-updater";
 /**
  * Initialize all application services
  */
-function initializeApplication() {
+async function initializeApplication() {
   console.log("[App Init] Starting application initialization...");
 
   // 1. Validate startup configuration
-  requireValidStartupConfig();
+  await requireValidStartupConfig();
 
   // 2. Initialize cron jobs (only in production or when explicitly enabled)
   const shouldRunCron =
@@ -43,7 +43,10 @@ function initializeApplication() {
 // Run initialization only once
 let isInitialized = false;
 if (!isInitialized && typeof window === 'undefined') {
-  initializeApplication();
+  initializeApplication().catch((error) => {
+    console.error("[App Init] Failed to initialize application:", error);
+    process.exit(1);
+  });
   isInitialized = true;
 }
 

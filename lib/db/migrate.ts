@@ -1,5 +1,5 @@
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import { db } from './client';
+import { getDb } from './client';
 import path from 'path';
 
 /**
@@ -12,7 +12,7 @@ export async function runMigrations(): Promise<void> {
   try {
     const migrationsFolder = path.join(process.cwd(), 'lib/db/migrations');
 
-    migrate(db, { migrationsFolder });
+    migrate(getDb(), { migrationsFolder });
 
     console.log('[Migrations] All migrations completed successfully ✓');
   } catch (error) {

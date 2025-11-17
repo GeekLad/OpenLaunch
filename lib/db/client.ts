@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import * as schema from './schema';
 import path from 'path';
+import fs from 'fs';
 
 /**
  * Get database URL from environment or use default
@@ -29,6 +30,13 @@ export function getSqlite(): Database.Database {
       ? dbPath
       : path.join(process.cwd(), dbPath);
 
+    // Create data directory if it doesn't exist
+    const dbDir = path.dirname(absolutePath);
+    if (!fs.existsSync(dbDir)) {
+      console.log(`[Database] Creating data directory: ${dbDir}`);
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+
     console.log(`[Database] Connecting to: ${absolutePath}`);
 
     sqlite = new Database(absolutePath);
@@ -49,8 +57,23 @@ export function getSqlite(): Database.Database {
 /**
  * Drizzle ORM instance with schema
  * Use this for all database operations
+ * Uses lazy initialization to prevent premature database creation
  */
-export const db = drizzle(getSqlite(), { schema });
+let _db: ReturnType<typeof drizzle> | null = null;
+
+export function getDb() {
+  if (!_db) {
+    _db = drizzle(getSqlite(), { schema });
+  }
+  return _db;
+}
+
+// Maintain backwards compatibility with direct db export
+export const db = new Proxy({} as ReturnType<typeof drizzle>, {
+  get(target, prop) {
+    return getDb()[prop as keyof ReturnType<typeof drizzle>];
+  }
+});
 
 /**
  * Close database connection

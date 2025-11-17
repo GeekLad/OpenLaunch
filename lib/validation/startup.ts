@@ -1,5 +1,6 @@
 import { SERVER_ENV } from "@/config/environment";
 import { getSqlite } from "@/lib/db/client";
+import { runMigrations } from "@/lib/db/migrate";
 import path from "path";
 import fs from "fs";
 
@@ -16,45 +17,48 @@ export interface StartupValidationResult extends ValidationResult {
 
 /**
  * Validates database configuration and connectivity
+ * Automatically initializes database and runs migrations if needed
  */
-function validateDatabase(): { isValid: boolean; errors: string[] } {
+async function validateDatabase(): Promise<{ isValid: boolean; errors: string[] }> {
   const errors: string[] = [];
 
   try {
     // Get database path from environment or default
     const dbUrl = process.env.DATABASE_URL || 'file:./data/openlaunch.db';
     const dbPath = dbUrl.replace(/^file:/, '');
-    
+
     // Convert to absolute path
     const absolutePath = path.isAbsolute(dbPath)
       ? dbPath
       : path.join(process.cwd(), dbPath);
 
-    // Check if database directory exists
-    const dbDir = path.dirname(absolutePath);
-    if (!fs.existsSync(dbDir)) {
-      errors.push(`Database directory does not exist: ${dbDir}`);
-      return { isValid: false, errors };
+    // Check if database file exists (directory will be auto-created by getSqlite)
+    const dbExists = fs.existsSync(absolutePath);
+
+    if (!dbExists) {
+      console.log('[Database] Database file does not exist, initializing...');
     }
 
-    // Check if database file exists
-    if (!fs.existsSync(absolutePath)) {
-      errors.push(`Database file does not exist: ${absolutePath}`);
-      errors.push(`To create the database, run: npm run db:migrate`);
-      return { isValid: false, errors };
-    }
-
-    // Try to connect to database
+    // Connect to database (this will auto-create the data directory)
     const sqlite = getSqlite();
+
+    // If database didn't exist, run migrations to set up schema
+    if (!dbExists) {
+      console.log('[Database] Running initial migrations...');
+      await runMigrations();
+      console.log('[Database] Database initialized successfully');
+    }
+
+    // Verify database health
     const result = sqlite.prepare('SELECT 1 as health').get() as { health: number };
-    
+
     if (result.health !== 1) {
       errors.push('Database health check failed');
       return { isValid: false, errors };
     }
 
   } catch (error) {
-    errors.push(`Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    errors.push(`Database initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return { isValid: false, errors };
   }
 
@@ -101,12 +105,12 @@ function validateIPFS(): { isValid: boolean; errors: string[]; warnings: string[
 /**
  * Validates all required services for the application to start
  */
-export function validateStartupConfig(): StartupValidationResult {
+export async function validateStartupConfig(): Promise<StartupValidationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
 
   // Validate database
-  const dbValidation = validateDatabase();
+  const dbValidation = await validateDatabase();
   if (!dbValidation.isValid) {
     errors.push(...dbValidation.errors);
   }
@@ -168,8 +172,9 @@ export function printValidationResults(result: StartupValidationResult): void {
     console.log('   1. Create a .env.local file in your project root');
     console.log('   2. Copy the required environment variables from .env.local.example');
     console.log('   3. Fill in your actual values');
-    console.log('   4. Run: npm run db:migrate (to create the database)');
-    console.log('   5. Restart the application');
+    console.log('   4. Restart the application');
+    console.log('');
+    console.log('   Note: The database will be automatically created on first run');
   }
 
   console.log('=====================================\n');
@@ -179,9 +184,9 @@ export function printValidationResults(result: StartupValidationResult): void {
  * Validates startup configuration and throws an error if validation fails
  * This is intended to be called during application initialization
  */
-export function requireValidStartupConfig(): void {
-  const result = validateStartupConfig();
-  
+export async function requireValidStartupConfig(): Promise<void> {
+  const result = await validateStartupConfig();
+
   // Always print validation results for visibility
   printValidationResults(result);
 
