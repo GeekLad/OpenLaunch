@@ -49,12 +49,17 @@ COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 # Create data directory for SQLite database
 RUN mkdir -p /app/data && chown node:node /app/data
 
-USER node
+# Copy and set up entrypoint script
+COPY docker/docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+
+# Use entrypoint to handle permissions and switch to node user
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 # Start the application
 CMD ["node", "server.js"]

@@ -23,9 +23,10 @@ async function validateDatabase(): Promise<{ isValid: boolean; errors: string[] 
   const errors: string[] = [];
 
   try {
-    // Get database path from environment or default
-    const dbUrl = process.env.DATABASE_URL || 'file:./data/openlaunch.db';
-    const dbPath = dbUrl.replace(/^file:/, '');
+    // Get database path from DATA_DIR environment variable or default
+    // Database filename is hardcoded to openlaunch.db
+    const dataDir = process.env.DATA_DIR || './data';
+    const dbPath = path.join(dataDir, 'openlaunch.db');
 
     // Convert to absolute path
     const absolutePath = path.isAbsolute(dbPath)

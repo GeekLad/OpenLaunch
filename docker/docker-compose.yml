@@ -1,5 +1,7 @@
 services:
   openlaunch:
+    container_name: openlaunch
+    image: openlaunch:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -45,7 +47,7 @@ services:
       - FILEBASE_API_KEY=${FILEBASE_API_KEY}
       
       # Database Configuration
-      - DATABASE_URL=${DATABASE_URL:-./data/openlaunch.db}
+      - DATA_DIR=${DATA_DIR:-./data}
       - DATABASE_TYPE=${DATABASE_TYPE:-sqlite}
 
       # Meteora API Polling Configuration
@@ -60,7 +62,7 @@ services:
       # Node Environment
       - NODE_ENV=production
     volumes:
-      - ./data:/app/data
+      - ${DATA_DIR:-./data}:/app/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/init"]

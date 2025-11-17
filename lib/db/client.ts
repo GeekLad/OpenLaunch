@@ -5,14 +5,15 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Get database URL from environment or use default
+ * Get database path from DATA_DIR environment variable or use default
+ * Database filename is hardcoded to openlaunch.db
  * Default: ./data/openlaunch.db (relative to project root)
  */
-function getDatabaseUrl(): string {
-  const dbUrl = process.env.DATABASE_URL || 'file:./data/openlaunch.db';
+function getDatabasePath(): string {
+  const dataDir = process.env.DATA_DIR || './data';
 
-  // Remove 'file:' prefix if present
-  return dbUrl.replace(/^file:/, '');
+  // Combine data directory with hardcoded database filename
+  return path.join(dataDir, 'openlaunch.db');
 }
 
 /**
@@ -23,7 +24,7 @@ let sqlite: Database.Database | null = null;
 
 export function getSqlite(): Database.Database {
   if (!sqlite) {
-    const dbPath = getDatabaseUrl();
+    const dbPath = getDatabasePath();
 
     // Ensure absolute path
     const absolutePath = path.isAbsolute(dbPath)
