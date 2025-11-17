@@ -72,10 +72,7 @@ docker build -f docker/Dockerfile -t openlaunch:latest .
 docker run -d \
   --name openlaunch \
   -p 3000:3000 \
-  -e NEXT_PUBLIC_APP_NAME="OpenLaunch" \
-  -e NEXT_PUBLIC_RPC_URL="https://api.mainnet-beta.solana.com" \
-  -e PINATA_API_KEY="your_pinata_api_key" \
-  -e PINATA_SECRET_KEY="your_pinata_secret_key" \
+  -e FILEBASE_API_KEY="your_filebase_key" \
   -e DATA_DIR="./data" \
   -e ENABLE_CRON="true" \
   -e NODE_ENV="production" \
