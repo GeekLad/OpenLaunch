@@ -1,6 +1,6 @@
-import cron from "node-cron";
+import * as cron from "node-cron";
 import { getPoolMetrics } from "@/lib/meteora/client";
-import { shouldUpdateToken } from "@/lib/meteora/polling-strategy";
+import { calculateNextUpdateTime } from "@/lib/meteora/polling-strategy";
 import * as dbService from "@/lib/db/service";
 
 /**
@@ -13,41 +13,35 @@ let cronJob: cron.ScheduledTask | null = null;
 /**
  * Update fees for tokens that need updates based on age-based polling strategy
  */
-async function updateTokenFees() {
+export async function updateTokenFees() {
   try {
     console.log("[Cron] Starting fee update job...");
 
-    // Get all tokens
-    const tokens = await dbService.getAllTokens();
+    // Get pools that are due for updates using the schedule table
+    const scheduledPools = await dbService.getPoolsDueForUpdate();
 
-    if (tokens.length === 0) {
-      console.log("[Cron] No tokens to update");
+    if (scheduledPools.length === 0) {
+      console.log("[Cron] No pools scheduled for updates");
       return;
     }
-
-    // Filter tokens that need updates based on age
-    const tokensToUpdate = tokens.filter((token) => {
-      const launchDate = new Date(token.launchDate);
-      const lastUpdate = token.cumulativeFeesUpdatedAt
-        ? new Date(token.cumulativeFeesUpdatedAt)
-        : null;
-      return shouldUpdateToken(launchDate, lastUpdate);
-    });
 
     console.log(
-      `[Cron] Found ${tokensToUpdate.length} tokens needing updates out of ${tokens.length} total`
+      `[Cron] Found ${scheduledPools.length} pools needing updates`
     );
 
-    if (tokensToUpdate.length === 0) {
-      return;
-    }
-
-    // Update fees for eligible tokens
+    // Update fees for eligible pools
     let successCount = 0;
     let failCount = 0;
 
-    for (const token of tokensToUpdate) {
+    for (const schedule of scheduledPools) {
       try {
+        // Get token details
+        const token = await dbService.getTokenById(schedule.tokenId);
+        if (!token) {
+          console.warn(`[Cron] Token not found for schedule ID ${schedule.id}`);
+          continue;
+        }
+
         const metrics = await getPoolMetrics(token.poolAddress);
 
         if (metrics) {
@@ -57,19 +51,34 @@ async function updateTokenFees() {
 
           // Update cumulative fees snapshot
           await dbService.updateCumulativeFeesSnapshot(
-            token.id,
+            token.mintAddress,
             cumulativeFeesLamports.toString()
           );
 
           // Save to pool stats history
-          await dbService.createPoolStatsSnapshot({
-            tokenId: token.id,
-            poolAddress: token.poolAddress,
-            totalFeesGenerated: cumulativeFeesLamports.toString(),
-            tradingVolume24h: Math.floor(metrics.volume24h * 1e9).toString(),
-            totalValueLocked: Math.floor(metrics.tvl * 1e9).toString(),
-            currentPrice: 0, // Price not available in metrics
-          });
+          await dbService.createPoolStatsSnapshot(
+            token.id,
+            token.poolAddress,
+            {
+              totalFeesGenerated: cumulativeFeesLamports.toString(),
+              volume24h: Math.floor(metrics.volume24h * 1e9).toString(),
+              currentLiquidity: Math.floor(metrics.tvl * 1e9).toString(),
+              currentPrice: 0, // Price not available in metrics
+            }
+          );
+
+          // Calculate next update time based on token age
+          const { nextUpdate, intervalMinutes } = calculateNextUpdateTime(
+            new Date(token.launchDate)
+          );
+
+          // Update the schedule
+          await dbService.upsertFeeUpdateSchedule(
+            token.id,
+            token.poolAddress,
+            nextUpdate,
+            intervalMinutes
+          );
 
           successCount++;
           console.log(
@@ -78,14 +87,27 @@ async function updateTokenFees() {
         } else {
           failCount++;
           console.warn(
-            `[Cron] ✗ Failed to fetch metrics for token ${token.id} (${token.symbol})`
+            `[Cron] ✗ Failed to fetch metrics for token ${token.id} (${token.symbol}) - Pool may not exist in Meteora DAMMv2`
+          );
+          
+          // Record failure with more specific error
+          await dbService.recordUpdateFailure(
+            token.id,
+            "Pool not found in Meteora DAMMv2 API (404)"
           );
         }
       } catch (error) {
         failCount++;
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
         console.error(
-          `[Cron] Error updating token ${token.id} (${token.symbol}):`,
-          error
+          `[Cron] Error updating pool schedule ${schedule.id} (token ${schedule.tokenId}):`,
+          errorMessage
+        );
+        
+        // Record failure with detailed error
+        await dbService.recordUpdateFailure(
+          schedule.tokenId,
+          errorMessage
         );
       }
     }
@@ -114,7 +136,7 @@ export function startFeeUpdaterCron() {
   console.log("[Cron] ✓ Fee updater cron started (runs every 5 minutes)");
 
   // Run immediately on startup
-  updateTokenFees();
+  setTimeout(updateTokenFees, 1000); // Delay to ensure database is ready
 }
 
 /**

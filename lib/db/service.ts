@@ -2,6 +2,7 @@ import { db } from './client';
 import { tokens, poolStatsHistory, feeUpdateSchedule } from './schema';
 import type { Token, PoolStatsHistory, FeeUpdateSchedule } from './schema';
 import { eq, desc, asc, like, or, and, lt, lte, gt, gte, sql } from 'drizzle-orm';
+import { calculateNextUpdateTime } from '@/lib/meteora/polling-strategy';
 
 /**
  * Database Service Layer
@@ -142,6 +143,15 @@ export async function createToken(data: TokenCreateInput): Promise<Token> {
       cumulativeFeesSnapshot: '0',
     })
     .returning();
+
+  // Initialize fee update schedule for the new token
+  const { nextUpdate, intervalMinutes } = calculateNextUpdateTime(data.launchDate);
+  await upsertFeeUpdateSchedule(
+    token.id,
+    data.poolAddress,
+    nextUpdate,
+    intervalMinutes
+  );
 
   return token;
 }

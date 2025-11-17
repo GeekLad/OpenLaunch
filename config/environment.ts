@@ -31,6 +31,12 @@ export const ENV = {
 
   // Metadata Configuration
   METADATA_MUTABLE: process.env.NEXT_PUBLIC_METADATA_MUTABLE === 'true', // Defaults to false (metadata is immutable)
+
+  // Fee Update Intervals (in minutes)
+  FEE_UPDATE_INTERVAL_0_1H: process.env.FEE_UPDATE_INTERVAL_0_1H || '1', // First hour: every 1 minute
+  FEE_UPDATE_INTERVAL_1_24H: process.env.FEE_UPDATE_INTERVAL_1_24H || '5', // 1-24 hours: every 5 minutes
+  FEE_UPDATE_INTERVAL_1_4D: process.env.FEE_UPDATE_INTERVAL_1_4D || '10', // 24-96 hours: every 10 minutes
+  FEE_UPDATE_INTERVAL_4D_PLUS: process.env.FEE_UPDATE_INTERVAL_4D_PLUS || '60', // 96+ hours: every 60 minutes
 } as const;
 
 // Server-side only environment variables (not exposed to client)
