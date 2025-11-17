@@ -35,12 +35,33 @@
 
 ## Quick Start
 
-See [INSTALLATION.md](INSTALLATION.md) for detailed installation instructions.
+### Option 1: Docker (Recommended)
+
+See [docker/README.md](docker/README.md) for detailed Docker deployment instructions.
+
+```bash
+# Clone and deploy with Docker
+git clone https://github.com/GeekLad/OpenLaunch.git
+cd OpenLaunch
+
+# Copy and configure environment
+cp docker/.env.example docker/.env
+
+# Edit docker/.env with your IPFS credentials and other settings
+cd docker
+
+# Build/launch with Docker
+docker-compose up -d
+```
+
+### Option 2: Manual Installation
+
+See [INSTALLATION.md](INSTALLATION.md) for detailed manual installation instructions.
 
 ```bash
 # Clone and install
-git clone <repository-url>
-cd openlaunch
+git clone https://github.com/GeekLad/OpenLaunch.git
+cd OpenLaunch
 npm install
 
 # Configure environment
@@ -59,6 +80,7 @@ npm run dev
 openlaunch/
 ├── app/                          # Next.js app directory
 │   ├── api/                      # API routes
+│   │   ├── init/                 # Application initialization endpoint
 │   │   ├── ipfs/                 # IPFS upload endpoints
 │   │   │   ├── upload-file/      # Image upload to IPFS
 │   │   │   └── upload-metadata/  # Metadata JSON upload
@@ -71,6 +93,7 @@ openlaunch/
 │   ├── tokens/                   # Token explorer pages
 │   │   ├── page.tsx              # Token listing with pagination
 │   │   └── [mintAddress]/        # Individual token details
+│   ├── init.ts                  # Application initialization
 │   ├── layout.tsx                # Root layout with providers
 │   ├── page.tsx                  # Landing page
 │   └── globals.css               # Global styles
@@ -87,16 +110,32 @@ openlaunch/
 │   ├── cron/                     # Background job scheduling
 │   ├── db/                       # Database layer (Drizzle ORM)
 │   │   ├── migrations/           # Database migration files
+│   │   │   └── meta/            # Migration metadata
 │   │   └── schema/               # Database table definitions
 │   ├── meteora/                  # Meteora DAMMv2 integration
 │   ├── services/                 # Business logic services
 │   ├── solana/                   # Solana blockchain utilities
-│   └── utils/                    # Utility functions
+│   ├── utils/                    # Utility functions
+│   ├── validation/                # Startup validation
+│   ├── init.ts                   # Library initialization
+│   └── utils.ts                 # General utilities
 ├── scripts/                      # Standalone scripts
 │   └── fee-updater.mjs           # Fee updater cron service
 ├── types/                        # TypeScript type definitions
 ├── config/                       # Environment configuration
-└── .env.local.example            # Environment variables template
+├── docker/                       # Docker deployment files
+│   ├── Dockerfile               # Multi-stage Docker build
+│   ├── docker-compose.yml       # Docker Compose configuration
+│   ├── .env.example             # Docker environment template
+│   └── README.md                # Docker deployment guide
+├── .dockerignore                 # Docker build exclusions
+├── .env.local.example            # Environment variables template
+├── drizzle.config.ts             # Drizzle ORM configuration
+├── next.config.ts                # Next.js configuration
+├── package.json                  # Node.js dependencies
+├── postcss.config.mjs            # PostCSS configuration
+├── tailwind.config.ts            # Tailwind CSS configuration
+└── tsconfig.json                 # TypeScript configuration
 ```
 
 ## Usage
@@ -241,6 +280,15 @@ The application includes a complete REST API for token management:
 
 ## Background Services
 
+### Startup Validation
+
+The application includes comprehensive startup validation to ensure all services are properly configured:
+
+- **Database Validation**: Checks database connectivity and schema
+- **IPFS Validation**: Verifies IPFS service credentials and connectivity
+- **Configuration Validation**: Ensures all required environment variables are set
+- **Error Reporting**: Clear error messages with setup instructions
+
 ### Fee Updater Service
 
 Automated fee collection and statistics tracking system:
@@ -272,6 +320,8 @@ ENABLE_CRON=true npm run dev
 
 ## Development
 
+### Local Development
+
 ```bash
 # Development server
 npm run dev
@@ -296,11 +346,45 @@ npm run db:studio      # Open visual database browser
 node scripts/fee-updater.mjs
 ```
 
+### Docker Development
+
+```bash
+# Build and run with Docker Compose
+cd docker
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Rebuild after changes
+docker-compose up -d --build
+
+# Development with hot reload (advanced)
+docker run -d \
+  --name openlaunch-dev \
+  -p 3000:3000 \
+  -v $(pwd):/app \
+  -v /app/node_modules \
+  -v /app/.next \
+  --env-file .env \
+  openlaunch:latest \
+  npm run dev
+```
+
 ## Troubleshooting
+
+### Docker Issues
+- **Build Failures**: Ensure Node.js 24.10.0+ and Docker are up to date
+- **IPFS Configuration**: Set IPFS credentials in `docker/.env` (not `.env.local`)
+- **Database Permissions**: Ensure `./data` directory is writable by container
+- **Port Conflicts**: Change port mapping if 3000 is in use
 
 ### Wallet Connection Issues
 - Ensure wallet extension is installed and unlocked
-- Refresh the page
+- Refresh page
 - Check correct network (mainnet-beta or devnet)
 
 ### Transaction Failures
@@ -309,9 +393,40 @@ node scripts/fee-updater.mjs
 - Verify all form inputs are valid
 
 ### IPFS Upload Errors
-- Verify credentials in `.env.local` (without `NEXT_PUBLIC_` prefix)
+- Verify credentials in `.env.local` (without `NEXT_PUBLIC_` prefix) for manual setup
+- For Docker, use `docker/.env` file
 - Check file size (max configured in `NEXT_PUBLIC_MAX_IMAGE_SIZE_MB`)
 - App falls back to mock uploads for testing without credentials
+
+### Startup Validation Errors
+- **Database Issues**: Run `npm run db:migrate` to create database schema
+- **IPFS Issues**: Configure at least one IPFS service (Pinata or Filebase)
+- **Environment Issues**: Check all required environment variables are set
+
+## Deployment
+
+### Docker Deployment
+
+For production deployment, Docker is recommended:
+
+- **Quick Start**: `cd docker && docker-compose up -d`
+- **Configuration**: Copy `docker/.env.example` to `docker/.env` and configure IPFS credentials
+- **Data Persistence**: Database stored in `./data` directory
+- **Health Checks**: Built-in health monitoring via `/api/init`
+- **Multi-stage Build**: Optimized production image with minimal size
+- **Standalone Output**: Next.js standalone mode for efficient deployment
+
+See [docker/README.md](docker/README.md) for complete Docker deployment guide.
+
+### Manual Deployment
+
+For manual deployment without Docker:
+
+1. Build the application: `npm run build`
+2. Set production environment variables
+3. Run: `npm start`
+4. Set up reverse proxy (nginx/Apache) for SSL
+5. Configure process manager (PM2/systemd)
 
 ## Resources
 
@@ -321,6 +436,7 @@ node scripts/fee-updater.mjs
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Solana Wallet Adapter](https://github.com/solana-labs/wallet-adapter)
 - [Solana Cookbook](https://solanacookbook.com/)
+- [Docker Documentation](https://docs.docker.com/)
 
 ## Contributing
 

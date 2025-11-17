@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   reactStrictMode: true,
+  output: 'standalone',
   typescript: {
     // Temporarily ignore build errors during development
     // Remove this in production

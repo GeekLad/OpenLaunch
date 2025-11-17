@@ -292,7 +292,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
               </div>
             )}
             {errors.logoFile && (
-              <p className="text-sm text-destructive">{errors.logoFile.message as string}</p>
+              <p className="text-sm text-destructive">{errors.logoFile.message}</p>
             )}
           </div>
 
