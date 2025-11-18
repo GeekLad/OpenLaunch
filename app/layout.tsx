@@ -10,13 +10,32 @@ import "../app/init";
 
 
 const inter = Inter({ subsets: ["latin"] });
+const title = `${ENV.APP_NAME} - Memecoin Launchpad`;
+const description = "Open Source memecoin launchpad on Solana, powered by Meteora's gud tek";
+
+const logoUrl = ENV.LAUNCHPAD_URL
+  ? `${ENV.LAUNCHPAD_URL.replace(/\/$/, '')}/logo.png`
+  : undefined;
 
 export const metadata: Metadata = {
-  title: `${ENV.APP_NAME} - Meme Token Launchpad`,
-  description: "Launch your meme token on Solana with DAMMv2 liquidity",
+  title,
+  description,
   icons: {
     icon: "/favicon.ico",
   },
+  ...(logoUrl && {
+    openGraph: {
+      title,
+      description,
+      images: [logoUrl],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [logoUrl],
+    },
+  }),
 };
 
 export default function RootLayout({

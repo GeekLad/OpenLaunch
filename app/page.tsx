@@ -9,18 +9,18 @@ export default function Home() {
   return (
     <>
       {/* Hero Section */}
-        <section className="container mx-auto px-4 py-24">
+        <section className="container mx-auto px-4 py-8 sm:py-16 md:py-24">
           <div className="mx-auto max-w-4xl text-center">
-            <div className="mb-12 flex justify-center">
-              <Image src="/logo.svg" alt={appName} width={800} height={300} className="h-48 sm:h-56 w-auto" priority />
+            <div className="mb-6 sm:mb-8 md:mb-12 flex justify-center">
+              <Image src="/logo.svg" alt={appName} width={800} height={300} className="h-40 sm:h-48 md:h-56 w-auto" priority />
             </div>
-            <h2 className="text-5xl font-bold tracking-tight sm:text-6xl">
-              Open Source Meme Token Launchpad
+            <h2 className="text-4xl sm:text-5xl font-bold tracking-tight md:text-6xl">
+              Open Source Memecoin Launchpad
             </h2>
-            <p className="mt-6 text-lg leading-8 text-muted-foreground">
+            <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
               Launch cheap, earn forever - Powered by Meteora&apos;s gud tek
             </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
+            <div className="mt-6 sm:mt-8 md:mt-10 flex items-center justify-center gap-x-6">
               <Link href="/launch">
                 <Button size="lg">Get Started</Button>
               </Link>
@@ -29,7 +29,7 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section className="border-t bg-secondary/30 py-24">
+        <section className="border-t bg-secondary/30 py-12 sm:py-16 md:py-24">
           <div className="container mx-auto px-4">
             <div className="mx-auto max-w-4xl">
               <h3 className="text-center text-3xl font-bold">Features</h3>
@@ -107,7 +107,7 @@ export default function Home() {
         </section>
 
         {/* How It Works Section */}
-        <section className="py-24">
+        <section className="py-12 sm:py-16 md:py-24">
           <div className="container mx-auto px-4">
             <div className="mx-auto max-w-4xl">
               <h3 className="text-center text-3xl font-bold">How It Works</h3>
