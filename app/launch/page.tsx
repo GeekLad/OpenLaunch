@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { TokenFormData, LaunchStatus, TokenLaunchConfig } from "@/types/token";
@@ -8,6 +8,7 @@ import { TokenLaunchForm } from "@/components/forms/TokenLaunchForm";
 import { TokenLaunchService } from "@/lib/services/launchService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ENV } from "@/config/environment";
+import { getConnection, getBalance } from "@/lib/solana/connection";
 
 export default function LaunchPage() {
   const router = useRouter();
@@ -17,6 +18,34 @@ export default function LaunchPage() {
   const [launchConfig, setLaunchConfig] = useState<TokenLaunchConfig | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [isCheckingBalance, setIsCheckingBalance] = useState(false);
+
+  const MIN_BALANCE_REQUIRED = 0.045; // SOL
+
+  // Check wallet balance when publicKey changes
+  useEffect(() => {
+    async function checkWalletBalance() {
+      if (!publicKey) {
+        setWalletBalance(null);
+        return;
+      }
+
+      setIsCheckingBalance(true);
+      try {
+        const connection = getConnection();
+        const balance = await getBalance(connection, publicKey.toBase58());
+        setWalletBalance(balance);
+      } catch (error) {
+        console.error("Error checking wallet balance:", error);
+        setWalletBalance(null);
+      } finally {
+        setIsCheckingBalance(false);
+      }
+    }
+
+    checkWalletBalance();
+  }, [publicKey]);
 
   const handleLaunch = async (formData: TokenFormData) => {
     if (!publicKey || !signAllTransactions) {
@@ -161,6 +190,28 @@ export default function LaunchPage() {
           </Card>
         )}
 
+        {/* Insufficient Balance Warning */}
+        {publicKey && !isCheckingBalance && walletBalance !== null && walletBalance < MIN_BALANCE_REQUIRED && (
+          <Card className="border-red-500 bg-red-50 dark:bg-red-950">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-2">
+                <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+                  Insufficient Balance
+                </p>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  You need at least <span className="font-bold">{MIN_BALANCE_REQUIRED} SOL</span> to launch a token.
+                </p>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  Current balance: <span className="font-bold">{walletBalance.toFixed(4)} SOL</span>
+                </p>
+                <p className="text-xs text-red-500 dark:text-red-500 mt-2">
+                  Please fund your wallet before launching a token.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Launch Status */}
         {launchStatus && launchStatus.step !== "idle" && (
           <Card>
@@ -199,7 +250,7 @@ export default function LaunchPage() {
 
 
           {/* Launch Form */}
-          {publicKey && !isLaunching && launchStatus?.step !== "complete" && (
+          {publicKey && !isLaunching && launchStatus?.step !== "complete" && !isCheckingBalance && (walletBalance === null || walletBalance >= MIN_BALANCE_REQUIRED) && (
             <TokenLaunchForm onSubmit={handleLaunch} isLoading={isLaunching} />
           )}
         </div>
