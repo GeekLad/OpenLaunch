@@ -152,10 +152,7 @@ export class TokenLaunchService {
         progress: 70,
       });
 
-      const { blockhash, lastValidBlockHeight } = await getRecentBlockhash(this.connection);
-
-      // Transaction 1: Mint creation
-      mintResult.transaction.recentBlockhash = blockhash;
+      // Transaction 1: Mint creation (don't set blockhash yet)
       mintResult.transaction.feePayer = walletPublicKey;
 
       // Transaction 2: Mint tokens + create metadata + revoke authorities
@@ -184,7 +181,6 @@ export class TokenLaunchService {
       combinedTx.add(...mintTokensResult.transaction.instructions);
       combinedTx.add(...metadataTx.instructions);
       combinedTx.add(...revokeAuthTx.instructions);
-      combinedTx.recentBlockhash = blockhash;
       combinedTx.feePayer = walletPublicKey;
 
       // Transaction 3: Create DAMMv2 pool (pass TOKEN_PROGRAM_ID to skip on-chain lookup)
@@ -219,7 +215,6 @@ export class TokenLaunchService {
         } : undefined,
       });
 
-      poolResult.transaction.recentBlockhash = blockhash;
       poolResult.transaction.feePayer = walletPublicKey;
 
       // Track if launch time was adjusted
@@ -290,9 +285,6 @@ export class TokenLaunchService {
             } : undefined,
           });
 
-          poolResult.transaction.recentBlockhash = blockhash;
-          poolResult.transaction.feePayer = walletPublicKey;
-
           console.log("✓ Pool recreated for immediate activation");
         } else {
           console.log(`✓ Launch time is valid (${Math.floor(timeUntilLaunch / 1000)} seconds in the future)`);
@@ -300,7 +292,22 @@ export class TokenLaunchService {
       }
 
 
-      // Step 5: Sign all transactions at once (single user approval!)
+      // Step 5: Get fresh blockhash right before signing
+      this.updateStatus({
+        step: "signing",
+        message: "Getting fresh blockhash...",
+        progress: 78,
+      });
+
+      const { blockhash, lastValidBlockHeight } = await getRecentBlockhash(this.connection);
+      console.log("Fresh blockhash obtained for signing");
+
+      // Assign blockhash to all transactions
+      mintResult.transaction.recentBlockhash = blockhash;
+      combinedTx.recentBlockhash = blockhash;
+      poolResult.transaction.recentBlockhash = blockhash;
+
+      // Step 6: Sign all transactions at once (single user approval!)
       this.updateStatus({
         step: "signing",
         message: "Please approve all transactions in your wallet...",
@@ -320,7 +327,7 @@ export class TokenLaunchService {
       signedTransactions[0].partialSign(mintKeypair); // Mint transaction
       signedTransactions[2].partialSign(poolResult.positionNft); // Pool transaction
 
-      // Step 6: Submit all transactions sequentially
+      // Step 7: Submit all transactions sequentially
       this.updateStatus({
         step: "submitting",
         message: "Submitting mint transaction...",
@@ -472,7 +479,7 @@ export class TokenLaunchService {
         }
       }
 
-      // Step 7: Complete
+      // Step 8: Complete
       this.updateStatus({
         step: "complete",
         message: "Token launch complete!",
