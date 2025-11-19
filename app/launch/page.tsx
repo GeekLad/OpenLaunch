@@ -21,7 +21,7 @@ export default function LaunchPage() {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
 
-  const MIN_BALANCE_REQUIRED = 0.045; // SOL
+  const MIN_BALANCE_REQUIRED = 0.05; // SOL
 
   // Check wallet balance when publicKey changes
   useEffect(() => {
