@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as dbService from "@/lib/db/service";
+import { ENV } from "@/config/environment";
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,9 +19,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!["date", "fees"].includes(sortBy)) {
+    const validSortOptions = ENV.ENABLE_FEES_DISPLAY ? ["date", "fees"] : ["date"];
+    if (!validSortOptions.includes(sortBy)) {
       return NextResponse.json(
-        { error: "Invalid sortBy parameter. Must be 'date' or 'fees'" },
+        { error: `Invalid sortBy parameter. Must be ${validSortOptions.join(" or ")}` },
         { status: 400 }
       );
     }

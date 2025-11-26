@@ -219,9 +219,17 @@ FILEBASE_API_KEY=your_key
 # Option 2: Pinata (1GB free)
 # PINATA_API_KEY=your_key
 # PINATA_SECRET_KEY=your_secret
+
+# Feature Flags
+# Enable fees display and sorting in the UI (default: false)
+NEXT_PUBLIC_ENABLE_FEES_DISPLAY=true
 ```
 
 See [.env.local.example](.env.local.example) for complete configuration options.
+
+### Feature Flags
+
+- **Fees Display**: Set `NEXT_PUBLIC_ENABLE_FEES_DISPLAY=true` to enable displaying cumulative fees in token cards and allow sorting by fees. When disabled (default), fees are hidden from the UI and sorting/filtering by fees is not available.
 
 ### Token Parameters
 

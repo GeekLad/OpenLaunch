@@ -25,7 +25,14 @@ interface SolanaProviderProps {
 }
 
 export const SolanaProvider: FC<SolanaProviderProps> = ({ children }) => {
-  const endpoint = useMemo(() => ENV.RPC_URL, []);
+  const endpoint = useMemo(() => {
+    const rpcUrl = ENV.RPC_URL;
+    if (!rpcUrl || typeof rpcUrl !== 'string' || (!rpcUrl.startsWith('http://') && !rpcUrl.startsWith('https://'))) {
+      console.warn('Invalid RPC URL, using default:', rpcUrl);
+      return 'https://api.mainnet-beta.solana.com';
+    }
+    return rpcUrl;
+  }, []);
 
   const wallets = useMemo(
     () => {

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { TokenCard } from "@/components/tokens/TokenCard";
 import type { Token } from "@/lib/db/schema";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ENV } from "@/config/environment";
 
 interface PaginationData {
   page: number;
@@ -151,16 +152,18 @@ export default function TokensPage() {
                     <span className="ml-1">{sort.sortOrder === "desc" ? "↓" : "↑"}</span>
                   )}
                 </Button>
-                <Button
-                  variant={sort.sortBy === "fees" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleSortChange("fees")}
-                >
-                  Fees
-                  {sort.sortBy === "fees" && (
-                    <span className="ml-1">{sort.sortOrder === "desc" ? "↓" : "↑"}</span>
-                  )}
-                </Button>
+                 {ENV.ENABLE_FEES_DISPLAY && (
+                   <Button
+                     variant={sort.sortBy === "fees" ? "default" : "outline"}
+                     size="sm"
+                     onClick={() => handleSortChange("fees")}
+                   >
+                     Fees
+                     {sort.sortBy === "fees" && (
+                       <span className="ml-1">{sort.sortOrder === "desc" ? "↓" : "↑"}</span>
+                     )}
+                   </Button>
+                 )}
               </div>
             </div>
           </div>

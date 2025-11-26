@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { Token } from "@/lib/db/schema";
 import { CompactCountdown } from "@/components/ui/countdown";
+import { ENV } from "@/config/environment";
 
 interface TokenCardProps {
   token: Token;
@@ -90,15 +91,17 @@ export function TokenCard({ token }: TokenCardProps) {
             )}
           </div>
 
-          {/* Cumulative Fees */}
-          <div>
-            <p className="text-xs text-muted-foreground uppercase mb-1">
-              Cumulative Fees
-            </p>
-            <p className="text-sm font-mono font-semibold">
-              {fees.toString() === '0' ? 'N/A' : `${(Number(fees) / 1e9).toFixed(4)} SOL`}
-            </p>
-          </div>
+           {/* Cumulative Fees */}
+           {ENV.ENABLE_FEES_DISPLAY && (
+             <div>
+               <p className="text-xs text-muted-foreground uppercase mb-1">
+                 Cumulative Fees
+               </p>
+               <p className="text-sm font-mono font-semibold">
+                 {fees.toString() === '0' ? 'N/A' : `${(Number(fees) / 1e9).toFixed(4)} SOL`}
+               </p>
+             </div>
+           )}
 
           {/* Pool Link */}
           <div className="pt-2 border-t">
