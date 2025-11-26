@@ -35,10 +35,7 @@ export const poolStatsHistory = sqliteTable('pool_stats_history', {
   // Liquidity metrics
   currentLiquidity: text('current_liquidity'), // Total liquidity in pool
 
-  // Price metrics
-  currentPrice: real('current_price'), // Price in quote token (SOL)
-  currentPriceUsd: real('current_price_usd'), // Price in USD (from Meteora)
-  priceChange24h: real('price_change_24h'), // 24h price change percentage
+
 
   // APR/APY metrics (if available from Meteora)
   apr: real('apr'), // Annual Percentage Rate

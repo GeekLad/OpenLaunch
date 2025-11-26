@@ -94,9 +94,6 @@ export async function seedDatabase(): Promise<void> {
           fees24h: '250000',
           volume24h: '5000000000',
           currentLiquidity: '10000000000',
-          currentPrice: tokenData.initialPrice,
-          currentPriceUsd: tokenData.initialPrice * 100, // Assume SOL = $100
-          priceChange24h: 5.5,
         });
 
         // Create fee update schedule

@@ -79,9 +79,6 @@ export interface PoolStatsInput {
   volume7d?: string;
   volume30d?: string;
   currentLiquidity?: string;
-  currentPrice?: number;
-  currentPriceUsd?: number;
-  priceChange24h?: number;
   apr?: number;
   apy?: number;
 }
