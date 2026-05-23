@@ -1,4 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
+import { FeeSchedulerConfig, FeeTokenMode } from "./fee";
 
 export interface TokenMetadata {
   name: string;
@@ -30,10 +31,17 @@ export interface TokenFormData {
   description?: string;
   logoFile: File | null;
 
-  // Fee Schedule
-  enableFeeScheduler: boolean;
-  startingFeeRate: number;
-  endingFeeRate: number;
+  // Fee Scheduler
+  feeSchedulerConfig: FeeSchedulerConfig;
+  feeTokenMode: FeeTokenMode;
+
+  // Launch Parameters
+  totalSupply: number;
+  initialPrice: number;
+  priceRangeMin: number;
+  priceRangeMax: number;
+  holdbackPercentage: number;
+  quoteTokenMint: string;
 
   // Launch Time
   enableTimedLaunch: boolean;
@@ -63,12 +71,9 @@ export interface TokenLaunchConfig {
   poolAddress?: PublicKey;
   positionAddress?: PublicKey;
   positionNft?: PublicKey;
-  feeSchedule?: {
-    enabled: boolean;
-    startRate: number;
-    endRate: number;
-    decayDuration: number;
-  };
+  feeSchedulerConfig: FeeSchedulerConfig;
+  feeTokenMode: FeeTokenMode;
+  holdbackPercentage: number;
   launchTime?: Date;
 }
 

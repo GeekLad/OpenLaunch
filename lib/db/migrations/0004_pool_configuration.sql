@@ -1,0 +1,1 @@
+ALTER TABLE tokens ADD COLUMN holdback_percentage REAL NOT NULL DEFAULT 0;

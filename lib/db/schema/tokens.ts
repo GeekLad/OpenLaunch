@@ -30,10 +30,24 @@ export const tokens = sqliteTable('tokens', {
   initialPrice: real('initial_price').notNull(),
   quoteTokenMint: text('quote_token_mint').notNull(), // Usually SOL wrapped mint
   poolLiquidityPercentage: real('pool_liquidity_percentage').notNull(),
+  // Phase 1: Core launch params
+  priceRangeMin: real('price_range_min').notNull().default(0.000001),
+  priceRangeMax: real('price_range_max').notNull().default(0.0001),
 
   // Fee configuration
   feeDecayDurationMinutes: integer('fee_decay_duration_minutes').notNull(),
   feeDecayPeriods: integer('fee_decay_periods').notNull(),
+  // Phase 1: Fee configuration
+  feeSchedulerMode: text('fee_scheduler_mode').notNull().default('market-cap-based'),
+  feeTokenMode: text('fee_token_mode').notNull().default('quoteOnly'),
+  startingMarketCap: text('starting_market_cap').notNull().default('0'),
+  endingMarketCap: text('ending_market_cap').notNull().default('0'),
+  startRate: real('start_rate').notNull().default(0),
+  endRate: real('end_rate').notNull().default(0),
+  durationMinutes: integer('duration_minutes').notNull().default(0),
+  fixedBaseFeeBps: integer('fixed_base_fee_bps').notNull().default(0),
+  // Phase 1: Pool configuration
+  holdbackPercentage: real('holdback_percentage').notNull().default(0),
 
   // Launch timestamps
   launchDate: integer('launch_date', { mode: 'timestamp' }).notNull(), // JavaScript Date object

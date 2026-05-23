@@ -1,5 +1,5 @@
 import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js";
-import { CpAmm, type PoolFeesParams, bpsToFeeNumerator, getFeeSchedulerParams, BaseFeeMode, CollectFeeMode, getDynamicFeeParams } from "@meteora-ag/cp-amm-sdk";
+import { CpAmm, type PoolFeesParams, bpsToFeeNumerator, getFeeTimeSchedulerParams, BaseFeeMode, CollectFeeMode, getDynamicFeeParams } from "@meteora-ag/cp-amm-sdk";
 import { getMint, Mint, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import BN from "bn.js";
 import { ENV } from "@/config/environment";
@@ -168,6 +168,7 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
     maxSqrtPrice: sqrtMaxPrice,
     initSqrtPrice,
     tokenAInfo,
+    collectFeeMode: CollectFeeMode.OnlyB,
   });
 
   // Create pool fees configuration
@@ -207,22 +208,29 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
     );
 
     // Use the SDK's helper function to construct fee scheduler params
-    const baseFee = getFeeSchedulerParams(
+    const baseFee = getFeeTimeSchedulerParams(
       startBps,
       endBps,
-      BaseFeeMode.FeeSchedulerExponential, // Exponential decay from start to end (faster initial decay)
+      BaseFeeMode.FeeTimeSchedulerExponential, // Exponential decay from start to end (faster initial decay)
       numberOfPeriods,
       durationSeconds
     );
 
     poolFees = {
       baseFee,
-      padding: [0, 0, 0],
+      compoundingFeeBps: 0,
+      padding: 0,
       dynamicFee, // Enable dynamic fees
     };
   } else {
     // Fixed fee mode with dynamic fees
-    const feeNumerator = bpsToFeeNumerator(baseFeeNumerator);
+    const baseFee = getFeeTimeSchedulerParams(
+      baseFeeNumerator,
+      baseFeeNumerator,
+      BaseFeeMode.FeeTimeSchedulerLinear,
+      0,
+      0
+    );
 
     console.log(`Fee configuration:\n` +
       `  Base fee: ${baseFeeNumerator} bps (${baseFeeNumerator / 100}%)\n` +
@@ -231,14 +239,9 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
     );
 
     poolFees = {
-      baseFee: {
-        cliffFeeNumerator: feeNumerator,
-        firstFactor: 0,
-        secondFactor: [0, 0, 0, 0, 0, 0, 0, 0], // 8 bytes for scheduler (unused in fixed mode)
-        thirdFactor: new BN(0),
-        baseFeeMode: 0, // 0 = fixed mode
-      },
-      padding: [0, 0, 0],
+      baseFee,
+      compoundingFeeBps: 0,
+      padding: 0,
       dynamicFee, // Enable dynamic fees
     };
   }
