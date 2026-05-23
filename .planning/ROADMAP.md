@@ -13,7 +13,7 @@ This roadmap delivers a configurable token launch experience for OpenLaunch. Sta
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Types, Schema & Defaults Foundation** - Data structures, database schema, and single source of truth for all configurable parameters
+- [x] **Phase 1: Types, Schema & Defaults Foundation** - Data structures, database schema, and single source of truth for all configurable parameters (completed 2026-05-23)
 - [ ] **Phase 2: Core Form Parameters & Basic UI** - Essential form expansion with supply, price, and range fields in an Advanced Options section
 - [ ] **Phase 3: Advanced Parameters, Fee Modes & Complex Validation** - Holdback slider, quote token selection, fee scheduler modes, and server-side SDK validation
 - [ ] **Phase 4: Blockchain Integration & Pre-flight Safety** - SDK upgrade, on-chain parameter mapping, holdback math, and transaction simulation
@@ -35,14 +35,14 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A single DEFAULTS configuration object is imported by both frontend and backend code, preventing silent drift
   4. TypeScript types use discriminated unions for fee scheduler modes, preventing invalid parameter combinations at compile time
 
-**Plans:** 3/5 plans executed
+**Plans:** 5/5 plans complete
 **Plan list:**
 
 - [x] 01-01-PLAN.md — Upgrade @meteora-ag/cp-amm-sdk to v1.4.3 and update poolUtils.ts API usage
 - [x] 01-02-PLAN.md — Create types/fee.ts discriminated union, config/defaults.ts constants, update types/token.ts
 - [x] 01-03-PLAN.md — Extend database schema with new columns and three sequential migrations
-- [ ] 01-04-PLAN.md — Update backend files: environment.ts, db/service.ts, API create route
-- [ ] 01-05-PLAN.md — Update downstream consumers: launchService.ts and TokenLaunchForm.tsx
+- [x] 01-04-PLAN.md — Update backend files: environment.ts, db/service.ts, API create route
+- [x] 01-05-PLAN.md — Update downstream consumers: launchService.ts and TokenLaunchForm.tsx
 
 **UI hint**: no
 
@@ -137,7 +137,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Types, Schema & Defaults Foundation | 3/5 | In Progress|  |
+| 1. Types, Schema & Defaults Foundation | 5/5 | Complete   | 2026-05-23 |
 | 2. Core Form Parameters & Basic UI | 0/TBD | Not started | - |
 | 3. Advanced Parameters, Fee Modes & Complex Validation | 0/TBD | Not started | - |
 | 4. Blockchain Integration & Pre-flight Safety | 0/TBD | Not started | - |
