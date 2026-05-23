@@ -31,7 +31,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Existing tokens in the database remain compatible (no data loss, no migration breakage)
   3. A single DEFAULTS configuration object is imported by both frontend and backend code, preventing silent drift
   4. TypeScript types use discriminated unions for fee scheduler modes, preventing invalid parameter combinations at compile time
-**Plans**: TBD
+**Plans:** 5 plans
+**Plan list:**
+- [ ] 01-01-PLAN.md — Upgrade @meteora-ag/cp-amm-sdk to v1.4.3 and update poolUtils.ts API usage
+- [ ] 01-02-PLAN.md — Create types/fee.ts discriminated union, config/defaults.ts constants, update types/token.ts
+- [ ] 01-03-PLAN.md — Extend database schema with new columns and three sequential migrations
+- [ ] 01-04-PLAN.md — Update backend files: environment.ts, db/service.ts, API create route
+- [ ] 01-05-PLAN.md — Update downstream consumers: launchService.ts and TokenLaunchForm.tsx
 **UI hint**: no
 
 ### Phase 2: Core Form Parameters & Basic UI

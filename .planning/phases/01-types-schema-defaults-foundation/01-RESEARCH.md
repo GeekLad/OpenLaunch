@@ -427,21 +427,21 @@ export const DEFAULT_LAUNCH_PARAMS = {
 
 **If this table is empty:** Not applicable — four assumptions are logged.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Migration generation strategy for three separate files**
+1. **Migration generation strategy for three separate files** ✅ RESOLVED
    - What we know: D-01 requires three migrations by feature group.
-   - What's unclear: Drizzle Kit generates one `.sql` file per `db:generate` run. Manual splitting requires updating `meta/_journal.json` correctly.
+   - Resolution: Manual splitting into three files per D-01, with updated `_journal.json`. Plans 01-03 Task 2 specifies exact SQL content and journal update steps.
    - Recommendation: Generate once, manually split into `0002_*.sql`, `0003_*.sql`, `0004_*.sql`, and update `_journal.json` to list all three with sequential tags. Verify with `npm run db:migrate` against a test database.
 
-2. **Zod schema shape for discriminated union in form validation**
+2. **Zod schema shape for discriminated union in form validation** ✅ RESOLVED
    - What we know: `TokenLaunchForm.tsx` uses `zodResolver` and a flat schema today.
-   - What's unclear: The exact Zod schema for a discriminated union with `mode` tag and conditional required fields.
+   - Resolution: Use `z.union([z.object({ mode: z.literal('market-cap-based'), ... }), ...])` pattern. Plan 01-05 Task 2 specifies exact Zod schema shape.
    - Recommendation: Use `z.discriminatedUnion('mode', [...])` or `z.union([z.object({ mode: z.literal('market-cap-based'), ... }), ...])`. This is a standard Zod pattern and well-documented.
 
-3. **`tsc` availability in local environment**
+3. **`tsc` availability in local environment** ✅ RESOLVED
    - What we know: `npm run type-check` fails with `tsc: not found`.
-   - What's unclear: Whether `node_modules/.bin` is missing from PATH or TypeScript is not fully installed.
+   - Resolution: Use `npx tsc --noEmit` as fallback. All plans use this pattern in their verify/automated blocks.
    - Recommendation: Run `npm install` to ensure all devDependencies are present. If `tsc` still missing, use `npx tsc --noEmit` as a temporary workaround. This is an environment issue, not a code issue.
 
 ## Environment Availability

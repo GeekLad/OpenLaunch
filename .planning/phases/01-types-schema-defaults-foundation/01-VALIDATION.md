@@ -2,8 +2,8 @@
 phase: 01
 slug: types-schema-defaults-foundation
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-23
 ---
 
@@ -38,11 +38,21 @@ created: 2026-05-23
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 01-01-01 | 01 | 1 | PERS-01 | — | Schema contains all new columns with correct types and defaults | type-check | `npx tsc --noEmit` | ❌ W0 | ⬜ pending |
-| 01-01-02 | 01 | 1 | PERS-01 | — | `types/fee.ts` exports discriminated union with exhaustive narrowing | type-check | `npx tsc --noEmit` | ❌ W0 | ⬜ pending |
-| 01-02-01 | 02 | 1 | PERS-03 | — | Migration applies retroactive defaults without data loss | manual run | `npm run db:migrate` | ❌ W0 | ⬜ pending |
-| 01-03-01 | 03 | 1 | PERS-01 | — | `config/defaults.ts` exports constants used by both frontend and backend | type-check | `npx tsc --noEmit` | ❌ W0 | ⬜ pending |
-| 01-04-01 | 04 | 2 | PERS-01 | — | SDK v1.4.3 types resolve without errors in `poolUtils.ts` | type-check | `npx tsc --noEmit` | ❌ W0 | ⬜ pending |
+| 01-01-T1 | 01-01 | 1 | PERS-01 | T-01-01 | SDK v1.4.3 installed with verified version | install | `cat node_modules/@meteora-ag/cp-amm-sdk/package.json \| grep version` | ✅ | ⬜ pending |
+| 01-01-T2 | 01-01 | 1 | PERS-01 | T-01-02 | poolUtils.ts uses v1.4.3 imports without compile errors | type-check | `npx tsc --noEmit` | ✅ | ⬜ pending |
+| 01-02-T1 | 01-02 | 1 | PERS-01 | T-01-03 | `types/fee.ts` exports discriminated union with exhaustive narrowing | type-check | `npx tsc --noEmit` | ❌ (new) | ⬜ pending |
+| 01-02-T2 | 01-02 | 1 | PERS-01 | T-01-04 | `config/defaults.ts` exports all named constants with no env vars | type-check | `npx tsc --noEmit` | ❌ (new) | ⬜ pending |
+| 01-02-T3 | 01-02 | 1 | PERS-01 | T-01-03 | `types/token.ts` uses FeeSchedulerConfig, old fields removed | type-check | `npx tsc --noEmit` | ✅ | ⬜ pending |
+| 01-03-T1 | 01-03 | 2 | PERS-01, PERS-03 | T-01-05 | Schema has all new columns with NOT NULL and defaults | type-check | `npx tsc --noEmit` | ✅ | ⬜ pending |
+| 01-03-T2 | 01-03 | 2 | PERS-01, PERS-03 | T-01-05 | Three migration SQL files exist with retroactive defaults UPDATE | manual inspect | `ls lib/db/migrations/*.sql` | ❌ (new) | ⬜ pending |
+| 01-03-T3 | 01-03 | 2 | PERS-03 | T-01-06 | Database schema push succeeds, all columns present | migration run | `npm run db:migrate` | ✅ | ⬜ pending |
+| 01-04-T1 | 01-04 | 3 | PERS-01 | T-01-09 | environment.ts has only infrastructure config, no business defaults | type-check | `npx tsc --noEmit` | ✅ | ⬜ pending |
+| 01-04-T2 | 01-04 | 3 | PERS-01 | T-01-08 | TokenCreateInput includes all 11 new fields | type-check | `npx tsc --noEmit` | ✅ | ⬜ pending |
+| 01-04-T3 | 01-04 | 3 | PERS-01 | T-01-08 | API route accepts all new fields with fallback defaults | type-check | `npx tsc --noEmit` | ✅ | ⬜ pending |
+| 01-05-T1 | 01-05 | 3 | PERS-01 | T-01-11 | launchService.ts uses new types, no old fee fields | type-check | `npx tsc --noEmit` | ✅ | ⬜ pending |
+| 01-05-T2 | 01-05 | 3 | PERS-01 | T-01-11 | TokenLaunchForm.tsx uses new Zod schema and defaultValues | type-check | `npx tsc --noEmit` | ✅ | ⬜ pending |
+| 01-05-T3 | 01-05 | 3 | PERS-01 | — | Full project compiles without errors after all changes | type-check | `npx tsc --noEmit` | N/A | ⬜ pending |
+| 01-05-T4 | 01-05 | 3 | PERS-01 | — | No old fee field references remain anywhere in source | grep | `grep -r "enableFeeScheduler\|startingFeeRate\|endingFeeRate" --include="*.ts" --include="*.tsx" lib/ app/ components/ types/ config/` | N/A | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
