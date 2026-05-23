@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbService } from '@/lib/db/service';
 import type { TokenCreateInput } from '@/lib/db/service';
+import { DEFAULT_LAUNCH_PARAMS } from '@/config/defaults';
 
 /**
  * API Route: POST /api/tokens/create
@@ -60,10 +61,21 @@ export async function POST(request: NextRequest) {
       initialPrice: data.initialPrice,
       quoteTokenMint: data.quoteTokenMint,
       poolLiquidityPercentage: data.poolLiquidityPercentage,
+      priceRangeMin: data.priceRangeMin ?? DEFAULT_LAUNCH_PARAMS.priceRangeMin,
+      priceRangeMax: data.priceRangeMax ?? DEFAULT_LAUNCH_PARAMS.priceRangeMax,
 
       // Fee configuration
       feeDecayDurationMinutes: data.feeDecayDurationMinutes,
       feeDecayPeriods: data.feeDecayPeriods,
+      feeSchedulerMode: data.feeSchedulerMode ?? DEFAULT_LAUNCH_PARAMS.feeSchedulerMode,
+      feeTokenMode: data.feeTokenMode ?? DEFAULT_LAUNCH_PARAMS.feeTokenMode,
+      startingMarketCap: data.startingMarketCap ?? DEFAULT_LAUNCH_PARAMS.startingMarketCap.toString(),
+      endingMarketCap: data.endingMarketCap ?? DEFAULT_LAUNCH_PARAMS.endingMarketCap.toString(),
+      startRate: data.startRate ?? DEFAULT_LAUNCH_PARAMS.feeStartRate,
+      endRate: data.endRate ?? DEFAULT_LAUNCH_PARAMS.feeEndRate,
+      durationMinutes: data.durationMinutes ?? DEFAULT_LAUNCH_PARAMS.feeDurationMinutes,
+      fixedBaseFeeBps: data.fixedBaseFeeBps ?? DEFAULT_LAUNCH_PARAMS.baseFeeBps,
+      holdbackPercentage: data.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage,
 
       // Launch info
       launchDate: data.launchDate ? new Date(data.launchDate) : new Date(),

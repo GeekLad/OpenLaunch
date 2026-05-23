@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { getMaxImageSizeBytes, getMaxImageSizeMB } from "@/lib/services/ipfsService";
+import { FeeSchedulerConfig } from "@/types/fee";
+import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
 import { validateAndParsePrivateKey } from "@/lib/utils/keypairUtils";
 
 const tokenFormSchema = z.object({
@@ -18,9 +20,12 @@ const tokenFormSchema = z.object({
   name: z.string().min(1, "Name is required").max(32, "Name must be 32 characters or less"),
   description: z.string().optional(),
   logoFile: z.instanceof(File, { message: "Logo image is required" }),
-  enableFeeScheduler: z.boolean(),
-  startingFeeRate: z.number().min(0.01).max(100),
-  endingFeeRate: z.number().min(0.01).max(100),
+  totalSupply: z.number().min(1, "Total supply is required"),
+  initialPrice: z.number().min(0, "Initial price is required"),
+  priceRangeMin: z.number().min(0),
+  priceRangeMax: z.number().min(0),
+  holdbackPercentage: z.number().min(0).max(100).optional(),
+  quoteTokenMint: z.string().optional(),
   enableTimedLaunch: z.boolean(),
   launchDateTime: z.date().nullable().optional(),
   enableCustomPrivateKey: z.boolean(),
@@ -66,7 +71,10 @@ interface TokenLaunchFormProps {
 export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchFormProps) {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [fileSizeWarning, setFileSizeWarning] = useState<string | null>(null);
-  const [enableFeeScheduler, setEnableFeeScheduler] = useState(true);
+  // eslint-disable-next-line -- setters will be wired to UI controls in Phase 3
+  const [feeSchedulerMode, setFeeSchedulerMode] = useState<'market-cap-based' | 'time-based' | 'fixed'>('market-cap-based');
+  // eslint-disable-next-line -- setters will be wired to UI controls in Phase 3
+  const [feeTokenMode, setFeeTokenMode] = useState<'quoteOnly' | 'both'>('quoteOnly');
   const [enableTimedLaunch, setEnableTimedLaunch] = useState(false);
   const [enableCustomPrivateKey, setEnableCustomPrivateKey] = useState(false);
   const [launchDate, setLaunchDate] = useState<string>("");
@@ -83,9 +91,11 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   } = useForm<TokenFormSchemaType>({
     resolver: zodResolver(tokenFormSchema),
     defaultValues: {
-      enableFeeScheduler: true,
-      startingFeeRate: 50,
-      endingFeeRate: 0.25,
+      totalSupply: DEFAULT_LAUNCH_PARAMS.totalSupply,
+      initialPrice: DEFAULT_LAUNCH_PARAMS.initialPrice,
+      priceRangeMin: DEFAULT_LAUNCH_PARAMS.priceRangeMin,
+      priceRangeMax: DEFAULT_LAUNCH_PARAMS.priceRangeMax,
+      holdbackPercentage: DEFAULT_LAUNCH_PARAMS.holdbackPercentage,
       enableTimedLaunch: false,
       enableCustomPrivateKey: false,
     },
@@ -215,14 +225,42 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   };
 
   const handleFormSubmit = (data: TokenFormSchemaType) => {
+    // Construct FeeSchedulerConfig based on the selected mode
+    // TODO(Phase 3): Add mode selector and mode-specific fields to form data
+    let feeSchedulerConfig: FeeSchedulerConfig;
+    if (feeSchedulerMode === 'market-cap-based') {
+      feeSchedulerConfig = {
+        mode: 'market-cap-based',
+        startingMarketCap: DEFAULT_LAUNCH_PARAMS.startingMarketCap,
+        endingMarketCap: DEFAULT_LAUNCH_PARAMS.endingMarketCap,
+      };
+    } else if (feeSchedulerMode === 'time-based') {
+      feeSchedulerConfig = {
+        mode: 'time-based',
+        startRate: DEFAULT_LAUNCH_PARAMS.feeStartRate,
+        endRate: DEFAULT_LAUNCH_PARAMS.feeEndRate,
+        durationMinutes: DEFAULT_LAUNCH_PARAMS.feeDurationMinutes,
+      };
+    } else {
+      feeSchedulerConfig = {
+        mode: 'fixed',
+        baseFeeBps: DEFAULT_LAUNCH_PARAMS.baseFeeBps,
+      };
+    }
+
     const formData: TokenFormData = {
       symbol: data.symbol,
       name: data.name,
       description: data.description,
       logoFile: data.logoFile,
-      enableFeeScheduler: data.enableFeeScheduler,
-      startingFeeRate: data.startingFeeRate,
-      endingFeeRate: data.endingFeeRate,
+      feeSchedulerConfig: feeSchedulerConfig,
+      feeTokenMode: feeTokenMode,
+      totalSupply: data.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply,
+      initialPrice: data.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
+      priceRangeMin: data.priceRangeMin ?? DEFAULT_LAUNCH_PARAMS.priceRangeMin,
+      priceRangeMax: data.priceRangeMax ?? DEFAULT_LAUNCH_PARAMS.priceRangeMax,
+      holdbackPercentage: data.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage,
+      quoteTokenMint: data.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint,
       enableTimedLaunch: data.enableTimedLaunch,
       launchDateTime: data.launchDateTime ?? null,
       enableCustomPrivateKey: data.enableCustomPrivateKey,
@@ -494,49 +532,9 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="enableFeeScheduler"
-              {...register("enableFeeScheduler")}
-              checked={enableFeeScheduler}
-              onChange={(e) => setEnableFeeScheduler(e.target.checked)}
-              disabled={isLoading}
-              className="h-4 w-4"
-            />
-            <Label htmlFor="enableFeeScheduler">Enable Fee Scheduler</Label>
+            <p className="text-sm font-medium">Fee Scheduler:</p>
+            <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-sm font-medium">{feeSchedulerMode}</span>
           </div>
-
-          {enableFeeScheduler && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startingFeeRate">Starting Fee Rate (%)</Label>
-                <Input
-                  id="startingFeeRate"
-                  type="number"
-                  step="0.01"
-                  {...register("startingFeeRate", { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-                {errors.startingFeeRate && (
-                  <p className="text-sm text-destructive">{errors.startingFeeRate.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="endingFeeRate">Ending Fee Rate (%)</Label>
-                <Input
-                  id="endingFeeRate"
-                  type="number"
-                  step="0.01"
-                  {...register("endingFeeRate", { valueAsNumber: true })}
-                  disabled={isLoading}
-                />
-                {errors.endingFeeRate && (
-                  <p className="text-sm text-destructive">{errors.endingFeeRate.message}</p>
-                )}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 

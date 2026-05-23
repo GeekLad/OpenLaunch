@@ -11,19 +11,6 @@ export const ENV = {
 
   // Token Configuration
   TOKEN_DECIMALS: parseInt(process.env.NEXT_PUBLIC_TOKEN_DECIMALS || '9'),
-  TOTAL_SUPPLY: parseInt(process.env.NEXT_PUBLIC_TOTAL_SUPPLY || '1000000000'),
-
-  // Pricing Configuration
-  INITIAL_PRICE: parseFloat(process.env.NEXT_PUBLIC_INITIAL_PRICE || '0.00001'),
-  PRICE_RANGE_MIN: parseFloat(process.env.NEXT_PUBLIC_PRICE_RANGE_MIN || '0.000001'),
-  PRICE_RANGE_MAX: parseFloat(process.env.NEXT_PUBLIC_PRICE_RANGE_MAX || '0.0001'),
-
-  // Fee Schedule Configuration
-  FEE_DECAY_DURATION_MINUTES: parseInt(process.env.NEXT_PUBLIC_FEE_DECAY_DURATION_MINUTES || '60'),
-  FEE_DECAY_PERIODS: parseInt(process.env.NEXT_PUBLIC_FEE_DECAY_PERIODS || '60'), // Number of fee reduction periods
-
-  // Pool Configuration
-  POOL_LIQUIDITY_PERCENTAGE: parseFloat(process.env.NEXT_PUBLIC_POOL_LIQUIDITY_PERCENTAGE || '1.0'), // 100% of supply to pool for fair launch
 
   // IPFS/Storage Configuration (Client-side only)
   IPFS_GATEWAY: process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/',

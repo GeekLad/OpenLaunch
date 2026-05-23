@@ -1,6 +1,7 @@
 import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js";
 import { TokenFormData, LaunchStatus, TokenLaunchConfig } from "@/types/token";
 import { ENV } from "@/config/environment";
+import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
 import { getConnection, getRecentBlockhash, confirmTransaction } from "@/lib/solana/connection";
 import { createMint, mintTokens, revokeAllAuthorities } from "@/lib/solana/tokenUtils";
 import { buildMetadata, createMetadataAccount } from "@/lib/solana/metadataUtils";
@@ -161,7 +162,7 @@ export class TokenLaunchService {
         walletPublicKey,
         mintResult.mint,
         walletPublicKey,
-        ENV.TOTAL_SUPPLY,
+        formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply,
         ENV.TOKEN_DECIMALS
       );
 
@@ -184,35 +185,44 @@ export class TokenLaunchService {
       combinedTx.feePayer = walletPublicKey;
 
       // Transaction 3: Create DAMMv2 pool (pass TOKEN_PROGRAM_ID to skip on-chain lookup)
-      const poolTokenAmount = Math.floor(ENV.TOTAL_SUPPLY * ENV.POOL_LIQUIDITY_PERCENTAGE);
+      const poolTokenAmount = Math.floor((formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply) * (formData.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage) / 100);
 
       console.log(`Pool creation amounts:\n` +
         `  Token amount: ${poolTokenAmount}\n` +
         `  SOL amount: 0 SOL (single-sided pool)\n` +
-        `  Initial price: ${ENV.INITIAL_PRICE} SOL per token\n` +
-        `  Market cap at launch: ${(poolTokenAmount * ENV.INITIAL_PRICE).toFixed(4)} SOL`
+        `  Initial price: ${formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice} SOL per token\n` +
+        `  Market cap at launch: ${(poolTokenAmount * (formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice)).toFixed(4)} SOL`
       );
 
       const { TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
+
+      // Map FeeSchedulerConfig to old CreatePoolParams.feeSchedule shape
+      const feeSchedule = formData.feeSchedulerConfig.mode !== 'fixed' ? {
+        enabled: true,
+        startRate: formData.feeSchedulerConfig.mode === 'time-based'
+          ? formData.feeSchedulerConfig.startRate
+          : 50, // fallback for market-cap mode
+        endRate: formData.feeSchedulerConfig.mode === 'time-based'
+          ? formData.feeSchedulerConfig.endRate
+          : 0.25,
+        decayDuration: formData.feeSchedulerConfig.mode === 'time-based'
+          ? formData.feeSchedulerConfig.durationMinutes
+          : DEFAULT_LAUNCH_PARAMS.feeDurationMinutes,
+      } : undefined;
 
       let poolResult = await createDAMMv2Pool({
         connection: this.connection,
         payer: walletPublicKey,
         tokenAMint: mintResult.mint,
-        tokenBMint: new PublicKey(ENV.QUOTE_TOKEN_MINT),
+        tokenBMint: new PublicKey(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
         tokenAAmount: poolTokenAmount,
         tokenADecimals: ENV.TOKEN_DECIMALS,
         tokenBDecimals: 9,
-        initialPrice: ENV.INITIAL_PRICE,
-        tokenAProgram: TOKEN_PROGRAM_ID, // Our token uses standard TOKEN_PROGRAM_ID
-        tokenBProgram: TOKEN_PROGRAM_ID, // SOL also uses standard TOKEN_PROGRAM_ID
+        initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
+        tokenAProgram: TOKEN_PROGRAM_ID,
+        tokenBProgram: TOKEN_PROGRAM_ID,
         launchTime: formData.enableTimedLaunch && formData.launchDateTime ? formData.launchDateTime : undefined,
-        feeSchedule: formData.enableFeeScheduler ? {
-          enabled: true,
-          startRate: formData.startingFeeRate,
-          endRate: formData.endingFeeRate,
-          decayDuration: ENV.FEE_DECAY_DURATION_MINUTES,
-        } : undefined,
+        feeSchedule: feeSchedule,
       });
 
       poolResult.transaction.feePayer = walletPublicKey;
@@ -269,20 +279,15 @@ export class TokenLaunchService {
             connection: this.connection,
             payer: walletPublicKey,
             tokenAMint: mintResult.mint,
-            tokenBMint: new PublicKey(ENV.QUOTE_TOKEN_MINT),
+            tokenBMint: new PublicKey(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
             tokenAAmount: poolTokenAmount,
             tokenADecimals: ENV.TOKEN_DECIMALS,
             tokenBDecimals: 9,
-            initialPrice: ENV.INITIAL_PRICE,
+            initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
             tokenAProgram: TOKEN_PROGRAM_ID,
             tokenBProgram: TOKEN_PROGRAM_ID,
             launchTime: undefined, // Immediate activation
-            feeSchedule: formData.enableFeeScheduler ? {
-              enabled: true,
-              startRate: formData.startingFeeRate,
-              endRate: formData.endingFeeRate,
-              decayDuration: ENV.FEE_DECAY_DURATION_MINUTES,
-            } : undefined,
+            feeSchedule: feeSchedule,
           });
 
           console.log("✓ Pool recreated for immediate activation");
@@ -351,7 +356,7 @@ export class TokenLaunchService {
       await confirmTransaction(this.connection, setupSignature, blockhash, lastValidBlockHeight);
       console.log(
         `✓ Token setup complete:\n` +
-        `  - Minted ${ENV.TOTAL_SUPPLY} tokens\n` +
+        `  - Minted ${formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply} tokens\n` +
         `  - Created immutable metadata\n` +
         `  - Revoked mint authority\n` +
         `  - Revoked freeze authority\n` +
@@ -421,20 +426,15 @@ export class TokenLaunchService {
             connection: this.connection,
             payer: walletPublicKey,
             tokenAMint: mintResult.mint,
-            tokenBMint: new PublicKey(ENV.QUOTE_TOKEN_MINT),
+            tokenBMint: new PublicKey(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
             tokenAAmount: poolTokenAmount,
             tokenADecimals: ENV.TOKEN_DECIMALS,
             tokenBDecimals: 9,
-            initialPrice: ENV.INITIAL_PRICE,
+            initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
             tokenAProgram: TOKEN_PROGRAM_ID,
             tokenBProgram: TOKEN_PROGRAM_ID,
             launchTime: undefined, // Immediate activation
-            feeSchedule: formData.enableFeeScheduler ? {
-              enabled: true,
-              startRate: formData.startingFeeRate,
-              endRate: formData.endingFeeRate,
-              decayDuration: ENV.FEE_DECAY_DURATION_MINUTES,
-            } : undefined,
+            feeSchedule: feeSchedule,
           });
 
           // Get fresh blockhash for the retry
@@ -498,23 +498,18 @@ export class TokenLaunchService {
         mint: mintResult.mint,
         metadata: metadata,
         metadataUri: metadataUri, // IPFS URI where metadata JSON is stored
-        totalSupply: ENV.TOTAL_SUPPLY,
+        totalSupply: formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply,
         decimals: ENV.TOKEN_DECIMALS,
         quoteTokenMint: new PublicKey(ENV.QUOTE_TOKEN_MINT),
-        initialPrice: ENV.INITIAL_PRICE,
-        priceRangeMin: ENV.PRICE_RANGE_MIN,
-        priceRangeMax: ENV.PRICE_RANGE_MAX,
+        initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
+        priceRangeMin: formData.priceRangeMin ?? DEFAULT_LAUNCH_PARAMS.priceRangeMin,
+        priceRangeMax: formData.priceRangeMax ?? DEFAULT_LAUNCH_PARAMS.priceRangeMax,
         poolAddress: poolResult.pool,
         positionAddress: poolResult.position,
         positionNft: poolResult.positionNft.publicKey,
-        feeSchedule: formData.enableFeeScheduler
-          ? {
-              enabled: true,
-              startRate: formData.startingFeeRate,
-              endRate: formData.endingFeeRate,
-              decayDuration: ENV.FEE_DECAY_DURATION_MINUTES,
-            }
-          : undefined,
+        feeSchedulerConfig: formData.feeSchedulerConfig,
+        feeTokenMode: formData.feeTokenMode,
+        holdbackPercentage: formData.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage,
         launchTime: formData.enableTimedLaunch ? formData.launchDateTime || undefined : undefined,
       };
 

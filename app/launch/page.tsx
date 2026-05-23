@@ -7,7 +7,7 @@ import { TokenFormData, LaunchStatus, TokenLaunchConfig } from "@/types/token";
 import { TokenLaunchForm } from "@/components/forms/TokenLaunchForm";
 import { TokenLaunchService } from "@/lib/services/launchService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ENV } from "@/config/environment";
+import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
 import { getConnection, getBalance } from "@/lib/solana/connection";
 
 export default function LaunchPage() {
@@ -119,11 +119,13 @@ export default function LaunchPage() {
               // Pool configuration
               initialPrice: config.initialPrice,
               quoteTokenMint: config.quoteTokenMint.toBase58(),
-              poolLiquidityPercentage: ENV.POOL_LIQUIDITY_PERCENTAGE,
+              poolLiquidityPercentage: DEFAULT_LAUNCH_PARAMS.poolLiquidityPercentage,
 
               // Fee configuration
-              feeDecayDurationMinutes: config.feeSchedule?.decayDuration || ENV.FEE_DECAY_DURATION_MINUTES,
-              feeDecayPeriods: ENV.FEE_DECAY_PERIODS,
+              feeDecayDurationMinutes: config.feeSchedulerConfig?.mode === 'time-based'
+                ? config.feeSchedulerConfig.durationMinutes
+                : DEFAULT_LAUNCH_PARAMS.feeDurationMinutes,
+              feeDecayPeriods: DEFAULT_LAUNCH_PARAMS.numberOfPeriods,
 
               // Launch info
               launchDate: config.launchTime || new Date(),
