@@ -89,38 +89,38 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LAUN-01 | Phase 1 | Pending |
-| LAUN-02 | Phase 1 | Pending |
-| LAUN-03 | Phase 1 | Pending |
-| LAUN-04 | Phase 1 | Pending |
-| LAUN-05 | Phase 1 | Pending |
-| LAUN-06 | Phase 2 | Pending |
-| LAUN-07 | Phase 2 | Pending |
-| LAUN-08 | Phase 2 | Pending |
-| LAUN-09 | Phase 2 | Pending |
-| LAUN-10 | Phase 2 | Pending |
-| FEE-01 | Phase 2 | Pending |
-| FEE-02 | Phase 2 | Pending |
-| FEE-03 | Phase 2 | Pending |
-| FEE-04 | Phase 2 | Pending |
+| LAUN-01 | Phase 2 | Pending |
+| LAUN-02 | Phase 2 | Pending |
+| LAUN-03 | Phase 2 | Pending |
+| LAUN-04 | Phase 2 | Pending |
+| LAUN-05 | Phase 2 | Pending |
+| LAUN-06 | Phase 3 | Pending |
+| LAUN-07 | Phase 3 | Pending |
+| LAUN-08 | Phase 3 | Pending |
+| LAUN-09 | Phase 3 | Pending |
+| LAUN-10 | Phase 4 | Pending |
+| FEE-01 | Phase 3 | Pending |
+| FEE-02 | Phase 3 | Pending |
+| FEE-03 | Phase 3 | Pending |
+| FEE-04 | Phase 3 | Pending |
 | FEE-05 | Phase 3 | Pending |
-| FEE-06 | Phase 3 | Pending |
-| FORM-01 | Phase 1 | Pending |
-| FORM-02 | Phase 1 | Pending |
-| FORM-03 | Phase 1 | Pending |
-| FORM-04 | Phase 1 | Pending |
-| FORM-05 | Phase 2 | Pending |
+| FEE-06 | Phase 4 | Pending |
+| FORM-01 | Phase 2 | Pending |
+| FORM-02 | Phase 2 | Pending |
+| FORM-03 | Phase 2 | Pending |
+| FORM-04 | Phase 2 | Pending |
+| FORM-05 | Phase 3 | Pending |
 | FORM-06 | Phase 3 | Pending |
-| VALID-01 | Phase 1 | Pending |
-| VALID-02 | Phase 1 | Pending |
-| VALID-03 | Phase 2 | Pending |
-| VALID-04 | Phase 2 | Pending |
+| VALID-01 | Phase 2 | Pending |
+| VALID-02 | Phase 3 | Pending |
+| VALID-03 | Phase 4 | Pending |
+| VALID-04 | Phase 5 | Pending |
 | PERS-01 | Phase 1 | Pending |
-| PERS-02 | Phase 3 | Pending |
+| PERS-02 | Phase 5 | Pending |
 | PERS-03 | Phase 1 | Pending |
-| CRON-01 | Phase 3 | Pending |
-| CRON-02 | Phase 3 | Pending |
-| CRON-03 | Phase 3 | Pending |
+| CRON-01 | Phase 6 | Pending |
+| CRON-02 | Phase 6 | Pending |
+| CRON-03 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 29 total
@@ -129,4 +129,4 @@
 
 ---
 *Requirements defined: 2026-05-23*
-*Last updated: 2026-05-23 after initial definition*
+*Last updated: 2026-05-23 after roadmap creation*
