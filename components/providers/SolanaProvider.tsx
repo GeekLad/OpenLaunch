@@ -15,7 +15,7 @@ import {
   TrezorWalletAdapter,
   WalletConnectWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
-import { RPC_URL, SOLANA_NETWORK } from "@/config/public";
+import { DEFAULT_CLIENT_RPC_URL, SOLANA_NETWORK } from "@/config/public";
 
 // Import wallet adapter CSS
 import "@solana/wallet-adapter-react-ui/styles.css";
@@ -26,7 +26,7 @@ interface SolanaProviderProps {
 
 export const SolanaProvider: FC<SolanaProviderProps> = ({ children }) => {
     const endpoint = useMemo(() => {
-    const rpcUrl = RPC_URL;
+    const rpcUrl = DEFAULT_CLIENT_RPC_URL;
     if (!rpcUrl || typeof rpcUrl !== 'string' || (!rpcUrl.startsWith('http://') && !rpcUrl.startsWith('https://'))) {
       console.warn('Invalid RPC URL, using default:', rpcUrl);
       return 'https://api.mainnet-beta.solana.com';

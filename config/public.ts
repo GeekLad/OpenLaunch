@@ -12,7 +12,12 @@ export const APP_URL = "https://openlaunch.app" as const;
 
 // ── Solana ────────────────────────────────────────────────────
 export const SOLANA_NETWORK = "mainnet-beta" as const;
-export const RPC_URL = "https://api.mainnet-beta.solana.com" as const;
+
+// Default public RPC endpoint baked into the client bundle.
+// The server can override via the RPC_URL secret if needed.
+export const DEFAULT_CLIENT_RPC_URL =
+  "https://api.mainnet-beta.solana.com" as const;
+
 export const TOKEN_DECIMALS = 9;
 
 // SOL mint used as the quote asset in all pools

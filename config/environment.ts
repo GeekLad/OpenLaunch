@@ -7,7 +7,6 @@ export {
   APP_NAME,
   APP_URL,
   SOLANA_NETWORK,
-  RPC_URL,
   TOKEN_DECIMALS,
   QUOTE_TOKEN_MINT,
   IPFS_GATEWAY,
@@ -26,6 +25,7 @@ export {
   FILEBASE_API_KEY,
   DATA_DIR,
   DATABASE_TYPE,
+  RPC_URL,
 } from "./secrets";
 
 export * from "./defaults";

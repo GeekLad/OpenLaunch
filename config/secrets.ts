@@ -11,3 +11,6 @@ export const FILEBASE_API_KEY = process.env.FILEBASE_API_KEY || "";
 // Optional runtime overrides
 export const DATA_DIR = process.env.DATA_DIR || "./data";
 export const DATABASE_TYPE = process.env.DATABASE_TYPE || "sqlite";
+
+// Solana RPC endpoint (may contain premium auth tokens — never expose to client)
+export const RPC_URL = process.env.RPC_URL || "";
