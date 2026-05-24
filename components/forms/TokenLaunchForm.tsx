@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useMemo } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Image from "next/image";
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { getMaxImageSizeBytes, getMaxImageSizeMB } from "@/lib/services/ipfsService";
 import { FeeSchedulerConfig } from "@/types/fee";
 import { DEFAULT_LAUNCH_PARAMS, DEFAULT_FEE_DURATION_MINUTES } from "@/config/defaults";
@@ -59,6 +60,29 @@ const tokenFormSchema = z.object({
       });
     }
   }
+
+  // Price range validation: min < initial < max
+  if (data.priceRangeMin >= data.initialPrice) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Minimum price must be less than initial price",
+      path: ["priceRangeMin"],
+    });
+  }
+  if (data.initialPrice >= data.priceRangeMax) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Initial price must be less than maximum price",
+      path: ["priceRangeMax"],
+    });
+  }
+  if (data.priceRangeMin >= data.priceRangeMax) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Minimum price must be less than maximum price",
+      path: ["priceRangeMin"],
+    });
+  }
 });
 
 type TokenFormSchemaType = z.infer<typeof tokenFormSchema>;
@@ -81,15 +105,18 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   const [launchHour, setLaunchHour] = useState<string>("");
   const [launchMinute, setLaunchMinute] = useState<string>("");
   const [launchPeriod, setLaunchPeriod] = useState<"AM" | "PM">("AM");
+  const [isLaunchParamsOpen, setIsLaunchParamsOpen] = useState(false);
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
+    control,
     setValue,
     watch,
   } = useForm<TokenFormSchemaType>({
     resolver: zodResolver(tokenFormSchema),
+    mode: "onBlur",
     defaultValues: {
       totalSupply: DEFAULT_LAUNCH_PARAMS.totalSupply,
       initialPrice: DEFAULT_LAUNCH_PARAMS.initialPrice,
@@ -104,6 +131,20 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   const logoFile = watch("logoFile");
   const symbol = watch("symbol");
   const name = watch("name");
+
+  const watchedSupply = watch("totalSupply");
+  const watchedInitial = watch("initialPrice");
+  const watchedMin = watch("priceRangeMin");
+  const watchedMax = watch("priceRangeMax");
+
+  const isModified = useMemo(() => {
+    return (
+      watchedSupply !== DEFAULT_LAUNCH_PARAMS.totalSupply ||
+      watchedInitial !== DEFAULT_LAUNCH_PARAMS.initialPrice ||
+      watchedMin !== DEFAULT_LAUNCH_PARAMS.priceRangeMin ||
+      watchedMax !== DEFAULT_LAUNCH_PARAMS.priceRangeMax
+    );
+  }, [watchedSupply, watchedInitial, watchedMin, watchedMax]);
 
   // Check if all required fields are filled
   const isFormValid = !!(symbol && name && logoFile && !fileSizeWarning);
@@ -603,12 +644,113 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
         </CardContent>
       </Card>
 
-      {/* Advanced Settings Section */}
+      {/* Launch Parameters Section */}
+      <Card>
+        <CardHeader
+          className="cursor-pointer flex flex-row items-center justify-between"
+          onClick={() => setIsLaunchParamsOpen(!isLaunchParamsOpen)}
+        >
+          <div className="flex items-center gap-2">
+            <CardTitle>Launch Parameters</CardTitle>
+            {!isLaunchParamsOpen && isModified && (
+              <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+                Modified
+              </span>
+            )}
+          </div>
+          {isLaunchParamsOpen ? (
+            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          )}
+        </CardHeader>
+        {isLaunchParamsOpen && (
+          <CardContent className="space-y-4">
+            {/* Total Supply */}
+            <div className="space-y-2">
+              <Label htmlFor="totalSupply">Total Supply</Label>
+              <Controller
+                name="totalSupply"
+                control={control}
+                render={({ field: { onChange, value, onBlur } }) => (
+                  <Input
+                    id="totalSupply"
+                    type="text"
+                    inputMode="numeric"
+                    value={value ? new Intl.NumberFormat(navigator.language).format(value) : ""}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^\d]/g, "");
+                      const num = raw ? parseInt(raw, 10) : 0;
+                      onChange(num);
+                    }}
+                    onBlur={onBlur}
+                    disabled={isLoading}
+                  />
+                )}
+              />
+              <p className="text-sm text-muted-foreground">Total tokens that will be created</p>
+              {errors.totalSupply && (
+                <p className="text-sm text-destructive">{errors.totalSupply.message}</p>
+              )}
+            </div>
+
+            {/* Initial Price */}
+            <div className="space-y-2">
+              <Label htmlFor="initialPrice">Initial Price</Label>
+              <Input
+                id="initialPrice"
+                type="number"
+                step="any"
+                {...register("initialPrice", { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+              <p className="text-sm text-muted-foreground">The starting price of the liquidity pool</p>
+              {errors.initialPrice && (
+                <p className="text-sm text-destructive">{errors.initialPrice.message}</p>
+              )}
+            </div>
+
+            {/* Price Range Min */}
+            <div className="space-y-2">
+              <Label htmlFor="priceRangeMin">Price Range Minimum</Label>
+              <Input
+                id="priceRangeMin"
+                type="number"
+                step="any"
+                {...register("priceRangeMin", { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+              <p className="text-sm text-muted-foreground">The lowest price the pool will support</p>
+              {errors.priceRangeMin && (
+                <p className="text-sm text-destructive">{errors.priceRangeMin.message}</p>
+              )}
+            </div>
+
+            {/* Price Range Max */}
+            <div className="space-y-2">
+              <Label htmlFor="priceRangeMax">Price Range Maximum</Label>
+              <Input
+                id="priceRangeMax"
+                type="number"
+                step="any"
+                {...register("priceRangeMax", { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+              <p className="text-sm text-muted-foreground">The highest price the pool will support</p>
+              {errors.priceRangeMax && (
+                <p className="text-sm text-destructive">{errors.priceRangeMax.message}</p>
+              )}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Custom CA Section */}
       <Card className={enableCustomPrivateKey ? "border-red-500 border-2" : ""}>
         <CardHeader>
-          <CardTitle className="text-red-600">⚠️ Advanced Settings</CardTitle>
+          <CardTitle className="text-red-600">⚠️ Custom CA</CardTitle>
           <CardDescription className="text-red-600">
-            Only use these settings if you know what you are doing
+            Use a custom keypair for the token mint address. Warning: requires secure key management.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -671,7 +813,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
         </CardContent>
       </Card>
 
-      <Button type="submit" size="lg" className="w-full" disabled={isLoading || !isFormValid}>
+      <Button type="submit" size="lg" className="w-full" disabled={isLoading || !isFormValid || !isValid}>
         {isLoading ? "Launching..." : "Launch Token"}
       </Button>
     </form>
