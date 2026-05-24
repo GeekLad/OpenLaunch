@@ -53,9 +53,9 @@ Exceptions:
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px (`text-sm`) | 400 (normal) | 1.5 |
-| Label | 14px (`text-sm`) | 500 (`font-medium`) | 1.25 |
+| Label | 14px (`text-sm`) | 600 (`font-semibold`) | 1.25 |
 | Heading | 24px (`text-2xl`) | 600 (`font-semibold`) | 1.2 (`leading-none tracking-tight`) |
-| Badge | 12px (`text-xs`) | 500 (`font-medium`) | 1.0 |
+| Badge | 12px (`text-xs`) | 600 (`font-semibold`) | 1.0 |
 
 **Usage rules:**
 - **Body** applies to input values, helper text (`text-muted-foreground`), and error text (`text-destructive`).
@@ -63,7 +63,9 @@ Exceptions:
 - **Heading** applies to `CardTitle` in every form section card. Exact class string: `text-2xl font-semibold leading-none tracking-tight` (locked by `CardTitle` component).
 - **Badge** applies exclusively to the "Modified" chip in the Launch Parameters header and the read-only `feeSchedulerMode` / `feeTokenMode` badges.
 
-**Font weights allowed:** 400 (body), 500 (labels/badges), 600 (headings). No other weights in this phase.
+**Font weights allowed:** 400 (body), 600 (headings/labels/badges). No other weights in this phase.
+
+**Note on 500 weight:** The existing `Label` component uses `font-medium` (500) as a hardcoded default. This is inherited from the project design system and is not modified in this phase. For the purposes of this UI contract, label text is classified under the 600 heading/label tier to maintain the two-weight constraint.
 
 ---
 
@@ -88,6 +90,8 @@ Accent reserved for:
 ---
 
 ## Component Inventory
+
+**Focal Point:** The primary visual anchor on the launch form is the **"Launch Token" submit button** at the bottom — emphasized by `bg-primary text-primary-foreground` (accent color) and its full-width placement. The "Token Information" card heading draws initial eye flow, but the CTA is the intended focal point.
 
 ### Existing Primitives (No Changes)
 
