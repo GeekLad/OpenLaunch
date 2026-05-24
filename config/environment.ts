@@ -1,42 +1,69 @@
+/**
+ * @deprecated — Prefer direct imports from `config/public.ts` or `config/secrets.ts`.
+ *
+ * This barrel file re-exports everything for backward-compatible imports.
+ * New code should import only what it needs from the more specific modules
+ * (`config/public`, `config/secrets`, `config/defaults`).
+ */
+
+// ── Public constants (safe for client + server code) ─────────
+export {
+  APP_NAME,
+  APP_URL,
+  SOLANA_NETWORK,
+  RPC_URL,
+  TOKEN_DECIMALS,
+  QUOTE_TOKEN_MINT,
+  IPFS_GATEWAY,
+  MAX_IMAGE_SIZE_MB,
+  METADATA_MUTABLE,
+  FEE_UPDATE_INTERVAL_0_1H,
+  FEE_UPDATE_INTERVAL_1_24H,
+  FEE_UPDATE_INTERVAL_1_4D,
+  FEE_UPDATE_INTERVAL_4D_PLUS,
+  ENABLE_FEES_DISPLAY,
+} from "./public";
+
+// ── Server-only secrets ───────────────────────────────────────
+export {
+  PINATA_API_KEY,
+  PINATA_SECRET_KEY,
+  FILEBASE_API_KEY,
+  DATA_DIR,
+  DATABASE_TYPE,
+} from "./secrets";
+
+// ── Feature / launch defaults ─────────────────────────────────
+export * from "./defaults";
+
+// ── LEGACY COMPATIBILITY ────────────────────────────────────
+// The ENV / SERVER_ENV objects are preserved so existing imports
+// don’t break, but new code should import from the specific
+// modules above.
+import * as publicConfig from "./public";
+import * as secrets from "./secrets";
+
+/** @deprecated Prefer named imports from config/public.ts. */
 export const ENV = {
-  // Application Configuration
-  APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'OpenLaunch',
-
-  // Solana RPC Configuration
-  RPC_URL: process.env.NEXT_PUBLIC_RPC_URL || 'https://api.mainnet-beta.solana.com',
-  SOLANA_NETWORK: process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'mainnet-beta',
-
-  // Fixed Quote Token (SOL Wrapped Mint)
-  QUOTE_TOKEN_MINT: process.env.NEXT_PUBLIC_QUOTE_TOKEN_MINT || 'So11111111111111111111111111111111111111112',
-
-  // Token Configuration
-  TOKEN_DECIMALS: parseInt(process.env.NEXT_PUBLIC_TOKEN_DECIMALS || '9'),
-
-  // IPFS/Storage Configuration (Client-side only)
-  IPFS_GATEWAY: process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/',
-  MAX_IMAGE_SIZE_MB: parseFloat(process.env.NEXT_PUBLIC_MAX_IMAGE_SIZE_MB || '1'),
-
-  // Metadata Configuration
-  METADATA_MUTABLE: process.env.NEXT_PUBLIC_METADATA_MUTABLE === 'true', // Defaults to false (metadata is immutable)
-  
-  // Launchpad Configuration
-  LAUNCHPAD_URL: process.env.NEXT_PUBLIC_LAUNCHPAD_URL, // Optional launchpad URL for token metadata
-
-  // Fee Update Intervals (in minutes)
-  FEE_UPDATE_INTERVAL_0_1H: process.env.FEE_UPDATE_INTERVAL_0_1H || '1', // First hour: every 1 minute
-  FEE_UPDATE_INTERVAL_1_24H: process.env.FEE_UPDATE_INTERVAL_1_24H || '5', // 1-24 hours: every 5 minutes
-  FEE_UPDATE_INTERVAL_1_4D: process.env.FEE_UPDATE_INTERVAL_1_4D || '10', // 24-96 hours: every 10 minutes
-  FEE_UPDATE_INTERVAL_4D_PLUS: process.env.FEE_UPDATE_INTERVAL_4D_PLUS || '60', // 96+ hours: every 60 minutes
-
-  // Feature Flags
-  ENABLE_FEES_DISPLAY: process.env.NEXT_PUBLIC_ENABLE_FEES_DISPLAY === 'true', // Enable/disable fees display and sorting (default: false)
+  APP_NAME: publicConfig.APP_NAME,
+  RPC_URL: publicConfig.RPC_URL,
+  SOLANA_NETWORK: publicConfig.SOLANA_NETWORK,
+  QUOTE_TOKEN_MINT: publicConfig.QUOTE_TOKEN_MINT,
+  TOKEN_DECIMALS: publicConfig.TOKEN_DECIMALS,
+  IPFS_GATEWAY: publicConfig.IPFS_GATEWAY,
+  MAX_IMAGE_SIZE_MB: publicConfig.MAX_IMAGE_SIZE_MB,
+  METADATA_MUTABLE: publicConfig.METADATA_MUTABLE,
+  LAUNCHPAD_URL: publicConfig.APP_URL,
+  FEE_UPDATE_INTERVAL_0_1H: publicConfig.FEE_UPDATE_INTERVAL_0_1H,
+  FEE_UPDATE_INTERVAL_1_24H: publicConfig.FEE_UPDATE_INTERVAL_1_24H,
+  FEE_UPDATE_INTERVAL_1_4D: publicConfig.FEE_UPDATE_INTERVAL_1_4D,
+  FEE_UPDATE_INTERVAL_4D_PLUS: publicConfig.FEE_UPDATE_INTERVAL_4D_PLUS,
+  ENABLE_FEES_DISPLAY: publicConfig.ENABLE_FEES_DISPLAY,
 } as const;
 
-// Server-side only environment variables (not exposed to client)
+/** @deprecated Prefer named imports from config/secrets.ts. */
 export const SERVER_ENV = {
-  PINATA_API_KEY: process.env.PINATA_API_KEY || '',
-  PINATA_SECRET_KEY: process.env.PINATA_SECRET_KEY || '',
-  FILEBASE_API_KEY: process.env.FILEBASE_API_KEY || '',
+  PINATA_API_KEY: secrets.PINATA_API_KEY,
+  PINATA_SECRET_KEY: secrets.PINATA_SECRET_KEY,
+  FILEBASE_API_KEY: secrets.FILEBASE_API_KEY,
 } as const;
-
-export type Environment = typeof ENV;

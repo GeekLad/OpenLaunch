@@ -6,7 +6,7 @@ import { useState } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { Button } from "@/components/ui/button";
-import { ENV } from "@/config/environment";
+import { APP_NAME } from "@/config/public";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -17,7 +17,7 @@ export function Header() {
         <Link href="/" className="flex items-center gap-2">
           <Image
             src="/logo.svg"
-            alt={ENV.APP_NAME}
+            alt={APP_NAME}
             width={200}
             height={70}
             className="h-16 w-auto"

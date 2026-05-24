@@ -1,5 +1,5 @@
 import { Connection, ConnectionConfig, Commitment, PublicKey } from "@solana/web3.js";
-import { ENV } from "@/config/environment";
+import { RPC_URL } from "@/config/public";
 
 const DEFAULT_COMMITMENT: Commitment = "confirmed";
 
@@ -12,13 +12,13 @@ let connection: Connection | null = null;
 
 export function getConnection(): Connection {
   if (!connection) {
-    connection = new Connection(ENV.RPC_URL, connectionConfig);
+    connection = new Connection(RPC_URL, connectionConfig);
   }
   return connection;
 }
 
 export function createConnection(rpcUrl?: string, commitment?: Commitment): Connection {
-  const url = rpcUrl || ENV.RPC_URL;
+  const url = rpcUrl || RPC_URL;
   const config: ConnectionConfig = {
     ...connectionConfig,
     commitment: commitment || DEFAULT_COMMITMENT,

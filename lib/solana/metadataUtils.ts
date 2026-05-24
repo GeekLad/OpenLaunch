@@ -7,7 +7,7 @@ import {
     createNoopSigner,
 } from "@metaplex-foundation/umi";
 import { toWeb3JsInstruction } from "@metaplex-foundation/umi-web3js-adapters";
-import { ENV } from "@/config/environment";
+import { METADATA_MUTABLE, APP_NAME } from "@/config/public";
 
 // Metaplex Token Metadata Program ID
 export const METADATA_PROGRAM_ID = new PublicKey(
@@ -88,7 +88,7 @@ export async function createMetadataAccount(
             collection: null,
             uses: null,
         },
-        isMutable: ENV.METADATA_MUTABLE, // Controlled by NEXT_PUBLIC_METADATA_MUTABLE env variable
+        isMutable: METADATA_MUTABLE,
         collectionDetails: null,
     });
 
@@ -260,7 +260,7 @@ export function buildMetadata(
         image: imageUri,
         description:
             description ||
-            `${name} is a meme token launched on Solana via ${ENV.APP_NAME}`,
+            `${name} is a meme token launched on Solana via ${APP_NAME}`,
     };
 
     // Add external URL if website is provided

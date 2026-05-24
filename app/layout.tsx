@@ -5,16 +5,16 @@ import { SolanaProvider } from "@/components/providers/SolanaProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { ENV } from "@/config/environment";
+import { APP_NAME, APP_URL } from "@/config/public";
 import "../app/init";
 
 
 const inter = Inter({ subsets: ["latin"] });
-const title = `${ENV.APP_NAME} - Memecoin Launchpad`;
+const title = `${APP_NAME} - Memecoin Launchpad`;
 const description = "Open Source memecoin launchpad on Solana, powered by Meteora's gud tek";
 
-const logoUrl = ENV.LAUNCHPAD_URL
-  ? `${ENV.LAUNCHPAD_URL.replace(/\/$/, '')}/logo.png`
+const logoUrl = APP_URL
+  ? `${APP_URL.replace(/\/$/, '')}/logo.png`
   : undefined;
 
 export const metadata: Metadata = {

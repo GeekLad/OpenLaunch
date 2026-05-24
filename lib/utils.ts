@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { ENV } from "@/config/environment";
+import { SOLANA_NETWORK } from "@/config/public";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -13,7 +13,7 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function getSolscanUrl(path: string): string {
   const baseUrl = "https://solscan.io";
-  const network = ENV.SOLANA_NETWORK.toLowerCase();
+  const network = SOLANA_NETWORK.toLowerCase();
 
   // Add cluster parameter for non-mainnet networks
   if (network === "devnet" || network === "testnet") {

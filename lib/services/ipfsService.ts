@@ -1,4 +1,4 @@
-import { ENV } from "@/config/environment";
+import { MAX_IMAGE_SIZE_MB, IPFS_GATEWAY } from "@/config/public";
 import { TokenMetadata } from "@/types/token";
 
 /**
@@ -6,14 +6,14 @@ import { TokenMetadata } from "@/types/token";
  * Configured via NEXT_PUBLIC_MAX_IMAGE_SIZE_MB environment variable (default: 1MB)
  */
 export function getMaxImageSizeBytes(): number {
-  return ENV.MAX_IMAGE_SIZE_MB * 1024 * 1024;
+  return MAX_IMAGE_SIZE_MB * 1024 * 1024;
 }
 
 /**
  * Gets the maximum allowed image size in MB
  */
 export function getMaxImageSizeMB(): number {
-  return ENV.MAX_IMAGE_SIZE_MB;
+  return MAX_IMAGE_SIZE_MB;
 }
 
 export interface IPFSUploadResult {
@@ -142,7 +142,7 @@ export async function mockIPFSUpload(_file: File): Promise<IPFSUploadResult> {
 
   return {
     uri: `ipfs://${mockCid}`,
-    gateway: `${ENV.IPFS_GATEWAY}${mockCid}`,
+    gateway: `${IPFS_GATEWAY}${mockCid}`,
     cid: mockCid,
   };
 }
@@ -161,7 +161,7 @@ export async function mockMetadataUpload(_metadata: TokenMetadata): Promise<IPFS
 
   return {
     uri: `ipfs://${mockCid}`,
-    gateway: `${ENV.IPFS_GATEWAY}${mockCid}`,
+    gateway: `${IPFS_GATEWAY}${mockCid}`,
     cid: mockCid,
   };
 }
@@ -197,7 +197,7 @@ export function validateImageFile(file: File): boolean {
 export function ipfsToHttp(ipfsUri: string, gateway?: string): string {
   if (ipfsUri.startsWith("ipfs://")) {
     const cid = ipfsUri.replace("ipfs://", "");
-    const gatewayUrl = gateway || ENV.IPFS_GATEWAY;
+    const gatewayUrl = gateway || IPFS_GATEWAY;
     return `${gatewayUrl}${cid}`;
   }
   return ipfsUri;

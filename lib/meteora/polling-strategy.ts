@@ -1,4 +1,9 @@
-import { ENV } from "@/config/environment";
+import {
+  FEE_UPDATE_INTERVAL_0_1H,
+  FEE_UPDATE_INTERVAL_1_24H,
+  FEE_UPDATE_INTERVAL_1_4D,
+  FEE_UPDATE_INTERVAL_4D_PLUS,
+} from "@/config/public";
 
 /**
  * Polling interval configuration based on token age
@@ -27,16 +32,16 @@ export function calculateNextUpdateTime(launchDate: Date): PollingInterval {
 
   if (hoursSinceLaunch < 1) {
     // First hour: every 1 minute (default)
-    intervalMinutes = parseInt(ENV.FEE_UPDATE_INTERVAL_0_1H || "1");
+    intervalMinutes = FEE_UPDATE_INTERVAL_0_1H;
   } else if (hoursSinceLaunch < 24) {
     // 1-24 hours: every 5 minutes (default)
-    intervalMinutes = parseInt(ENV.FEE_UPDATE_INTERVAL_1_24H || "5");
+    intervalMinutes = FEE_UPDATE_INTERVAL_1_24H;
   } else if (hoursSinceLaunch < 96) {
     // 24-96 hours (1-4 days): every 10 minutes (default)
-    intervalMinutes = parseInt(ENV.FEE_UPDATE_INTERVAL_1_4D || "10");
+    intervalMinutes = FEE_UPDATE_INTERVAL_1_4D;
   } else {
     // 96+ hours (4+ days): every 60 minutes (default)
-    intervalMinutes = parseInt(ENV.FEE_UPDATE_INTERVAL_4D_PLUS || "60");
+    intervalMinutes = FEE_UPDATE_INTERVAL_4D_PLUS;
   }
 
   const nextUpdate = new Date(now.getTime() + intervalMinutes * 60 * 1000);

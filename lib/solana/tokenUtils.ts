@@ -16,7 +16,7 @@ import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
-import { ENV } from "@/config/environment";
+import { TOKEN_DECIMALS } from "@/config/public";
 
 export interface CreateMintResult {
   mint: PublicKey;
@@ -36,7 +36,7 @@ export async function createMint(
   connection: Connection,
   payer: PublicKey,
   mintKeypair: Keypair,
-  decimals: number = ENV.TOKEN_DECIMALS
+  decimals: number = TOKEN_DECIMALS
 ): Promise<CreateMintResult> {
   const lamports = await getMinimumBalanceForRentExemptMint(connection);
 
@@ -85,7 +85,7 @@ export async function mintTokens(
   mint: PublicKey,
   destination: PublicKey,
   amount: number,
-  decimals: number = ENV.TOKEN_DECIMALS
+  decimals: number = TOKEN_DECIMALS
 ): Promise<MintTokensResult> {
   // Get or create associated token account
   const tokenAccount = await getAssociatedTokenAddress(

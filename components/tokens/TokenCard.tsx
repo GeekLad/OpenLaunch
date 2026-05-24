@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { Token } from "@/lib/db/schema";
 import { CompactCountdown } from "@/components/ui/countdown";
-import { ENV } from "@/config/environment";
+import { ENABLE_FEES_DISPLAY } from "@/config/public";
 
 interface TokenCardProps {
   token: Token;
@@ -92,7 +92,7 @@ export function TokenCard({ token }: TokenCardProps) {
           </div>
 
            {/* Cumulative Fees */}
-           {ENV.ENABLE_FEES_DISPLAY && (
+           {ENABLE_FEES_DISPLAY && (
              <div>
                <p className="text-xs text-muted-foreground uppercase mb-1">
                  Cumulative Fees

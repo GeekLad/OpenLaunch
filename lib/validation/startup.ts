@@ -1,4 +1,4 @@
-import { SERVER_ENV } from "@/config/environment";
+import { PINATA_API_KEY, PINATA_SECRET_KEY, FILEBASE_API_KEY } from "@/config/secrets";
 import { getSqlite } from "@/lib/db/client";
 import { runMigrations } from "@/lib/db/migrate";
 import path from "path";
@@ -74,8 +74,8 @@ function validateIPFS(): { isValid: boolean; errors: string[]; warnings: string[
   const warnings: string[] = [];
 
   // Check if any IPFS service is configured
-  const hasPinata = !!(SERVER_ENV.PINATA_API_KEY && SERVER_ENV.PINATA_SECRET_KEY);
-  const hasFilebase = !!SERVER_ENV.FILEBASE_API_KEY;
+  const hasPinata = !!(PINATA_API_KEY && PINATA_SECRET_KEY);
+  const hasFilebase = !!FILEBASE_API_KEY;
 
   if (!hasPinata && !hasFilebase) {
     errors.push('No IPFS service is configured');
@@ -94,9 +94,9 @@ function validateIPFS(): { isValid: boolean; errors: string[]; warnings: string[
   }
 
   // Validate Pinata configuration if present
-  if (SERVER_ENV.PINATA_API_KEY && !SERVER_ENV.PINATA_SECRET_KEY) {
+  if (PINATA_API_KEY && !PINATA_SECRET_KEY) {
     warnings.push('PINATA_API_KEY is set but PINATA_SECRET_KEY is missing');
-  } else if (!SERVER_ENV.PINATA_API_KEY && SERVER_ENV.PINATA_SECRET_KEY) {
+  } else if (!PINATA_API_KEY && PINATA_SECRET_KEY) {
     warnings.push('PINATA_SECRET_KEY is set but PINATA_API_KEY is missing');
   }
 

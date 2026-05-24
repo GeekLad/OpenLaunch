@@ -1,4 +1,4 @@
-import { ENV } from "@/config/environment";
+import { SOLANA_NETWORK } from "@/config/public";
 
 /**
  * Pool metrics data from Meteora DAMMv2 API
@@ -42,7 +42,7 @@ interface MeteoraApiResponse {
  * Get the Meteora API base URL based on network
  */
 function getMeteoraApiBaseUrl(): string {
-  const network = ENV.SOLANA_NETWORK.toLowerCase();
+  const network = SOLANA_NETWORK.toLowerCase();
 
   if (network === "devnet") {
     return "https://dammv2-api.devnet.meteora.ag";

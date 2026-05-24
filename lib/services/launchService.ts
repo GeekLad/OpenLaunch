@@ -1,6 +1,6 @@
 import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js";
 import { TokenFormData, LaunchStatus, TokenLaunchConfig } from "@/types/token";
-import { ENV } from "@/config/environment";
+import { TOKEN_DECIMALS, QUOTE_TOKEN_MINT, APP_URL } from "@/config/public";
 import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
 import { getConnection, getRecentBlockhash, confirmTransaction } from "@/lib/solana/connection";
 import { createMint, mintTokens, revokeAllAuthorities } from "@/lib/solana/tokenUtils";
@@ -77,7 +77,7 @@ export class TokenLaunchService {
         this.connection,
         walletPublicKey,
         mintKeypair,
-        ENV.TOKEN_DECIMALS
+        TOKEN_DECIMALS
       );
 
       // Step 3: Upload assets to IPFS (do this before preparing all transactions)
@@ -102,7 +102,7 @@ export class TokenLaunchService {
           twitter: formData.twitterUrl,
           telegram: formData.telegramUrl,
           discord: formData.discordUrl,
-          launchpad: ENV.LAUNCHPAD_URL,
+          launchpad: APP_URL,
         }
       );
 
@@ -163,7 +163,7 @@ export class TokenLaunchService {
         mintResult.mint,
         walletPublicKey,
         formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply,
-        ENV.TOKEN_DECIMALS
+        TOKEN_DECIMALS
       );
 
       const metadataTx = await createMetadataAccount({
@@ -216,7 +216,7 @@ export class TokenLaunchService {
         tokenAMint: mintResult.mint,
         tokenBMint: new PublicKey(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
         tokenAAmount: poolTokenAmount,
-        tokenADecimals: ENV.TOKEN_DECIMALS,
+        tokenADecimals: TOKEN_DECIMALS,
         tokenBDecimals: 9,
         initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
         tokenAProgram: TOKEN_PROGRAM_ID,
@@ -281,7 +281,7 @@ export class TokenLaunchService {
             tokenAMint: mintResult.mint,
             tokenBMint: new PublicKey(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
             tokenAAmount: poolTokenAmount,
-            tokenADecimals: ENV.TOKEN_DECIMALS,
+            tokenADecimals: TOKEN_DECIMALS,
             tokenBDecimals: 9,
             initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
             tokenAProgram: TOKEN_PROGRAM_ID,
@@ -428,7 +428,7 @@ export class TokenLaunchService {
             tokenAMint: mintResult.mint,
             tokenBMint: new PublicKey(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
             tokenAAmount: poolTokenAmount,
-            tokenADecimals: ENV.TOKEN_DECIMALS,
+            tokenADecimals: TOKEN_DECIMALS,
             tokenBDecimals: 9,
             initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
             tokenAProgram: TOKEN_PROGRAM_ID,
@@ -499,8 +499,8 @@ export class TokenLaunchService {
         metadata: metadata,
         metadataUri: metadataUri, // IPFS URI where metadata JSON is stored
         totalSupply: formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply,
-        decimals: ENV.TOKEN_DECIMALS,
-        quoteTokenMint: new PublicKey(ENV.QUOTE_TOKEN_MINT),
+        decimals: TOKEN_DECIMALS,
+        quoteTokenMint: new PublicKey(QUOTE_TOKEN_MINT),
         initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
         priceRangeMin: formData.priceRangeMin ?? DEFAULT_LAUNCH_PARAMS.priceRangeMin,
         priceRangeMax: formData.priceRangeMax ?? DEFAULT_LAUNCH_PARAMS.priceRangeMax,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as dbService from "@/lib/db/service";
-import { ENV } from "@/config/environment";
+import { ENABLE_FEES_DISPLAY } from "@/config/public";
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const validSortOptions = ENV.ENABLE_FEES_DISPLAY ? ["date", "fees"] : ["date"];
+    const validSortOptions = ENABLE_FEES_DISPLAY ? ["date", "fees"] : ["date"];
     if (!validSortOptions.includes(sortBy)) {
       return NextResponse.json(
         { error: `Invalid sortBy parameter. Must be ${validSortOptions.join(" or ")}` },

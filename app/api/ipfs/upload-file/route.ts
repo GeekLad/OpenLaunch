@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SERVER_ENV } from "@/config/environment";
+import {
+  PINATA_API_KEY,
+  PINATA_SECRET_KEY,
+  FILEBASE_API_KEY,
+} from "@/config/secrets";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Try Pinata first if configured
-    if (SERVER_ENV.PINATA_API_KEY && SERVER_ENV.PINATA_SECRET_KEY) {
+    if (PINATA_API_KEY && PINATA_SECRET_KEY) {
       try {
         const result = await uploadToPinata(file);
         return NextResponse.json(result);
@@ -37,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Try Filebase if configured
-    if (SERVER_ENV.FILEBASE_API_KEY) {
+    if (FILEBASE_API_KEY) {
       try {
         const result = await uploadToFilebase(file);
         return NextResponse.json(result);
@@ -75,8 +79,8 @@ async function uploadToPinata(file: File): Promise<IPFSUploadResult> {
   const response = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
     method: "POST",
     headers: {
-      pinata_api_key: SERVER_ENV.PINATA_API_KEY,
-      pinata_secret_api_key: SERVER_ENV.PINATA_SECRET_KEY,
+      pinata_api_key: PINATA_API_KEY,
+      pinata_secret_api_key: PINATA_SECRET_KEY,
     },
     body: formData,
   });
@@ -106,7 +110,7 @@ async function uploadToFilebase(file: File): Promise<IPFSUploadResult> {
   const response = await fetch("https://rpc.filebase.io/api/v0/add", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${SERVER_ENV.FILEBASE_API_KEY}`,
+      Authorization: `Bearer ${FILEBASE_API_KEY}`,
     },
     body: formData,
   });
