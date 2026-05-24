@@ -5,46 +5,26 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-      args:
-        - NEXT_PUBLIC_RPC_URL=${NEXT_PUBLIC_RPC_URL:-https://api.devnet.solana.com}
-        - NEXT_PUBLIC_SOLANA_NETWORK=${NEXT_PUBLIC_SOLANA_NETWORK:-devnet}
-        - NEXT_PUBLIC_APP_NAME=${NEXT_PUBLIC_APP_NAME:-OpenLaunch}
-        - NEXT_PUBLIC_QUOTE_TOKEN_MINT=${NEXT_PUBLIC_QUOTE_TOKEN_MINT:-So11111111111111111111111111111111111111112}
-        - NEXT_PUBLIC_TOKEN_DECIMALS=${NEXT_PUBLIC_TOKEN_DECIMALS:-9}
-        - NEXT_PUBLIC_TOTAL_SUPPLY=${NEXT_PUBLIC_TOTAL_SUPPLY:-1000000000}
-        - NEXT_PUBLIC_INITIAL_PRICE=${NEXT_PUBLIC_INITIAL_PRICE:-0.0000001}
-        - NEXT_PUBLIC_PRICE_RANGE_MIN=${NEXT_PUBLIC_PRICE_RANGE_MIN:-0.0000001}
-        - NEXT_PUBLIC_PRICE_RANGE_MAX=${NEXT_PUBLIC_PRICE_RANGE_MAX:-0.001}
-        - NEXT_PUBLIC_FEE_DECAY_DURATION_MINUTES=${NEXT_PUBLIC_FEE_DECAY_DURATION_MINUTES:-60}
-        - NEXT_PUBLIC_FEE_DECAY_PERIODS=${NEXT_PUBLIC_FEE_DECAY_PERIODS:-60}
-        - NEXT_PUBLIC_POOL_LIQUIDITY_PERCENTAGE=${NEXT_PUBLIC_POOL_LIQUIDITY_PERCENTAGE:-1.0}
-        - NEXT_PUBLIC_IPFS_GATEWAY=${NEXT_PUBLIC_IPFS_GATEWAY:-https://ipfs.io/ipfs/}
-        - NEXT_PUBLIC_MAX_IMAGE_SIZE_MB=${NEXT_PUBLIC_MAX_IMAGE_SIZE_MB:-1}
-        - NEXT_PUBLIC_METADATA_MUTABLE=${NEXT_PUBLIC_METADATA_MUTABLE:-false}
-        - NEXT_PUBLIC_LAUNCHPAD_URL=${NEXT_PUBLIC_LAUNCHPAD_URL}
     ports:
       - "3000:3000"
     environment:
-      # Server-side IPFS Configuration
+      # Server-side secrets and runtime overrides only.
+      # Public configuration lives in config/public.ts.
+
+      # IPFS Upload (choose Pinata or Filebase)
       - PINATA_API_KEY=${PINATA_API_KEY}
       - PINATA_SECRET_KEY=${PINATA_SECRET_KEY}
       - FILEBASE_API_KEY=${FILEBASE_API_KEY}
-      
-      # Database Configuration
+
+      # Solana RPC (optional override)
+      - RPC_URL=${RPC_URL}
+
+      # Database
       - DATA_DIR=${DATA_DIR:-./data}
       - DATABASE_TYPE=${DATABASE_TYPE:-sqlite}
 
-      # Meteora API Polling Configuration
-      - FEE_UPDATE_INTERVAL_0_1H=${FEE_UPDATE_INTERVAL_0_1H:-1}
-      - FEE_UPDATE_INTERVAL_1_24H=${FEE_UPDATE_INTERVAL_1_24H:-5}
-      - FEE_UPDATE_INTERVAL_1_4D=${FEE_UPDATE_INTERVAL_1_4D:-10}
-      - FEE_UPDATE_INTERVAL_4D_PLUS=${FEE_UPDATE_INTERVAL_4D_PLUS:-60}
-
-      # Cron Configuration
+      # Cron
       - ENABLE_CRON=${ENABLE_CRON:-true}
-
-      # Node Environment
-      # - NODE_ENV=production
     volumes:
       - ${DATA_DIR:-./data}:/app/data
     restart: unless-stopped

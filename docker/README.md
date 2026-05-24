@@ -10,7 +10,7 @@ This directory contains Docker configuration files for deploying OpenLaunch usin
 ## Files
 
 - `Dockerfile` - Multi-stage Docker build configuration
-- `docker-compose.yml` - Docker Compose configuration with all environment variables
+- `docker-compose.yml` - Docker Compose configuration with environment variables
 - `docker-entrypoint.sh` - Entrypoint script that handles data directory permissions
 - `.env` - Environment variables configuration file
 
@@ -27,14 +27,19 @@ docker-compose build
 docker build -f docker/Dockerfile -t openlaunch:latest .
 ```
 
+Changing build-time configuration (e.g. public constants in `config/`) still works
+and does not invalidate this layer because all config values are now bundled in source
+files rather than injected as environment variables.
+
 ## Deployment Options
 
 ### Option 1: Using Docker Compose (Recommended)
 
 1. **Configure environment variables:**
    ```bash
+   cp docker/.env.example docker/.env
    # Edit docker/.env with your actual values
-   # Ensure you set your IPFS credentials (Pinata or Filebase)
+   # At minimum you must set either Pinata or Filebase credentials
    ```
 
 2. **Build and run with Docker Compose:**
@@ -45,7 +50,7 @@ docker build -f docker/Dockerfile -t openlaunch:latest .
 
    **Note:** The data directory will be automatically created and permissions will be handled by the container's entrypoint script.
 
-4. **Access the application:**
+3. **Access the application:**
    Open http://localhost:3000 in your browser
 
 ### Option 2: Using Environment File
@@ -94,7 +99,14 @@ You must configure at least one IPFS service:
 
 ### Optional Environment Variables
 
-Most environment variables have sensible defaults. See `docker/.env` for the complete list.
+Most configuration has sensible defaults baked into the application (see `config/public.ts`).
+The `.env` file is only needed for secrets and runtime overrides:
+
+- `RPC_URL` - Custom Solana RPC endpoint (server-only, falls back to public endpoint if not set)
+- `DATA_DIR` - SQLite storage path (default: `./data`)
+- `ENABLE_CRON` - Enable background fee updates (default: `true`)
+
+See `docker/.env.example` for the full list.
 
 ## Data Persistence
 
