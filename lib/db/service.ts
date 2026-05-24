@@ -38,8 +38,8 @@ export interface TokenCreateInput {
   priceRangeMax: number;
 
   // Fee configuration
-  feeDecayDurationMinutes: number;
-  feeDecayPeriods: number;
+  feeDecayDurationMinutes?: number;
+  feeDecayPeriods?: number;
   feeSchedulerMode: string;
   feeTokenMode: string;
   startingMarketCap: string;

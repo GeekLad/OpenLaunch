@@ -7,7 +7,7 @@ import { TokenFormData, LaunchStatus, TokenLaunchConfig } from "@/types/token";
 import { TokenLaunchForm } from "@/components/forms/TokenLaunchForm";
 import { TokenLaunchService } from "@/lib/services/launchService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
+import { DEFAULT_LAUNCH_PARAMS, DEFAULT_NUMBER_OF_PERIODS } from "@/config/defaults";
 import { getConnection, getBalance } from "@/lib/solana/connection";
 
 export default function LaunchPage() {
@@ -124,8 +124,10 @@ export default function LaunchPage() {
               // Fee configuration
               feeDecayDurationMinutes: config.feeSchedulerConfig?.mode === 'time-based'
                 ? config.feeSchedulerConfig.durationMinutes
-                : DEFAULT_LAUNCH_PARAMS.feeDurationMinutes,
-              feeDecayPeriods: DEFAULT_LAUNCH_PARAMS.numberOfPeriods,
+                : 0,
+              feeDecayPeriods: config.feeSchedulerConfig?.mode === 'time-based'
+                ? DEFAULT_NUMBER_OF_PERIODS
+                : 0,
 
               // Launch info
               launchDate: config.launchTime || new Date(),

@@ -207,7 +207,7 @@ export class TokenLaunchService {
           : 0.25,
         decayDuration: formData.feeSchedulerConfig.mode === 'time-based'
           ? formData.feeSchedulerConfig.durationMinutes
-          : DEFAULT_LAUNCH_PARAMS.feeDurationMinutes,
+          : 0, // market-cap-based mode does not use time-based decay duration
       } : undefined;
 
       let poolResult = await createDAMMv2Pool({

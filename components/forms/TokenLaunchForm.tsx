@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { getMaxImageSizeBytes, getMaxImageSizeMB } from "@/lib/services/ipfsService";
 import { FeeSchedulerConfig } from "@/types/fee";
-import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
+import { DEFAULT_LAUNCH_PARAMS, DEFAULT_FEE_DURATION_MINUTES } from "@/config/defaults";
 import { validateAndParsePrivateKey } from "@/lib/utils/keypairUtils";
 
 const tokenFormSchema = z.object({
@@ -239,7 +239,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
         mode: 'time-based',
         startRate: DEFAULT_LAUNCH_PARAMS.feeStartRate,
         endRate: DEFAULT_LAUNCH_PARAMS.feeEndRate,
-        durationMinutes: DEFAULT_LAUNCH_PARAMS.feeDurationMinutes,
+        durationMinutes: DEFAULT_FEE_DURATION_MINUTES,
       };
     } else {
       feeSchedulerConfig = {

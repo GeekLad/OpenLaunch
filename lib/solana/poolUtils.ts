@@ -2,7 +2,7 @@ import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js";
 import { CpAmm, type PoolFeesParams, getFeeTimeSchedulerParams, BaseFeeMode, CollectFeeMode, getDynamicFeeParams } from "@meteora-ag/cp-amm-sdk";
 import { getMint, Mint, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import BN from "bn.js";
-import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
+import { DEFAULT_NUMBER_OF_PERIODS } from "@/config/defaults";
 
 // Meteora DAMMv2 Program ID
 export const DAMM_V2_PROGRAM_ID = new PublicKey("cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG");
@@ -192,7 +192,7 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
 
     // Get number of periods from default config
     // More periods = more frequent fee changes
-    const numberOfPeriods = DEFAULT_LAUNCH_PARAMS.numberOfPeriods;
+    const numberOfPeriods = DEFAULT_NUMBER_OF_PERIODS;
 
     const periodIntervalSeconds = durationSeconds / numberOfPeriods;
 

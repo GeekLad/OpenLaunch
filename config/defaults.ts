@@ -25,9 +25,9 @@ export const DEFAULT_BASE_FEE_BPS = 25;
 export const DEFAULT_HOLDBACK_PERCENTAGE = 0;
 export const DEFAULT_QUOTE_TOKEN_MINT = 'So11111111111111111111111111111111111111112';
 
-// Time-based fee scheduler defaults
-export const DEFAULT_STARTING_MARKET_CAP = 0;
-export const DEFAULT_ENDING_MARKET_CAP = 0;
+// Time-based fee scheduler defaults (only used when mode is 'time-based')
+export const DEFAULT_STARTING_MARKET_CAP = 1_000;
+export const DEFAULT_ENDING_MARKET_CAP = 100_000;
 export const DEFAULT_FEE_START_RATE = 50;
 export const DEFAULT_FEE_END_RATE = 0.25;
 export const DEFAULT_FEE_DURATION_MINUTES = 60;
@@ -36,6 +36,10 @@ export const DEFAULT_NUMBER_OF_PERIODS = 60;
 /**
  * Aggregate object containing every launch-relevant default.
  * Useful for spreading into form defaults or API fallback objects.
+ *
+ * Note: Time-specific defaults (feeDurationMinutes, numberOfPeriods) are
+ * kept as separate exported constants and only used when fee scheduler mode
+ * is 'time-based'. The aggregate defaults to 'market-cap-based' mode.
  */
 export const DEFAULT_LAUNCH_PARAMS = {
   totalSupply: DEFAULT_TOTAL_SUPPLY,
@@ -53,6 +57,4 @@ export const DEFAULT_LAUNCH_PARAMS = {
   endingMarketCap: DEFAULT_ENDING_MARKET_CAP,
   feeStartRate: DEFAULT_FEE_START_RATE,
   feeEndRate: DEFAULT_FEE_END_RATE,
-  feeDurationMinutes: DEFAULT_FEE_DURATION_MINUTES,
-  numberOfPeriods: DEFAULT_NUMBER_OF_PERIODS,
 } as const;
