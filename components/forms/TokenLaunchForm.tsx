@@ -135,6 +135,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   const [isLaunchParamsOpen, setIsLaunchParamsOpen] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSubmitData, setPendingSubmitData] = useState<TokenFormSchemaType | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   const {
     register,
@@ -145,6 +146,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
     watch,
     trigger,
     getValues,
+    setError,
   } = useForm<TokenFormSchemaType>({
     resolver: zodResolver(tokenFormSchema),
     mode: "onBlur",
@@ -334,9 +336,38 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
     }
   };
 
-  const handleFormSubmit = (data: TokenFormSchemaType) => {
-    setPendingSubmitData(data);
-    setShowConfirmModal(true);
+  const handleFormSubmit = async (data: TokenFormSchemaType) => {
+    setIsValidating(true);
+    try {
+      const response = await fetch('/api/tokens/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
+
+      if (result.valid === false && result.errors) {
+        Object.entries(result.errors).forEach(([field, message]) => {
+          setError(
+            field as keyof TokenFormSchemaType,
+            { type: 'server', message: message as string },
+            { shouldFocus: false }
+          );
+        });
+        setIsValidating(false);
+        return;
+      }
+
+      setPendingSubmitData(data);
+      setShowConfirmModal(true);
+    } catch {
+      setError('symbol', {
+        type: 'server',
+        message: 'Unable to validate. Please check your connection and try again.',
+      });
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const confirmLaunch = () => {
@@ -1199,8 +1230,8 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
         </DialogContent>
       </Dialog>
 
-      <Button type="submit" size="lg" className="w-full" disabled={isLoading || !isFormValid || !isValid}>
-        {isLoading ? "Launching..." : "Launch Token"}
+      <Button type="submit" size="lg" className="w-full" disabled={isLoading || !isFormValid || !isValid || isValidating}>
+        {isLoading || isValidating ? "Loading..." : "Launch Token"}
       </Button>
     </form>
   );
