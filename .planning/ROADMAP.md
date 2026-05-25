@@ -14,7 +14,7 @@ This roadmap delivers a configurable token launch experience for OpenLaunch. Sta
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Types, Schema & Defaults Foundation** - Data structures, database schema, and single source of truth for all configurable parameters (completed 2026-05-23)
-- [ ] **Phase 2: Core Form Parameters & Basic UI** - Essential form expansion with supply, price, and range fields in an Advanced Options section
+- [x] **Phase 2: Core Form Parameters & Basic UI** - Essential form expansion with supply, price, and range fields in an Advanced Options section
 - [ ] **Phase 3: Advanced Parameters, Fee Modes & Complex Validation** - Holdback slider, quote token selection, fee scheduler modes, and server-side SDK validation
 - [ ] **Phase 4: Blockchain Integration & Pre-flight Safety** - SDK upgrade, on-chain parameter mapping, holdback math, and transaction simulation
 - [ ] **Phase 5: Service Orchestration, Persistence & Detail Pages** - Full launch flow wiring, database persistence, and token detail page enhancement
