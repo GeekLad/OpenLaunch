@@ -10,7 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { getMaxImageSizeBytes, getMaxImageSizeMB } from "@/lib/services/ipfsService";
 import { FeeSchedulerConfig } from "@/types/fee";
 import { DEFAULT_LAUNCH_PARAMS, DEFAULT_FEE_DURATION_MINUTES } from "@/config/defaults";
@@ -28,6 +32,8 @@ const tokenFormSchema = z.object({
   priceRangeMax: z.number().min(0),
   holdbackPercentage: z.number().min(0).max(100).optional(),
   quoteTokenMint: z.string().optional(),
+  feeSchedulerMode: z.enum(['market-cap-based', 'time-based', 'fixed']).optional(),
+  feeTokenMode: z.enum(['quoteOnly', 'both']).optional(),
   enableTimedLaunch: z.boolean(),
   launchDateTime: z.date().nullable().optional(),
   enableCustomPrivateKey: z.boolean(),
@@ -96,10 +102,6 @@ interface TokenLaunchFormProps {
 export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchFormProps) {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [fileSizeWarning, setFileSizeWarning] = useState<string | null>(null);
-  // eslint-disable-next-line -- setters will be wired to UI controls in Phase 3
-  const [feeSchedulerMode, setFeeSchedulerMode] = useState<'market-cap-based' | 'time-based' | 'fixed'>('market-cap-based');
-  // eslint-disable-next-line -- setters will be wired to UI controls in Phase 3
-  const [feeTokenMode, setFeeTokenMode] = useState<'quoteOnly' | 'both'>('quoteOnly');
   const [enableTimedLaunch, setEnableTimedLaunch] = useState(false);
   const [enableCustomPrivateKey, setEnableCustomPrivateKey] = useState(false);
   const [launchDate, setLaunchDate] = useState<string>("");
@@ -126,6 +128,9 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
       priceRangeMin: DEFAULT_LAUNCH_PARAMS.priceRangeMin,
       priceRangeMax: DEFAULT_LAUNCH_PARAMS.priceRangeMax,
       holdbackPercentage: DEFAULT_LAUNCH_PARAMS.holdbackPercentage,
+      quoteTokenMint: DEFAULT_LAUNCH_PARAMS.quoteTokenMint,
+      feeSchedulerMode: DEFAULT_LAUNCH_PARAMS.feeSchedulerMode,
+      feeTokenMode: DEFAULT_LAUNCH_PARAMS.feeTokenMode,
       enableTimedLaunch: false,
       enableCustomPrivateKey: false,
     },
@@ -139,15 +144,27 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   const watchedInitial = watch("initialPrice");
   const watchedMin = watch("priceRangeMin");
   const watchedMax = watch("priceRangeMax");
+  const watchedHoldback = watch("holdbackPercentage");
+  const watchedQuoteToken = watch("quoteTokenMint");
+  const watchedFeeMode = watch("feeSchedulerMode");
+  const watchedFeeToken = watch("feeTokenMode");
 
   const isModified = useMemo(() => {
     return (
       watchedSupply !== DEFAULT_LAUNCH_PARAMS.totalSupply ||
       watchedInitial !== DEFAULT_LAUNCH_PARAMS.initialPrice ||
       watchedMin !== DEFAULT_LAUNCH_PARAMS.priceRangeMin ||
-      watchedMax !== DEFAULT_LAUNCH_PARAMS.priceRangeMax
+      watchedMax !== DEFAULT_LAUNCH_PARAMS.priceRangeMax ||
+      watchedHoldback !== DEFAULT_LAUNCH_PARAMS.holdbackPercentage ||
+      watchedQuoteToken !== DEFAULT_LAUNCH_PARAMS.quoteTokenMint ||
+      watchedFeeMode !== 'market-cap-based' ||
+      watchedFeeToken !== 'quoteOnly'
     );
-  }, [watchedSupply, watchedInitial, watchedMin, watchedMax]);
+  }, [watchedSupply, watchedInitial, watchedMin, watchedMax, watchedHoldback, watchedQuoteToken, watchedFeeMode, watchedFeeToken]);
+
+  const isHighHoldback = useMemo(() => {
+    return (watchedHoldback ?? 0) > 10;
+  }, [watchedHoldback]);
 
   // Compute price range errors directly from watched values —
   // bypasses react-hook-form's error system so they survive resolver re-runs
@@ -285,16 +302,14 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   };
 
   const handleFormSubmit = (data: TokenFormSchemaType) => {
-    // Construct FeeSchedulerConfig based on the selected mode
-    // TODO(Phase 3): Add mode selector and mode-specific fields to form data
     let feeSchedulerConfig: FeeSchedulerConfig;
-    if (feeSchedulerMode === 'market-cap-based') {
+    if (data.feeSchedulerMode === 'market-cap-based') {
       feeSchedulerConfig = {
         mode: 'market-cap-based',
         startingMarketCap: DEFAULT_LAUNCH_PARAMS.startingMarketCap,
         endingMarketCap: DEFAULT_LAUNCH_PARAMS.endingMarketCap,
       };
-    } else if (feeSchedulerMode === 'time-based') {
+    } else if (data.feeSchedulerMode === 'time-based') {
       feeSchedulerConfig = {
         mode: 'time-based',
         startRate: DEFAULT_LAUNCH_PARAMS.feeStartRate,
@@ -314,11 +329,11 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
       description: data.description,
       logoFile: data.logoFile,
       feeSchedulerConfig: feeSchedulerConfig,
-      feeTokenMode: feeTokenMode,
-      totalSupply: data.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply,
-      initialPrice: data.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
-      priceRangeMin: data.priceRangeMin ?? DEFAULT_LAUNCH_PARAMS.priceRangeMin,
-      priceRangeMax: data.priceRangeMax ?? DEFAULT_LAUNCH_PARAMS.priceRangeMax,
+      feeTokenMode: data.feeTokenMode ?? DEFAULT_LAUNCH_PARAMS.feeTokenMode,
+      totalSupply: data.totalSupply,
+      initialPrice: data.initialPrice,
+      priceRangeMin: data.priceRangeMin,
+      priceRangeMax: data.priceRangeMax,
       holdbackPercentage: data.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage,
       quoteTokenMint: data.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint,
       enableTimedLaunch: data.enableTimedLaunch,
@@ -591,9 +606,67 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
           <CardDescription>Configure dynamic fee scheduling for your token</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Fee Scheduler:</p>
-            <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-sm font-medium">{feeSchedulerMode}</span>
+          {/* Fee Scheduler Mode Select */}
+          <div className="space-y-2">
+            <Label htmlFor="feeSchedulerMode">Fee Scheduler Mode</Label>
+            <Controller
+              name="feeSchedulerMode"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <Select value={value} onValueChange={onChange} disabled={isLoading}>
+                  <SelectTrigger id="feeSchedulerMode" className="w-full">
+                    <SelectValue placeholder="Select fee scheduler mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="market-cap-based">Market-Cap Based</SelectItem>
+                    <SelectItem value="time-based">Time-Based</SelectItem>
+                    <SelectItem value="fixed">Disabled (Fixed Fee)</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <p className="text-sm text-muted-foreground">How trading fees decay over time</p>
+            {errors.feeSchedulerMode && (
+              <p className="text-sm text-destructive">{errors.feeSchedulerMode.message}</p>
+            )}
+          </div>
+
+          {/* Fee Token Mode RadioGroup */}
+          <div className="space-y-2">
+            <Label htmlFor="feeTokenMode">Fee Token Mode</Label>
+            <Controller
+              name="feeTokenMode"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <div className="flex flex-col space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="feeTokenMode"
+                      value="quoteOnly"
+                      checked={value === 'quoteOnly'}
+                      onChange={() => onChange('quoteOnly')}
+                      disabled={isLoading}
+                      className="h-4 w-4 text-primary border-input focus:ring-ring"
+                    />
+                    <span className="text-sm font-medium">Quote Token Only</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="feeTokenMode"
+                      value="both"
+                      checked={value === 'both'}
+                      onChange={() => onChange('both')}
+                      disabled={isLoading}
+                      className="h-4 w-4 text-primary border-input focus:ring-ring"
+                    />
+                    <span className="text-sm font-medium">Both Quote + Base Token</span>
+                  </label>
+                </div>
+              )}
+            />
+            <p className="text-sm text-muted-foreground">Which tokens fees are collected in</p>
           </div>
         </CardContent>
       </Card>
@@ -675,6 +748,12 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
               <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
                 Modified
               </span>
+            )}
+            {!isLaunchParamsOpen && isHighHoldback && (
+              <Badge variant="destructive" className="text-xs">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                High Holdback
+              </Badge>
             )}
           </div>
           {isLaunchParamsOpen ? (
@@ -764,8 +843,69 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                 {priceError?.field === "priceRangeMax" && !errors.priceRangeMax && (
                   <p className="text-sm text-destructive">{priceError.message}</p>
                 )}
+            </div>
+
+            {/* Holdback Slider */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="holdbackPercentage">Token Holdback</Label>
+                <span className="text-sm font-bold">{watchedHoldback ?? 0}%</span>
               </div>
-            </CardContent>
+              <Controller
+                name="holdbackPercentage"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Slider
+                    id="holdbackPercentage"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={[value ?? 0]}
+                    onValueChange={([val]) => onChange(val)}
+                    disabled={isLoading}
+                  />
+                )}
+              />
+              <p className="text-sm text-muted-foreground">
+                Holdback tokens are sent to the creator&apos;s wallet; the remainder goes to the liquidity pool.
+              </p>
+              {errors.holdbackPercentage && (
+                <p className="text-sm text-destructive">{errors.holdbackPercentage.message}</p>
+              )}
+              {isHighHoldback && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Warning</AlertTitle>
+                  <AlertDescription>
+                    Holding back more than 10% may be seen as a red flag by traders
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            {/* Quote Token Select */}
+            <div className="space-y-2">
+              <Label htmlFor="quoteTokenMint">Quote Token</Label>
+              <Controller
+                name="quoteTokenMint"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Select value={value} onValueChange={onChange} disabled={isLoading}>
+                    <SelectTrigger id="quoteTokenMint" className="w-full">
+                      <SelectValue placeholder="Select quote token" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="So11111111111111111111111111111111111111112">SOL</SelectItem>
+                      <SelectItem value="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v">USDC</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <p className="text-sm text-muted-foreground">
+                USDC has 6 decimals per unit; SOL has 9 decimals per unit. Backend handles decimal scaling.
+              </p>
+            </div>
+          </CardContent>
       </Card>
 
       {/* Custom CA Section */}
