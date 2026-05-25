@@ -14,10 +14,12 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { getMaxImageSizeBytes, getMaxImageSizeMB } from "@/lib/services/ipfsService";
 import { FeeSchedulerConfig } from "@/types/fee";
-import { DEFAULT_LAUNCH_PARAMS, DEFAULT_FEE_DURATION_MINUTES } from "@/config/defaults";
+import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
 import { validateAndParsePrivateKey } from "@/lib/utils/keypairUtils";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +36,12 @@ const tokenFormSchema = z.object({
   quoteTokenMint: z.string().optional(),
   feeSchedulerMode: z.enum(['market-cap-based', 'time-based', 'fixed']).optional(),
   feeTokenMode: z.enum(['quoteOnly', 'both']).optional(),
+  startingMarketCap: z.number().min(0).optional(),
+  endingMarketCap: z.number().min(0).optional(),
+  feeStartRate: z.number().min(1).max(9900).optional(),
+  feeEndRate: z.number().min(1).max(9900).optional(),
+  feeDurationHours: z.number().min(1).optional(),
+  feeFixedRate: z.number().min(1).max(9900).optional(),
   enableTimedLaunch: z.boolean(),
   launchDateTime: z.date().nullable().optional(),
   enableCustomPrivateKey: z.boolean(),
@@ -46,8 +54,6 @@ const tokenFormSchema = z.object({
   // Validate custom private key only if enabled
   if (data.enableCustomPrivateKey) {
     const privateKey = data.customPrivateKey?.trim();
-
-    // Check if private key is provided
     if (!privateKey) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -56,8 +62,6 @@ const tokenFormSchema = z.object({
       });
       return;
     }
-
-    // Validate the private key format
     const result = validateAndParsePrivateKey(privateKey);
     if (!result.isValid) {
       ctx.addIssue({
@@ -90,6 +94,26 @@ const tokenFormSchema = z.object({
       path: ["priceRangeMin"],
     });
   }
+
+  // Fee scheduler sub-field validation
+  if (data.feeSchedulerMode === 'market-cap-based') {
+    if ((data.endingMarketCap ?? 0) <= (data.startingMarketCap ?? 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Ending market cap must be greater than starting market cap",
+        path: ["endingMarketCap"],
+      });
+    }
+  }
+  if (data.feeSchedulerMode === 'time-based') {
+    if ((data.feeStartRate ?? 0) < (data.feeEndRate ?? 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Fee start rate must be greater than or equal to fee end rate",
+        path: ["feeStartRate"],
+      });
+    }
+  }
 });
 
 type TokenFormSchemaType = z.infer<typeof tokenFormSchema>;
@@ -109,6 +133,8 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   const [launchMinute, setLaunchMinute] = useState<string>("");
   const [launchPeriod, setLaunchPeriod] = useState<"AM" | "PM">("AM");
   const [isLaunchParamsOpen, setIsLaunchParamsOpen] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingSubmitData, setPendingSubmitData] = useState<TokenFormSchemaType | null>(null);
 
   const {
     register,
@@ -118,6 +144,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
     setValue,
     watch,
     trigger,
+    getValues,
   } = useForm<TokenFormSchemaType>({
     resolver: zodResolver(tokenFormSchema),
     mode: "onBlur",
@@ -131,6 +158,12 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
       quoteTokenMint: DEFAULT_LAUNCH_PARAMS.quoteTokenMint,
       feeSchedulerMode: DEFAULT_LAUNCH_PARAMS.feeSchedulerMode,
       feeTokenMode: DEFAULT_LAUNCH_PARAMS.feeTokenMode,
+      startingMarketCap: DEFAULT_LAUNCH_PARAMS.startingMarketCap,
+      endingMarketCap: DEFAULT_LAUNCH_PARAMS.endingMarketCap,
+      feeStartRate: DEFAULT_LAUNCH_PARAMS.feeStartRate,
+      feeEndRate: DEFAULT_LAUNCH_PARAMS.feeEndRate,
+      feeDurationHours: 1,
+      feeFixedRate: DEFAULT_LAUNCH_PARAMS.baseFeeBps,
       enableTimedLaunch: false,
       enableCustomPrivateKey: false,
     },
@@ -302,50 +335,99 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   };
 
   const handleFormSubmit = (data: TokenFormSchemaType) => {
+    setPendingSubmitData(data);
+    setShowConfirmModal(true);
+  };
+
+  const confirmLaunch = () => {
+    if (!pendingSubmitData) return;
     let feeSchedulerConfig: FeeSchedulerConfig;
-    if (data.feeSchedulerMode === 'market-cap-based') {
+    if (pendingSubmitData.feeSchedulerMode === 'market-cap-based') {
       feeSchedulerConfig = {
         mode: 'market-cap-based',
-        startingMarketCap: DEFAULT_LAUNCH_PARAMS.startingMarketCap,
-        endingMarketCap: DEFAULT_LAUNCH_PARAMS.endingMarketCap,
+        startingMarketCap: pendingSubmitData.startingMarketCap ?? DEFAULT_LAUNCH_PARAMS.startingMarketCap,
+        endingMarketCap: pendingSubmitData.endingMarketCap ?? DEFAULT_LAUNCH_PARAMS.endingMarketCap,
       };
-    } else if (data.feeSchedulerMode === 'time-based') {
+    } else if (pendingSubmitData.feeSchedulerMode === 'time-based') {
       feeSchedulerConfig = {
         mode: 'time-based',
-        startRate: DEFAULT_LAUNCH_PARAMS.feeStartRate,
-        endRate: DEFAULT_LAUNCH_PARAMS.feeEndRate,
-        durationMinutes: DEFAULT_FEE_DURATION_MINUTES,
+        startRate: pendingSubmitData.feeStartRate ?? DEFAULT_LAUNCH_PARAMS.feeStartRate,
+        endRate: pendingSubmitData.feeEndRate ?? DEFAULT_LAUNCH_PARAMS.feeEndRate,
+        durationMinutes: (pendingSubmitData.feeDurationHours ?? 1) * 60,
       };
     } else {
       feeSchedulerConfig = {
         mode: 'fixed',
-        baseFeeBps: DEFAULT_LAUNCH_PARAMS.baseFeeBps,
+        baseFeeBps: pendingSubmitData.feeFixedRate ?? DEFAULT_LAUNCH_PARAMS.baseFeeBps,
       };
     }
 
     const formData: TokenFormData = {
-      symbol: data.symbol,
-      name: data.name,
-      description: data.description,
-      logoFile: data.logoFile,
+      symbol: pendingSubmitData.symbol,
+      name: pendingSubmitData.name,
+      description: pendingSubmitData.description,
+      logoFile: pendingSubmitData.logoFile,
       feeSchedulerConfig: feeSchedulerConfig,
-      feeTokenMode: data.feeTokenMode ?? DEFAULT_LAUNCH_PARAMS.feeTokenMode,
-      totalSupply: data.totalSupply,
-      initialPrice: data.initialPrice,
-      priceRangeMin: data.priceRangeMin,
-      priceRangeMax: data.priceRangeMax,
-      holdbackPercentage: data.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage,
-      quoteTokenMint: data.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint,
-      enableTimedLaunch: data.enableTimedLaunch,
-      launchDateTime: data.launchDateTime ?? null,
-      enableCustomPrivateKey: data.enableCustomPrivateKey,
-      customPrivateKey: data.customPrivateKey,
-      websiteUrl: data.websiteUrl,
-      twitterUrl: data.twitterUrl,
-      telegramUrl: data.telegramUrl,
-      discordUrl: data.discordUrl,
+      feeTokenMode: pendingSubmitData.feeTokenMode ?? DEFAULT_LAUNCH_PARAMS.feeTokenMode,
+      totalSupply: pendingSubmitData.totalSupply,
+      initialPrice: pendingSubmitData.initialPrice,
+      priceRangeMin: pendingSubmitData.priceRangeMin,
+      priceRangeMax: pendingSubmitData.priceRangeMax,
+      holdbackPercentage: pendingSubmitData.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage,
+      quoteTokenMint: pendingSubmitData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint,
+      enableTimedLaunch: pendingSubmitData.enableTimedLaunch,
+      launchDateTime: pendingSubmitData.launchDateTime ?? null,
+      enableCustomPrivateKey: pendingSubmitData.enableCustomPrivateKey,
+      customPrivateKey: pendingSubmitData.customPrivateKey,
+      websiteUrl: pendingSubmitData.websiteUrl,
+      twitterUrl: pendingSubmitData.twitterUrl,
+      telegramUrl: pendingSubmitData.telegramUrl,
+      discordUrl: pendingSubmitData.discordUrl,
     };
     onSubmit(formData);
+    setShowConfirmModal(false);
+    setPendingSubmitData(null);
+  };
+
+  // Build confirmation modal content: non-default values grouped by section
+  const buildConfirmContent = () => {
+    const values = getValues();
+    const sections: { title: string; items: { label: string; value: string }[] }[] = [];
+
+    const addSection = (title: string, pairs: [string, string | number | undefined][]) => {
+      const items = pairs
+        .map(([label, val]) => ({ label, value: val !== undefined && val !== '' ? String(val) : undefined }))
+        .filter((item): item is { label: string; value: string } => item.value !== undefined);
+      if (items.length > 0) sections.push({ title, items });
+    };
+
+    addSection('Token Information', [
+      ['Symbol', values.symbol !== '' ? values.symbol : undefined],
+      ['Name', values.name !== '' ? values.name : undefined],
+      ['Description', values.description],
+    ]);
+
+    addSection('Launch Parameters', [
+      ['Total Supply', values.totalSupply !== DEFAULT_LAUNCH_PARAMS.totalSupply ? values.totalSupply : undefined],
+      ['Initial Price', values.initialPrice !== DEFAULT_LAUNCH_PARAMS.initialPrice ? values.initialPrice : undefined],
+      ['Price Range Min', values.priceRangeMin !== DEFAULT_LAUNCH_PARAMS.priceRangeMin ? values.priceRangeMin : undefined],
+      ['Price Range Max', values.priceRangeMax !== DEFAULT_LAUNCH_PARAMS.priceRangeMax ? values.priceRangeMax : undefined],
+      ['Holdback %', values.holdbackPercentage !== DEFAULT_LAUNCH_PARAMS.holdbackPercentage ? values.holdbackPercentage : undefined],
+      ['Quote Token', values.quoteTokenMint !== DEFAULT_LAUNCH_PARAMS.quoteTokenMint ? (values.quoteTokenMint === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' ? 'USDC' : 'SOL') : undefined],
+    ]);
+
+    addSection('Fee Configuration', [
+      ['Fee Mode', values.feeSchedulerMode !== DEFAULT_LAUNCH_PARAMS.feeSchedulerMode ? values.feeSchedulerMode : undefined],
+      ['Fee Token Mode', values.feeTokenMode !== DEFAULT_LAUNCH_PARAMS.feeTokenMode ? values.feeTokenMode : undefined],
+      ['Starting Market Cap', values.startingMarketCap !== DEFAULT_LAUNCH_PARAMS.startingMarketCap ? values.startingMarketCap : undefined],
+      ['Ending Market Cap', values.endingMarketCap !== DEFAULT_LAUNCH_PARAMS.endingMarketCap ? values.endingMarketCap : undefined],
+      ['Fee Start Rate', values.feeStartRate !== DEFAULT_LAUNCH_PARAMS.feeStartRate ? values.feeStartRate : undefined],
+      ['Fee End Rate', values.feeEndRate !== DEFAULT_LAUNCH_PARAMS.feeEndRate ? values.feeEndRate : undefined],
+      ['Fee Duration (hrs)', values.feeDurationHours !== 1 ? values.feeDurationHours : undefined],
+      ['Fixed Fee Rate', values.feeFixedRate !== DEFAULT_LAUNCH_PARAMS.baseFeeBps ? values.feeFixedRate : undefined],
+    ]);
+
+    return sections;
   };
 
   return (
@@ -446,7 +528,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
             <Label htmlFor="enableTimedLaunch">Enable Timed Launch</Label>
           </div>
 
-{enableTimedLaunch && (
+          {enableTimedLaunch && (
             <div className="space-y-2">
               <Label>
                 Launch Date & Time (Local Time: {Intl.DateTimeFormat().resolvedOptions().timeZone} UTC{new Date().getTimezoneOffset() <= 0 ? '+' : '-'}{Math.abs(new Date().getTimezoneOffset() / 60).toString().padStart(2, '0')}:{(Math.abs(new Date().getTimezoneOffset()) % 60).toString().padStart(2, '0')})
@@ -482,16 +564,16 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                     max="12"
                     value={launchHour}
                     placeholder="HH"
-                     onChange={(e) => {
-                       // Allow free typing, just store the value
-                       setLaunchHour(e.target.value);
-                     }}
-                     onBlur={(e) => {
-                       const value = e.target.value;
-                       if (!value) return;
+                    onChange={(e) => {
+                      // Allow free typing, just store the value
+                      setLaunchHour(e.target.value);
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value;
+                      if (!value) return;
 
-                       let numValue = parseInt(value);
-                       if (isNaN(numValue)) return;
+                      let numValue = parseInt(value);
+                      if (isNaN(numValue)) return;
 
                       // Enforce 12-hour format (1-12)
                       if (numValue > 12) numValue = 12;
@@ -509,8 +591,8 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                       updateDateTime(launchDate, paddedValue, launchMinute, launchPeriod);
                     }}
                     onClick={() => {
-                       // Initialize with next hour if empty
-                       if (!launchHour) {
+                      // Initialize with next hour if empty
+                      if (!launchHour) {
                         const now = new Date();
                         const nextHour24 = (now.getHours() + 1) % 24;
                         let nextHour12 = nextHour24 % 12;
@@ -536,16 +618,16 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                     max="59"
                     value={launchMinute}
                     placeholder="MM"
-                     onChange={(e) => {
-                       // Allow free typing, just store the value
-                       setLaunchMinute(e.target.value);
-                     }}
-                     onBlur={(e) => {
-                       const value = e.target.value;
-                       if (!value) return;
+                    onChange={(e) => {
+                      // Allow free typing, just store the value
+                      setLaunchMinute(e.target.value);
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value;
+                      if (!value) return;
 
-                       let numValue = parseInt(value);
-                       if (isNaN(numValue)) return;
+                      let numValue = parseInt(value);
+                      if (isNaN(numValue)) return;
 
                       // Enforce 0-59 range for minutes
                       if (numValue > 59) numValue = 59;
@@ -564,8 +646,8 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                       updateDateTime(launchDate, launchHour, paddedValue, launchPeriod);
                     }}
                     onClick={() => {
-                       // Initialize with 0 minutes if empty
-                       if (!launchMinute) {
+                      // Initialize with 0 minutes if empty
+                      if (!launchMinute) {
                         setLaunchMinute("00");
                         updateDateTime(launchDate, launchHour, "00", launchPeriod);
                       }
@@ -638,35 +720,115 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
               name="feeTokenMode"
               control={control}
               render={({ field: { onChange, value } }) => (
-                <div className="flex flex-col space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="feeTokenMode"
-                      value="quoteOnly"
-                      checked={value === 'quoteOnly'}
-                      onChange={() => onChange('quoteOnly')}
-                      disabled={isLoading}
-                      className="h-4 w-4 text-primary border-input focus:ring-ring"
-                    />
-                    <span className="text-sm font-medium">Quote Token Only</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="feeTokenMode"
-                      value="both"
-                      checked={value === 'both'}
-                      onChange={() => onChange('both')}
-                      disabled={isLoading}
-                      className="h-4 w-4 text-primary border-input focus:ring-ring"
-                    />
-                    <span className="text-sm font-medium">Both Quote + Base Token</span>
-                  </label>
-                </div>
+                <RadioGroup value={value} onValueChange={onChange} className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="quoteOnly" id="quoteOnly" disabled={isLoading} />
+                    <Label htmlFor="quoteOnly" className="cursor-pointer font-normal">Quote Token Only</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="both" id="both" disabled={isLoading} />
+                    <Label htmlFor="both" className="cursor-pointer font-normal">Both Quote + Base Token</Label>
+                  </div>
+                </RadioGroup>
               )}
             />
             <p className="text-sm text-muted-foreground">Which tokens fees are collected in</p>
+          </div>
+
+          {/* Dynamic sub-fields: Market-Cap Based */}
+          <div className={cn("space-y-4", watchedFeeMode !== 'market-cap-based' && "hidden")}>
+            <div className="space-y-2">
+              <Label htmlFor="startingMarketCap">Starting Market Cap</Label>
+              <Input
+                id="startingMarketCap"
+                type="number"
+                inputMode="numeric"
+                {...register("startingMarketCap", { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+              <p className="text-sm text-muted-foreground">Market cap at which fee schedule begins (e.q., 1,000)</p>
+              {errors.startingMarketCap && (
+                <p className="text-sm text-destructive">{errors.startingMarketCap.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="endingMarketCap">Ending Market Cap</Label>
+              <Input
+                id="endingMarketCap"
+                type="number"
+                inputMode="numeric"
+                {...register("endingMarketCap", { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+              <p className="text-sm text-muted-foreground">Market cap at which fees reach minimum (e.q., 100,000)</p>
+              {errors.endingMarketCap && (
+                <p className="text-sm text-destructive">{errors.endingMarketCap.message}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Dynamic sub-fields: Time-Based */}
+          <div className={cn("space-y-4", watchedFeeMode !== 'time-based' && "hidden")}>
+            <div className="space-y-2">
+              <Label htmlFor="feeStartRate">Fee Start Rate (bps)</Label>
+              <Input
+                id="feeStartRate"
+                type="number"
+                inputMode="numeric"
+                {...register("feeStartRate", { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+              <p className="text-sm text-muted-foreground">Starting fee in basis points (e.g., 50 = 0.5%)</p>
+              {errors.feeStartRate && (
+                <p className="text-sm text-destructive">{errors.feeStartRate.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="feeEndRate">Fee End Rate (bps)</Label>
+              <Input
+                id="feeEndRate"
+                type="number"
+                inputMode="numeric"
+                {...register("feeEndRate", { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+              <p className="text-sm text-muted-foreground">Ending fee in basis points (e.g., 25 = 0.25%)</p>
+              {errors.feeEndRate && (
+                <p className="text-sm text-destructive">{errors.feeEndRate.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="feeDurationHours">Fee Duration (hours)</Label>
+              <Input
+                id="feeDurationHours"
+                type="number"
+                inputMode="numeric"
+                {...register("feeDurationHours", { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+              <p className="text-sm text-muted-foreground">Total hours for fee decay schedule</p>
+              {errors.feeDurationHours && (
+                <p className="text-sm text-destructive">{errors.feeDurationHours.message}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Dynamic sub-fields: Fixed Fee */}
+          <div className={cn("space-y-4", watchedFeeMode !== 'fixed' && "hidden")}>
+            <div className="space-y-2">
+              <Label htmlFor="feeFixedRate">Fixed Base Fee (bps)</Label>
+              <Input
+                id="feeFixedRate"
+                type="number"
+                inputMode="numeric"
+                {...register("feeFixedRate", { valueAsNumber: true })}
+                disabled={isLoading}
+              />
+              <p className="text-sm text-muted-foreground">Constant fee in basis points (e.g., 25 = 0.25%)</p>
+              {errors.feeFixedRate && (
+                <p className="text-sm text-destructive">{errors.feeFixedRate.message}</p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -843,7 +1005,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                 {priceError?.field === "priceRangeMax" && !errors.priceRangeMax && (
                   <p className="text-sm text-destructive">{priceError.message}</p>
                 )}
-            </div>
+              </div>
 
             {/* Holdback Slider */}
             <div className="space-y-2">
@@ -975,6 +1137,67 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
           )}
         </CardContent>
       </Card>
+
+      {/* Launch Confirmation Modal */}
+      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Launch Confirmation</DialogTitle>
+            <DialogDescription>
+              Review your launch settings below. Launching a token on-chain is irreversible.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+            {(() => {
+              const sections = buildConfirmContent();
+              if (sections.length === 0) {
+                return (
+                  <p className="text-sm text-muted-foreground">
+                    All settings are at default values.
+                  </p>
+                );
+              }
+              return sections.map((section) => (
+                <div key={section.title}>
+                  <h4 className="text-sm font-semibold mb-2">{section.title}</h4>
+                  <ul className="space-y-1">
+                    {section.items.map((item) => (
+                      <li key={item.label} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{item.label}</span>
+                        <span className="text-red-600 dark:text-destructive font-medium">{item.value}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ));
+            })()}
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowConfirmModal(false);
+                setPendingSubmitData(null);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="default"
+              onClick={confirmLaunch}
+              disabled={isLoading}
+              className="w-full sm:w-auto"
+            >
+              {isLoading ? "Launching..." : "Confirm Launch"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Button type="submit" size="lg" className="w-full" disabled={isLoading || !isFormValid || !isValid}>
         {isLoading ? "Launching..." : "Launch Token"}
