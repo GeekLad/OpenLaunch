@@ -15,6 +15,7 @@ import { getMaxImageSizeBytes, getMaxImageSizeMB } from "@/lib/services/ipfsServ
 import { FeeSchedulerConfig } from "@/types/fee";
 import { DEFAULT_LAUNCH_PARAMS, DEFAULT_FEE_DURATION_MINUTES } from "@/config/defaults";
 import { validateAndParsePrivateKey } from "@/lib/utils/keypairUtils";
+import { cn } from "@/lib/utils";
 
 const tokenFormSchema = z.object({
   symbol: z.string().min(1, "Symbol is required").max(10, "Symbol must be 10 characters or less"),
@@ -114,9 +115,11 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
     control,
     setValue,
     watch,
+    trigger,
   } = useForm<TokenFormSchemaType>({
     resolver: zodResolver(tokenFormSchema),
     mode: "onBlur",
+    shouldUnregister: false,
     defaultValues: {
       totalSupply: DEFAULT_LAUNCH_PARAMS.totalSupply,
       initialPrice: DEFAULT_LAUNCH_PARAMS.initialPrice,
@@ -145,6 +148,21 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
       watchedMax !== DEFAULT_LAUNCH_PARAMS.priceRangeMax
     );
   }, [watchedSupply, watchedInitial, watchedMin, watchedMax]);
+
+  // Compute price range errors directly from watched values —
+  // bypasses react-hook-form's error system so they survive resolver re-runs
+  const priceError = useMemo(() => {
+    if (watchedMin >= watchedInitial) {
+      return { field: "priceRangeMin", message: "Minimum price must be less than initial price" };
+    }
+    if (watchedMin >= watchedMax) {
+      return { field: "priceRangeMin", message: "Minimum price must be less than maximum price" };
+    }
+    if (watchedInitial >= watchedMax) {
+      return { field: "priceRangeMax", message: "Initial price must be less than maximum price" };
+    }
+    return null;
+  }, [watchedMin, watchedInitial, watchedMax]);
 
   // Check if all required fields are filled
   const isFormValid = !!(symbol && name && logoFile && !fileSizeWarning);
@@ -256,7 +274,8 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
       }
 
       setFileSizeWarning(null);
-      setValue("logoFile", file);
+      setValue("logoFile", file, { shouldValidate: true });
+      trigger("logoFile");
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
@@ -664,8 +683,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           )}
         </CardHeader>
-        {isLaunchParamsOpen && (
-          <CardContent className="space-y-4">
+        <CardContent className={cn("space-y-4", !isLaunchParamsOpen && "hidden")}>
             {/* Total Supply */}
             <div className="space-y-2">
               <Label htmlFor="totalSupply">Total Supply</Label>
@@ -724,25 +742,30 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
               {errors.priceRangeMin && (
                 <p className="text-sm text-destructive">{errors.priceRangeMin.message}</p>
               )}
+              {priceError?.field === "priceRangeMin" && !errors.priceRangeMin && (
+                <p className="text-sm text-destructive">{priceError.message}</p>
+              )}
             </div>
 
             {/* Price Range Max */}
-            <div className="space-y-2">
-              <Label htmlFor="priceRangeMax">Price Range Maximum</Label>
-              <Input
-                id="priceRangeMax"
-                type="number"
-                step="any"
-                {...register("priceRangeMax", { valueAsNumber: true })}
-                disabled={isLoading}
-              />
-              <p className="text-sm text-muted-foreground">The highest price the pool will support</p>
-              {errors.priceRangeMax && (
-                <p className="text-sm text-destructive">{errors.priceRangeMax.message}</p>
-              )}
-            </div>
-          </CardContent>
-        )}
+              <div className="space-y-2">
+                <Label htmlFor="priceRangeMax">Price Range Maximum</Label>
+                <Input
+                  id="priceRangeMax"
+                  type="number"
+                  step="any"
+                  {...register("priceRangeMax", { valueAsNumber: true })}
+                  disabled={isLoading}
+                />
+                <p className="text-sm text-muted-foreground">The highest price the pool will support</p>
+                {errors.priceRangeMax && (
+                  <p className="text-sm text-destructive">{errors.priceRangeMax.message}</p>
+                )}
+                {priceError?.field === "priceRangeMax" && !errors.priceRangeMax && (
+                  <p className="text-sm text-destructive">{priceError.message}</p>
+                )}
+              </div>
+            </CardContent>
       </Card>
 
       {/* Custom CA Section */}
