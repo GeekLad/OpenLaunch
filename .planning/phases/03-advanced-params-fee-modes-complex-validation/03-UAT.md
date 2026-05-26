@@ -1,5 +1,6 @@
 ---
 status: diagnosed
+ready_for_fixes: true
 phase: 03-advanced-params-fee-modes-complex-validation
 source:
   - 03-01-SUMMARY.md
@@ -12,7 +13,7 @@ updated: "2026-05-26T00:15:00Z"
 
 ## Current Test
 
-[testing paused — 4 items outstanding: 3 issues, 1 blocked]
+[diagnosed — 3 gaps with root causes identified, ready for fix planning]
 
 ## Tests
 

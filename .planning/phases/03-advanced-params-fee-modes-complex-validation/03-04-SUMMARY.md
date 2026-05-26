@@ -19,6 +19,13 @@ Create a server-side validation route that validates launch parameters using Met
 - Returns `{ valid: true }` on success, `{ valid: false, errors: {...} }` on failure
 - 500 fallback with `[API] Validation error` prefix
 
+### `components/forms/TokenLaunchForm.tsx`
+- Added `isValidating` state and async `handleFormSubmit`
+- Calls `POST /api/tokens/validate` before opening confirmation modal
+- Maps returned errors to RHF field errors via `setError()`
+- Shows "Loading..." button text during validation
+- Displays generic error on network failure: "Unable to validate. Please check your connection and try again."
+
 ## Verification
 - `npm run lint` passes (TypeScript + ESLint clean)
 - All SDK imports resolve correctly from `@meteora-ag/cp-amm-sdk`

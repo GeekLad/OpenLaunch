@@ -40,6 +40,8 @@ const tokenFormSchema = z.object({
   endingMarketCap: z.number().min(0).optional(),
   feeStartRate: z.number().min(1).max(9900).optional(),
   feeEndRate: z.number().min(1).max(9900).optional(),
+  feeMarketCapStartRate: z.number().min(1).max(9900).optional(),
+  feeMarketCapEndRate: z.number().min(1).max(9900).optional(),
   feeDurationHours: z.number().min(1).optional(),
   feeFixedRate: z.number().min(1).max(9900).optional(),
   enableTimedLaunch: z.boolean(),
@@ -95,25 +97,6 @@ const tokenFormSchema = z.object({
     });
   }
 
-  // Fee scheduler sub-field validation
-  if (data.feeSchedulerMode === 'market-cap-based') {
-    if ((data.endingMarketCap ?? 0) <= (data.startingMarketCap ?? 0)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Ending market cap must be greater than starting market cap",
-        path: ["endingMarketCap"],
-      });
-    }
-  }
-  if (data.feeSchedulerMode === 'time-based') {
-    if ((data.feeStartRate ?? 0) < (data.feeEndRate ?? 0)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Fee start rate must be greater than or equal to fee end rate",
-        path: ["feeStartRate"],
-      });
-    }
-  }
 });
 
 type TokenFormSchemaType = z.infer<typeof tokenFormSchema>;
@@ -164,6 +147,8 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
       endingMarketCap: DEFAULT_LAUNCH_PARAMS.endingMarketCap,
       feeStartRate: DEFAULT_LAUNCH_PARAMS.feeStartRate,
       feeEndRate: DEFAULT_LAUNCH_PARAMS.feeEndRate,
+      feeMarketCapStartRate: DEFAULT_LAUNCH_PARAMS.feeMarketCapStartRate,
+      feeMarketCapEndRate: DEFAULT_LAUNCH_PARAMS.feeMarketCapEndRate,
       feeDurationHours: 1,
       feeFixedRate: DEFAULT_LAUNCH_PARAMS.baseFeeBps,
       enableTimedLaunch: false,
@@ -183,6 +168,13 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   const watchedQuoteToken = watch("quoteTokenMint");
   const watchedFeeMode = watch("feeSchedulerMode");
   const watchedFeeToken = watch("feeTokenMode");
+
+  const watchedStartingMarketCap = watch("startingMarketCap");
+  const watchedEndingMarketCap = watch("endingMarketCap");
+  const watchedFeeStartRate = watch("feeStartRate");
+  const watchedFeeEndRate = watch("feeEndRate");
+  const watchedFeeMarketCapStartRate = watch("feeMarketCapStartRate");
+  const watchedFeeMarketCapEndRate = watch("feeMarketCapEndRate");
 
   const isModified = useMemo(() => {
     return (
@@ -215,6 +207,27 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
     }
     return null;
   }, [watchedMin, watchedInitial, watchedMax]);
+
+  // Compute fee scheduler cross-field errors directly from watched values —
+  // bypasses react-hook-form's error system so they survive resolver re-runs
+  const feeSchedulerError = useMemo(() => {
+    // Market-cap-based mode checks
+    if (watchedFeeMode === 'market-cap-based') {
+      if ((watchedEndingMarketCap ?? 0) <= (watchedStartingMarketCap ?? 0)) {
+        return { field: "endingMarketCap", message: "Ending market cap must be greater than starting market cap" };
+      }
+      if ((watchedFeeMarketCapEndRate ?? 0) > (watchedFeeMarketCapStartRate ?? 0)) {
+        return { field: "feeMarketCapEndRate", message: "Ending fee rate must be less than or equal to starting fee rate" };
+      }
+    }
+    // Time-based mode checks
+    if (watchedFeeMode === 'time-based') {
+      if ((watchedFeeEndRate ?? 0) > (watchedFeeStartRate ?? 0)) {
+        return { field: "feeEndRate", message: "Fee end rate must be less than or equal to fee start rate" };
+      }
+    }
+    return null;
+  }, [watchedFeeMode, watchedStartingMarketCap, watchedEndingMarketCap, watchedFeeStartRate, watchedFeeEndRate, watchedFeeMarketCapStartRate, watchedFeeMarketCapEndRate]);
 
   // Check if all required fields are filled
   const isFormValid = !!(symbol && name && logoFile && !fileSizeWarning);
@@ -378,6 +391,8 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
         mode: 'market-cap-based',
         startingMarketCap: pendingSubmitData.startingMarketCap ?? DEFAULT_LAUNCH_PARAMS.startingMarketCap,
         endingMarketCap: pendingSubmitData.endingMarketCap ?? DEFAULT_LAUNCH_PARAMS.endingMarketCap,
+        feeMarketCapStartRate: pendingSubmitData.feeMarketCapStartRate ?? DEFAULT_LAUNCH_PARAMS.feeMarketCapStartRate,
+        feeMarketCapEndRate: pendingSubmitData.feeMarketCapEndRate ?? DEFAULT_LAUNCH_PARAMS.feeMarketCapEndRate,
       };
     } else if (pendingSubmitData.feeSchedulerMode === 'time-based') {
       feeSchedulerConfig = {
@@ -792,13 +807,47 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                 disabled={isLoading}
               />
               <p className="text-sm text-muted-foreground">Market cap at which fees reach minimum (e.q., 100,000)</p>
-              {errors.endingMarketCap && (
-                <p className="text-sm text-destructive">{errors.endingMarketCap.message}</p>
-              )}
-            </div>
+            {errors.endingMarketCap && (
+              <p className="text-sm text-destructive">{errors.endingMarketCap.message}</p>
+            )}
+            {feeSchedulerError?.field === "endingMarketCap" && !errors.endingMarketCap && (
+              <p className="text-sm text-destructive">{feeSchedulerError.message}</p>
+            )}
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="feeMarketCapStartRate">Starting Fee Rate (bps)</Label>
+            <Input
+              id="feeMarketCapStartRate"
+              type="number"
+              inputMode="numeric"
+              {...register("feeMarketCapStartRate", { valueAsNumber: true })}
+              disabled={isLoading}
+            />
+            <p className="text-sm text-muted-foreground">Starting fee in basis points when market cap is at starting value (e.g., 50 = 0.5%)</p>
+            {errors.feeMarketCapStartRate && (
+              <p className="text-sm text-destructive">{errors.feeMarketCapStartRate.message}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="feeMarketCapEndRate">Ending Fee Rate (bps)</Label>
+            <Input
+              id="feeMarketCapEndRate"
+              type="number"
+              inputMode="numeric"
+              {...register("feeMarketCapEndRate", { valueAsNumber: true })}
+              disabled={isLoading}
+            />
+            <p className="text-sm text-muted-foreground">Ending fee in basis points when market cap reaches ending value (e.g., 25 = 0.25%)</p>
+            {errors.feeMarketCapEndRate && (
+              <p className="text-sm text-destructive">{errors.feeMarketCapEndRate.message}</p>
+            )}
+            {feeSchedulerError?.field === "feeMarketCapEndRate" && !errors.feeMarketCapEndRate && (
+              <p className="text-sm text-destructive">{feeSchedulerError.message}</p>
+            )}
+          </div>
+        </div>
 
-          {/* Dynamic sub-fields: Time-Based */}
+        {/* Dynamic sub-fields: Time-Based */}
           <div className={cn("space-y-4", watchedFeeMode !== 'time-based' && "hidden")}>
             <div className="space-y-2">
               <Label htmlFor="feeStartRate">Fee Start Rate (bps)</Label>
@@ -826,6 +875,9 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
               <p className="text-sm text-muted-foreground">Ending fee in basis points (e.g., 25 = 0.25%)</p>
               {errors.feeEndRate && (
                 <p className="text-sm text-destructive">{errors.feeEndRate.message}</p>
+              )}
+              {feeSchedulerError?.field === "feeEndRate" && !errors.feeEndRate && (
+                <p className="text-sm text-destructive">{feeSchedulerError.message}</p>
               )}
             </div>
             <div className="space-y-2">
