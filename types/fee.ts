@@ -14,7 +14,7 @@ export type FeeSchedulerMode = 'market-cap-based' | 'time-based' | 'fixed';
  * - `fixed`: Static fee set by `baseFeeBps`.
  */
 export type FeeSchedulerConfig =
-  | { mode: 'market-cap-based'; startingMarketCap: number; endingMarketCap: number; feeMarketCapStartRate: number; feeMarketCapEndRate: number }
+  | { mode: 'market-cap-based'; startingMarketCap: number; endingMarketCap: number; feeMarketCapStartRate: number; feeMarketCapEndRate: number; decayMode?: 'linear' | 'exponential' }
   | { mode: 'time-based'; startRate: number; endRate: number; durationMinutes: number }
   | { mode: 'fixed'; baseFeeBps: number };
 

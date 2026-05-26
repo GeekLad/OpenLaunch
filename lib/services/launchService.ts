@@ -1,11 +1,12 @@
 import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js";
 import { TokenFormData, LaunchStatus, TokenLaunchConfig } from "@/types/token";
 import { TOKEN_DECIMALS, QUOTE_TOKEN_MINT, APP_URL } from "@/config/public";
-import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
+import { DEFAULT_LAUNCH_PARAMS, getQuoteTokenDecimals } from "@/config/defaults";
 import { getConnection, getRecentBlockhash, confirmTransaction } from "@/lib/solana/connection";
 import { createMint, mintTokens, revokeAllAuthorities } from "@/lib/solana/tokenUtils";
 import { buildMetadata, createMetadataAccount } from "@/lib/solana/metadataUtils";
 import { createDAMMv2Pool } from "@/lib/solana/poolUtils";
+import { CollectFeeMode } from "@meteora-ag/cp-amm-sdk";
 import {
   uploadTokenAssets,
   mockIPFSUpload,
@@ -13,6 +14,7 @@ import {
   type TokenAssetsUploadResult
 } from "@/lib/services/ipfsService";
 import { validateAndParsePrivateKey } from "@/lib/utils/keypairUtils";
+import { validateLaunchParams, ValidationError } from "@/lib/validation/launch";
 
 export class TokenLaunchService {
   private connection: Connection;
@@ -42,6 +44,15 @@ export class TokenLaunchService {
     signAllTransactions: (transactions: Transaction[]) => Promise<Transaction[]>
   ): Promise<TokenLaunchConfig> {
     try {
+      // ─── Pre-flight validation: must pass before any transactions are built ───
+      const validationErrors = validateLaunchParams(formData as unknown as Parameters<typeof validateLaunchParams>[0]);
+      if (validationErrors.length > 0) {
+        throw new ValidationError(
+          "Launch parameter validation failed",
+          validationErrors
+        );
+      }
+
       // Step 1: Generate or use custom mint keypair
       this.updateStatus({
         step: "mint",
@@ -185,30 +196,21 @@ export class TokenLaunchService {
       combinedTx.feePayer = walletPublicKey;
 
       // Transaction 3: Create DAMMv2 pool (pass TOKEN_PROGRAM_ID to skip on-chain lookup)
-      const poolTokenAmount = Math.floor((formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply) * (formData.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage) / 100);
+      const poolTokenAmount = Math.floor(
+        (formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply) *
+        (100 - (formData.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage)) /
+        100
+      );
 
       console.log(`Pool creation amounts:\n` +
-        `  Token amount: ${poolTokenAmount}\n` +
+        `  Token amount (to pool): ${poolTokenAmount}\n` +
+        `  Holdback amount (creator keeps): ${(formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply) - poolTokenAmount}\n` +
         `  SOL amount: 0 SOL (single-sided pool)\n` +
         `  Initial price: ${formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice} SOL per token\n` +
         `  Market cap at launch: ${(poolTokenAmount * (formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice)).toFixed(4)} SOL`
       );
 
       const { TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
-
-      // Map FeeSchedulerConfig to old CreatePoolParams.feeSchedule shape
-      const feeSchedule = formData.feeSchedulerConfig.mode !== 'fixed' ? {
-        enabled: true,
-        startRate: formData.feeSchedulerConfig.mode === 'time-based'
-          ? formData.feeSchedulerConfig.startRate
-          : 50, // fallback for market-cap mode
-        endRate: formData.feeSchedulerConfig.mode === 'time-based'
-          ? formData.feeSchedulerConfig.endRate
-          : 0.25,
-        decayDuration: formData.feeSchedulerConfig.mode === 'time-based'
-          ? formData.feeSchedulerConfig.durationMinutes
-          : 0, // market-cap-based mode does not use time-based decay duration
-      } : undefined;
 
       let poolResult = await createDAMMv2Pool({
         connection: this.connection,
@@ -217,12 +219,13 @@ export class TokenLaunchService {
         tokenBMint: new PublicKey(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
         tokenAAmount: poolTokenAmount,
         tokenADecimals: TOKEN_DECIMALS,
-        tokenBDecimals: 9,
+        tokenBDecimals: getQuoteTokenDecimals(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
         initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
         tokenAProgram: TOKEN_PROGRAM_ID,
         tokenBProgram: TOKEN_PROGRAM_ID,
         launchTime: formData.enableTimedLaunch && formData.launchDateTime ? formData.launchDateTime : undefined,
-        feeSchedule: feeSchedule,
+        feeSchedulerConfig: formData.feeSchedulerConfig,
+        collectFeeMode: formData.feeTokenMode === 'both' ? CollectFeeMode.BothToken : CollectFeeMode.OnlyB,
       });
 
       poolResult.transaction.feePayer = walletPublicKey;
@@ -282,12 +285,13 @@ export class TokenLaunchService {
             tokenBMint: new PublicKey(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
             tokenAAmount: poolTokenAmount,
             tokenADecimals: TOKEN_DECIMALS,
-            tokenBDecimals: 9,
+            tokenBDecimals: getQuoteTokenDecimals(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
             initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
             tokenAProgram: TOKEN_PROGRAM_ID,
             tokenBProgram: TOKEN_PROGRAM_ID,
             launchTime: undefined, // Immediate activation
-            feeSchedule: feeSchedule,
+            feeSchedulerConfig: formData.feeSchedulerConfig,
+            collectFeeMode: formData.feeTokenMode === 'both' ? CollectFeeMode.BothToken : CollectFeeMode.OnlyB,
           });
 
           console.log("✓ Pool recreated for immediate activation");
@@ -429,12 +433,13 @@ export class TokenLaunchService {
             tokenBMint: new PublicKey(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
             tokenAAmount: poolTokenAmount,
             tokenADecimals: TOKEN_DECIMALS,
-            tokenBDecimals: 9,
+            tokenBDecimals: getQuoteTokenDecimals(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
             initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
             tokenAProgram: TOKEN_PROGRAM_ID,
             tokenBProgram: TOKEN_PROGRAM_ID,
             launchTime: undefined, // Immediate activation
-            feeSchedule: feeSchedule,
+            feeSchedulerConfig: formData.feeSchedulerConfig,
+            collectFeeMode: formData.feeTokenMode === 'both' ? CollectFeeMode.BothToken : CollectFeeMode.OnlyB,
           });
 
           // Get fresh blockhash for the retry

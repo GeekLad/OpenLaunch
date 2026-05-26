@@ -43,6 +43,30 @@ export const DEFAULT_NUMBER_OF_PERIODS = 60;
  * kept as separate exported constants and only used when fee scheduler mode
  * is 'time-based'. The aggregate defaults to 'market-cap-based' mode.
  */
+/**
+ * Known quote token mints and their decimal places.
+ */
+export const QUOTE_TOKEN_DECIMALS: Record<string, number> = {
+  "So11111111111111111111111111111111111111112": 9, // SOL (wrapped)
+  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": 6, // USDC
+};
+
+/**
+ * Return the decimal places for a known quote-token mint.
+ * Throws a clear error for unknown mints so mis-decimalization never
+ * happens silently.
+ */
+export function getQuoteTokenDecimals(quoteTokenMint: string): number {
+  const decimals = QUOTE_TOKEN_DECIMALS[quoteTokenMint];
+  if (decimals === undefined) {
+    throw new Error(
+      `Unsupported quote token mint "${quoteTokenMint}". ` +
+        `Supported: ${Object.keys(QUOTE_TOKEN_DECIMALS).join(", ")}`
+    );
+  }
+  return decimals;
+}
+
 export const DEFAULT_LAUNCH_PARAMS = {
   totalSupply: DEFAULT_TOTAL_SUPPLY,
   decimals: DEFAULT_DECIMALS,

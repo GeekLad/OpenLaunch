@@ -1,8 +1,9 @@
 import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js";
-import { CpAmm, type PoolFeesParams, getFeeTimeSchedulerParams, BaseFeeMode, CollectFeeMode, getDynamicFeeParams } from "@meteora-ag/cp-amm-sdk";
+import { CpAmm, type PoolFeesParams, getFeeTimeSchedulerParams, getFeeMarketCapSchedulerParams, BaseFeeMode, CollectFeeMode, getDynamicFeeParams } from "@meteora-ag/cp-amm-sdk";
 import { getMint, Mint, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import BN from "bn.js";
 import { DEFAULT_NUMBER_OF_PERIODS } from "@/config/defaults";
+import type { FeeSchedulerConfig } from "@/types/fee";
 
 // Meteora DAMMv2 Program ID
 export const DAMM_V2_PROGRAM_ID = new PublicKey("cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG");
@@ -66,12 +67,8 @@ export interface CreatePoolParams {
   tokenAProgram?: PublicKey; // Optional: Token A program ID (auto-detected if not provided)
   tokenBProgram?: PublicKey; // Optional: Token B program ID (auto-detected if not provided)
   launchTime?: Date; // Optional: Schedule when the pool becomes active
-  feeSchedule?: {
-    enabled: boolean;
-    startRate: number;    // In percentage (e.g., 50 for 50%)
-    endRate: number;      // In percentage (e.g., 1 for 1%)
-    decayDuration: number; // In minutes
-  };
+  feeSchedulerConfig?: FeeSchedulerConfig;
+  collectFeeMode?: CollectFeeMode;
 }
 
 export interface CreatePoolResult {
@@ -106,7 +103,8 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
     tokenAProgram: providedTokenAProgram,
     tokenBProgram: providedTokenBProgram,
     launchTime,
-    feeSchedule,
+    feeSchedulerConfig,
+    collectFeeMode,
   } = params;
 
   // Initialize CpAmm SDK
@@ -181,46 +179,72 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
   // baseFeeNumerator is used as base, maxPriceChangeBps max is 1500 (15% price change tolerance)
   const dynamicFee = getDynamicFeeParams(baseFeeNumerator, 1500); // Enable dynamic fees with 15% max price change
 
-  if (feeSchedule?.enabled) {
+  if (feeSchedulerConfig && feeSchedulerConfig.mode !== "fixed") {
     // Fee scheduler mode with dynamic fees
-    // Convert percentages to basis points (1% = 100 bps)
-    const startBps = feeSchedule.startRate * 100;
-    const endBps = feeSchedule.endRate * 100;
+    let baseFee;
+    if (feeSchedulerConfig.mode === "market-cap-based") {
+      const startBps = feeSchedulerConfig.feeMarketCapStartRate * 100;
+      const endBps = feeSchedulerConfig.feeMarketCapEndRate * 100;
+      const numberOfPeriod = DEFAULT_NUMBER_OF_PERIODS;
+      const priceMultiple = Math.pow(
+        feeSchedulerConfig.endingMarketCap / feeSchedulerConfig.startingMarketCap,
+        1 / numberOfPeriod
+      );
+      const schedulerExpirationDuration = 365 * 24 * 60 * 60; // 1 year in seconds
+      const baseFeeMode = feeSchedulerConfig.decayMode === "linear"
+        ? BaseFeeMode.FeeMarketCapSchedulerLinear
+        : BaseFeeMode.FeeMarketCapSchedulerExponential;
 
-    // Convert duration from minutes to seconds
-    const durationSeconds = feeSchedule.decayDuration * 60;
+      console.log(
+        `Fee configuration (market-cap-based):\n` +
+          `  Start rate: ${feeSchedulerConfig.feeMarketCapStartRate}% (${startBps} bps)\n` +
+          `  End rate: ${feeSchedulerConfig.feeMarketCapEndRate}% (${endBps} bps)\n` +
+          `  Starting market cap: ${feeSchedulerConfig.startingMarketCap}\n` +
+          `  Ending market cap: ${feeSchedulerConfig.endingMarketCap}\n` +
+          `  Number of periods: ${numberOfPeriod}\n` +
+          `  Price multiple: ${priceMultiple}\n` +
+          `  Decay mode: ${feeSchedulerConfig.decayMode ?? "exponential"}\n` +
+          `  Dynamic fees: Enabled (adjusts based on volatility)`
+      );
 
-    // Get number of periods from default config
-    // More periods = more frequent fee changes
-    const numberOfPeriods = DEFAULT_NUMBER_OF_PERIODS;
+      baseFee = getFeeMarketCapSchedulerParams(
+        startBps,
+        endBps,
+        baseFeeMode,
+        numberOfPeriod,
+        priceMultiple,
+        schedulerExpirationDuration
+      );
+    } else {
+      // time-based
+      const startBps = feeSchedulerConfig.startRate * 100;
+      const endBps = feeSchedulerConfig.endRate * 100;
+      const durationSeconds = feeSchedulerConfig.durationMinutes * 60;
+      const numberOfPeriods = DEFAULT_NUMBER_OF_PERIODS;
 
-    const periodIntervalSeconds = durationSeconds / numberOfPeriods;
+      console.log(
+        `Fee configuration (time-based):\n` +
+          `  Start rate: ${feeSchedulerConfig.startRate}% (${startBps} bps)\n` +
+          `  End rate: ${feeSchedulerConfig.endRate}% (${endBps} bps)\n` +
+          `  Decay duration: ${feeSchedulerConfig.durationMinutes} minutes (${durationSeconds} seconds)\n` +
+          `  Number of periods: ${numberOfPeriods}\n` +
+          `  Dynamic fees: Enabled (adjusts based on volatility)`
+      );
 
-    console.log(`Fee configuration:\n` +
-      `  Base fee (scheduler):\n` +
-      `    Start rate: ${feeSchedule.startRate}% (${startBps} bps)\n` +
-      `    End rate: ${feeSchedule.endRate}% (${endBps} bps)\n` +
-      `    Decay duration: ${feeSchedule.decayDuration} minutes (${durationSeconds} seconds)\n` +
-      `    Number of periods: ${numberOfPeriods}\n` +
-      `    Fee change interval: ${periodIntervalSeconds} seconds\n` +
-      `    Mode: Exponential Scheduler\n` +
-      `  Dynamic fees: Enabled (adjusts based on volatility)`
-    );
-
-    // Use the SDK's helper function to construct fee scheduler params
-    const baseFee = getFeeTimeSchedulerParams(
-      startBps,
-      endBps,
-      BaseFeeMode.FeeTimeSchedulerExponential, // Exponential decay from start to end (faster initial decay)
-      numberOfPeriods,
-      durationSeconds
-    );
+      baseFee = getFeeTimeSchedulerParams(
+        startBps,
+        endBps,
+        BaseFeeMode.FeeTimeSchedulerExponential,
+        numberOfPeriods,
+        durationSeconds
+      );
+    }
 
     poolFees = {
       baseFee,
       compoundingFeeBps: 0,
       padding: 0,
-      dynamicFee, // Enable dynamic fees
+      dynamicFee,
     };
   } else {
     // Fixed fee mode with dynamic fees
@@ -232,17 +256,18 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
       0
     );
 
-    console.log(`Fee configuration:\n` +
-      `  Base fee: ${baseFeeNumerator} bps (${baseFeeNumerator / 100}%)\n` +
-      `  Mode: Fixed (0)\n` +
-      `  Dynamic fees: Enabled (adjusts based on volatility)`
+    console.log(
+      `Fee configuration:\n` +
+        `  Base fee: ${baseFeeNumerator} bps\n` +
+        `  Mode: Fixed\n` +
+        `  Dynamic fees: Enabled (adjusts based on volatility)`
     );
 
     poolFees = {
       baseFee,
       compoundingFeeBps: 0,
       padding: 0,
-      dynamicFee, // Enable dynamic fees
+      dynamicFee,
     };
   }
 
@@ -287,7 +312,7 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
     poolFees,
     hasAlphaVault,
     activationType,
-    collectFeeMode: CollectFeeMode.OnlyB, // Collect fees only in token B (SOL/quote token)
+    collectFeeMode: collectFeeMode ?? CollectFeeMode.OnlyB, // Collect fees only in token B (SOL/quote token) by default
     activationPoint,
     tokenAProgram,
     tokenBProgram,
