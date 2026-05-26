@@ -17,6 +17,54 @@ interface TokenDetailPageProps {
   }>;
 }
 
+function CollapsibleSection({
+  title,
+  defaultOpen = false,
+  children,
+  badge,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+  badge?: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Card className="mt-4">
+      <button
+        className="w-full px-6 py-4 flex items-center justify-between text-left"
+        onClick={() => setOpen(!open)}
+      >
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-lg">{title}</CardTitle>
+          {badge}
+        </div>
+        <span className="text-muted-foreground text-sm">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && <CardContent>{children}</CardContent>}
+    </Card>
+  );
+}
+
+function getFeeSchedulerLabel(mode: string | null): string {
+  if (!mode) return 'Unknown';
+  switch (mode) {
+    case 'market-cap-based': return 'Market-Cap Based';
+    case 'time-based': return 'Time-Based';
+    case 'fixed': return 'Fixed Fee';
+    default: return mode;
+  }
+}
+
+function getFeeTokenModeLabel(mode: string | null): string {
+  if (!mode) return 'Unknown';
+  switch (mode) {
+    case 'quoteOnly': return 'Quote Token Only';
+    case 'both': return 'Both Quote + Base Token';
+    default: return mode;
+  }
+}
+
 export default function TokenDetailPage({ params }: TokenDetailPageProps) {
   const resolvedParams = use(params);
   const [token, setToken] = useState<Token | null>(null);
@@ -109,6 +157,8 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
   const handleCountdownComplete = () => {
     setHasLaunched(true);
   };
+
+  const holdbackWarning = Number(token.holdbackPercentage) > 10;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -211,6 +261,31 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                       </svg>
                     </a>
                   </div>
+
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase">
+                      Token Configuration
+                    </p>
+                    <div className="text-sm space-y-1">
+                      <p><strong>Decimals:</strong> {token.decimals}</p>
+                      <p><strong>Total Supply:</strong> {token.totalSupply}</p>
+                      <div className="flex items-center gap-2">
+                        <p><strong>Creator:</strong> {isMobile ? truncString(token.creatorWallet) : token.creatorWallet}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(token.creatorWallet)}
+                          className="h-6 px-2"
+                        >
+                          {copied ? (
+                            <Check className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -223,7 +298,62 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
             poolAddress={token.poolAddress}
             metadataUri={token.metadataUri}
           />
-          
+
+          {/* Pool Configuration (collapsible) */}
+          <CollapsibleSection title="Pool Configuration">
+            <div className="space-y-2">
+              <p className="text-sm"><strong>Quote Token:</strong> {token.quoteTokenMint}</p>
+              <p className="text-sm"><strong>Initial Price:</strong> {token.initialPrice} token per quote</p>
+              <p className="text-sm"><strong>Price Range:</strong> {token.priceRangeMin} — {token.priceRangeMax}</p>
+              <p className="text-sm"><strong>Pool Liquidity %:</strong> {Number(token.poolLiquidityPercentage) * 100}%</p>
+            </div>
+          </CollapsibleSection>
+
+          {/* Fee Schedule (collapsible) */}
+          <CollapsibleSection title="Fee Schedule">
+            <div className="space-y-2">
+              <p className="text-sm"><strong>Scheduler Mode:</strong> {getFeeSchedulerLabel(token.feeSchedulerMode)} <span className="text-muted-foreground text-xs">mode: {token.feeSchedulerMode}</span></p>
+              <p className="text-sm"><strong>Fee Token Mode:</strong> {getFeeTokenModeLabel(token.feeTokenMode)}</p>
+              {token.feeSchedulerMode === 'market-cap-based' && (
+                <>
+                  <p className="text-sm">Starting Market Cap: {token.startingMarketCap}</p>
+                  <p className="text-sm">Ending Market Cap: {token.endingMarketCap}</p>
+                </>
+              )}
+              {token.feeSchedulerMode === 'time-based' && (
+                <>
+                  <p className="text-sm">Start Rate: {token.startRate} bps</p>
+                  <p className="text-sm">End Rate: {token.endRate} bps</p>
+                  <p className="text-sm">Duration: {Math.floor(Number(token.durationMinutes) / 60)}h {Number(token.durationMinutes) % 60}m</p>
+                </>
+              )}
+              {token.feeSchedulerMode === 'fixed' && (
+                <p className="text-sm">Base Fee: {token.fixedBaseFeeBps} bps</p>
+              )}
+            </div>
+          </CollapsibleSection>
+
+          {/* Holdback (collapsible) */}
+          <CollapsibleSection
+            title="Holdback"
+            badge={holdbackWarning ? (
+              <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 border border-red-200">
+                ⚠ High Holdback ({token.holdbackPercentage}%)
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {token.holdbackPercentage}%
+              </span>
+            )}
+          >
+            <div className="space-y-2">
+              <p className="text-sm"><strong>Holdback Percentage:</strong> {token.holdbackPercentage}%</p>
+              {holdbackWarning && (
+                <p className="text-sm text-red-600">⚠ This creator is holding back a large percentage of the supply.</p>
+              )}
+            </div>
+          </CollapsibleSection>
+
           {/* Transaction History */}
           <Card>
             <CardHeader>

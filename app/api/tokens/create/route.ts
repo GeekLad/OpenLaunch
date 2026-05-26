@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbService } from '@/lib/db/service';
 import type { TokenCreateInput } from '@/lib/db/service';
 import { DEFAULT_LAUNCH_PARAMS, DEFAULT_FEE_DURATION_MINUTES } from '@/config/defaults';
+import { validateLaunchParams } from '@/lib/validation/launch';
 
 /**
  * API Route: POST /api/tokens/create
@@ -17,6 +18,38 @@ export async function POST(request: NextRequest) {
       mint: data.mintAddress,
       pool: data.poolAddress,
     });
+
+    // Belt-and-suspenders: re-validate launch parameters server-side
+    const validationInput = {
+      totalSupply: Number(data.totalSupply),
+      holdbackPercentage: Number(data.holdbackPercentage),
+      priceRangeMin: Number(data.priceRangeMin ?? DEFAULT_LAUNCH_PARAMS.priceRangeMin),
+      initialPrice: Number(data.initialPrice),
+      priceRangeMax: Number(data.priceRangeMax ?? DEFAULT_LAUNCH_PARAMS.priceRangeMax),
+      baseFeeBps: Number(data.fixedBaseFeeBps ?? DEFAULT_LAUNCH_PARAMS.baseFeeBps),
+      feeSchedulerConfig: {
+        mode: String(data.feeSchedulerMode ?? DEFAULT_LAUNCH_PARAMS.feeSchedulerMode),
+        ...(data.feeSchedulerMode === 'market-cap-based' ? {
+          startingMarketCap: Number(data.startingMarketCap ?? 0),
+          endingMarketCap: Number(data.endingMarketCap ?? 0),
+          feeMarketCapStartRate: Number(data.startRate ?? 0),
+          feeMarketCapEndRate: Number(data.endRate ?? 0),
+        } : data.feeSchedulerMode === 'time-based' ? {
+          startRate: Number(data.startRate ?? 0),
+          endRate: Number(data.endRate ?? 0),
+          durationMinutes: Number(data.durationMinutes ?? 0),
+        } : {
+          baseFeeBps: Number(data.fixedBaseFeeBps ?? 0),
+        }),
+      } as unknown as import('@/types/fee').FeeSchedulerConfig,
+      feeTokenMode: String(data.feeTokenMode ?? DEFAULT_LAUNCH_PARAMS.feeTokenMode),
+      quoteTokenMint: String(data.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
+      feeDecayPeriods: Number(data.feeDecayPeriods ?? 0),
+    };
+    const validationErrors = validateLaunchParams(validationInput);
+    if (validationErrors.length > 0) {
+      return NextResponse.json({ error: 'Validation failed', details: validationErrors }, { status: 400 });
+    }
 
     // Validate required fields
     if (!data.mintAddress || !data.poolAddress) {
