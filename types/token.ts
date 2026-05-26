@@ -77,6 +77,11 @@ export interface TokenLaunchConfig {
   launchTime?: Date;
 }
 
+export interface LaunchResult {
+  config: TokenLaunchConfig;
+  formData: TokenFormData;
+}
+
 export interface LaunchStatus {
   step: 'idle' | 'mint' | 'metadata' | 'signing' | 'submitting' | 'pool' | 'complete' | 'error';
   message: string;

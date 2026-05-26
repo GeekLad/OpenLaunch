@@ -1,5 +1,5 @@
 import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js";
-import { TokenFormData, LaunchStatus, TokenLaunchConfig } from "@/types/token";
+import { TokenFormData, LaunchStatus, TokenLaunchConfig, LaunchResult } from "@/types/token";
 import { TOKEN_DECIMALS, QUOTE_TOKEN_MINT, APP_URL } from "@/config/public";
 import { DEFAULT_LAUNCH_PARAMS, getQuoteTokenDecimals } from "@/config/defaults";
 import { getConnection, getRecentBlockhash, confirmTransaction } from "@/lib/solana/connection";
