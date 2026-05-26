@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { TokenFormData, LaunchStatus, TokenLaunchConfig } from "@/types/token";
+import { TokenFormData, LaunchStatus, LaunchResult } from "@/types/token";
 import { TokenLaunchForm } from "@/components/forms/TokenLaunchForm";
 import { TokenLaunchService } from "@/lib/services/launchService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,7 @@ export default function LaunchPage() {
   const { publicKey, signAllTransactions } = useWallet();
   const [launchStatus, setLaunchStatus] = useState<LaunchStatus | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [launchConfig, setLaunchConfig] = useState<TokenLaunchConfig | null>(null);
+  const [launchResult, setLaunchResult] = useState<LaunchResult | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
   const [isSavingToDatabase, setIsSavingToDatabase] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
@@ -68,9 +68,9 @@ export default function LaunchPage() {
         finalStatus = status; // Capture the final status
       });
 
-      const config = await launchService.launchToken(formData, publicKey, signAllTransactions);
+      const result = await launchService.launchToken(formData, publicKey, signAllTransactions);
 
-      setLaunchConfig(config);
+      setLaunchResult(result);
       setIsLaunching(false);
 
       // Save successful launch to database and redirect
@@ -102,35 +102,49 @@ export default function LaunchPage() {
             },
             body: JSON.stringify({
               // Token identifiers
-              mintAddress: config.mint.toBase58(),
-              poolAddress: config.poolAddress?.toBase58() || "",
+              mintAddress: result.config.mint.toBase58(),
+              poolAddress: result.config.poolAddress?.toBase58() || "",
 
               // Token metadata
-              name: config.metadata.name,
-              symbol: config.metadata.symbol,
-              description: config.metadata.description || "",
-              logoUrl: config.metadata.image, // IPFS URL for the logo image
-              metadataUri: config.metadataUri || "", // IPFS URI for the metadata JSON
+              name: result.config.metadata.name,
+              symbol: result.config.metadata.symbol,
+              description: result.config.metadata.description || "",
+              logoUrl: result.config.metadata.image, // IPFS URL for the logo image
+              metadataUri: result.config.metadataUri || "", // IPFS URI for the metadata JSON
 
               // Token configuration
-              decimals: config.decimals,
-              totalSupply: config.totalSupply.toString(),
+              decimals: result.config.decimals,
+              totalSupply: result.config.totalSupply.toString(),
 
               // Pool configuration
-              initialPrice: config.initialPrice,
-              quoteTokenMint: config.quoteTokenMint.toBase58(),
+              initialPrice: result.config.initialPrice,
+              quoteTokenMint: result.config.quoteTokenMint.toBase58(),
               poolLiquidityPercentage: DEFAULT_LAUNCH_PARAMS.poolLiquidityPercentage,
+              priceRangeMin: result.formData.priceRangeMin ?? DEFAULT_LAUNCH_PARAMS.priceRangeMin,
+              priceRangeMax: result.formData.priceRangeMax ?? DEFAULT_LAUNCH_PARAMS.priceRangeMax,
 
-              // Fee configuration
-              feeDecayDurationMinutes: config.feeSchedulerConfig?.mode === 'time-based'
-                ? config.feeSchedulerConfig.durationMinutes
-                : 0,
-              feeDecayPeriods: config.feeSchedulerConfig?.mode === 'time-based'
-                ? DEFAULT_NUMBER_OF_PERIODS
-                : 0,
+              // Fee configuration — from formData to preserve user choices
+              feeSchedulerMode: result.formData.feeSchedulerConfig.mode,
+              feeTokenMode: result.formData.feeTokenMode,
+              holdbackPercentage: result.formData.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage,
+
+              // Spread discriminated union fields from feeSchedulerConfig
+              ...(result.formData.feeSchedulerConfig.mode === 'market-cap-based' ? {
+                startingMarketCap: String(result.formData.feeSchedulerConfig.startingMarketCap),
+                endingMarketCap: String(result.formData.feeSchedulerConfig.endingMarketCap),
+                startRate: result.formData.feeSchedulerConfig.feeMarketCapStartRate,
+                endRate: result.formData.feeSchedulerConfig.feeMarketCapEndRate,
+              } : result.formData.feeSchedulerConfig.mode === 'time-based' ? {
+                startRate: result.formData.feeSchedulerConfig.startRate,
+                endRate: result.formData.feeSchedulerConfig.endRate,
+                durationMinutes: result.formData.feeSchedulerConfig.durationMinutes,
+                feeDecayPeriods: DEFAULT_NUMBER_OF_PERIODS,
+              } : {
+                fixedBaseFeeBps: result.formData.feeSchedulerConfig.baseFeeBps,
+              }),
 
               // Launch info
-              launchDate: config.launchTime || new Date(),
+              launchDate: result.config.launchTime || new Date(),
               launchSlot: launchSlot,
 
               // Transaction signatures
@@ -147,7 +161,7 @@ export default function LaunchPage() {
             console.log("[Database] ✓ Token saved successfully");
 
             // Redirect to token detail page immediately
-            router.push(`/tokens/${config.mint.toBase58()}`);
+            router.push(`/tokens/${result.config.mint.toBase58()}`);
           } else {
             const error = await response.json();
             console.error("[Database] Failed to save token:", error);

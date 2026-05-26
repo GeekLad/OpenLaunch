@@ -42,7 +42,7 @@ export class TokenLaunchService {
     formData: TokenFormData,
     walletPublicKey: PublicKey,
     signAllTransactions: (transactions: Transaction[]) => Promise<Transaction[]>
-  ): Promise<TokenLaunchConfig> {
+  ): Promise<LaunchResult> {
     try {
       // ─── Pre-flight validation: must pass before any transactions are built ───
       const validationErrors = validateLaunchParams(formData as unknown as Parameters<typeof validateLaunchParams>[0]);
@@ -518,7 +518,12 @@ export class TokenLaunchService {
         launchTime: formData.enableTimedLaunch ? formData.launchDateTime || undefined : undefined,
       };
 
-      return launchConfig;
+      const result: LaunchResult = {
+        config: launchConfig,
+        formData,
+      };
+
+      return result;
     } catch (error) {
       console.error("Token launch failed:", error);
       this.updateStatus({
