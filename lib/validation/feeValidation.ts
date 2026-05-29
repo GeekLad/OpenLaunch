@@ -14,6 +14,7 @@ import {
   ActivationType,
 } from "@meteora-ag/cp-amm-sdk";
 import { percentToBps } from "@/config/defaults";
+import { validateFeeScheduler } from "./feeScheduler";
 
 /**
  * Validates launch parameters against SDK-specific constraints.
@@ -36,7 +37,6 @@ export function validateLaunchParams(
   const feeEndRate = Number(params.feeEndRate ?? 0);
   const feeFixedRate = Number(params.feeFixedRate ?? 0);
 
-  // Convert to bps for validation range: 0.01% to 99% = 1 to 9900 bps
   if (feeStartRate !== 0 && (feeStartRate < 0.01 || feeStartRate > 99)) {
     errors.feeStartRate = "Fee start rate must be between 0.01% and 99%";
   }
@@ -45,15 +45,6 @@ export function validateLaunchParams(
   }
   if (feeFixedRate !== 0 && (feeFixedRate < 0.01 || feeFixedRate > 99)) {
     errors.feeFixedRate = "Fixed fee rate must be between 0.01% and 99%";
-  }
-
-  const startingMarketCap = Number(params.startingMarketCap ?? 0);
-  const endingMarketCap = Number(params.endingMarketCap ?? 0);
-  if (startingMarketCap <= 0) {
-    errors.startingMarketCap = "Starting market cap must be greater than 0";
-  }
-  if (endingMarketCap <= 0) {
-    errors.endingMarketCap = "Ending market cap must be greater than 0";
   }
 
   const feeDurationHours = Number(params.feeDurationHours ?? 0);
@@ -70,17 +61,19 @@ export function validateLaunchParams(
     errors.quoteTokenMint = "Quote token must be SOL or USDC";
   }
 
-  // Fee scheduler caps must be within pool range
-  const totalSupply = Number(params.totalSupply ?? 0);
-  const initialMarketCap = Number(params.initialMarketCap ?? 0);
-  const marketCapRangeMax = Number(params.marketCapRangeMax ?? Number.MAX_SAFE_INTEGER);
-
-  if (totalSupply > 0 && startingMarketCap > 0 && startingMarketCap < initialMarketCap) {
-    errors.startingMarketCap = `Starting market cap (${startingMarketCap}) must be >= launch market cap (${initialMarketCap})`;
-  }
-  if (endingMarketCap > marketCapRangeMax) {
-    errors.endingMarketCap = `Ending market cap (${endingMarketCap}) must be <= pool max market cap (${marketCapRangeMax})`;
-  }
+  // Re-use DRY fee-scheduler validation shared with frontend
+  const feeSchedConfig = {
+    mode: params.feeSchedulerMode,
+    startingMarketCap: params.startingMarketCap,
+    endingMarketCap: params.endingMarketCap,
+    durationMinutes: (feeDurationHours || 1) * 60,
+  };
+  const feeErrors = validateFeeScheduler(
+    feeSchedConfig,
+    params.initialMarketCap,
+    params.marketCapRangeMax
+  );
+  feeErrors.forEach((err) => { errors[err.field] = err.message; });
 
   // If basic bounds already failed, skip SDK constructor validation
   if (Object.keys(errors).length > 0) {
@@ -100,10 +93,10 @@ export function validateLaunchParams(
         (feeDurationHours || 1) * 3600
       );
     } else if (feeSchedulerMode === "market-cap-based") {
+      const startingMarketCap = Number(params.startingMarketCap ?? 0);
+      const endingMarketCap = Number(params.endingMarketCap ?? 0);
       const priceMultiple =
-        startingMarketCap > 0
-          ? endingMarketCap / startingMarketCap
-          : 1;
+        startingMarketCap > 0 ? endingMarketCap / startingMarketCap : 1;
       if (priceMultiple <= 1) {
         errors.feeSchedulerConfig =
           "Price multiple must be greater than 1 for market-cap-based scheduler";
@@ -118,7 +111,6 @@ export function validateLaunchParams(
         (feeDurationHours || 1) * 3600
       );
     } else {
-      // Fixed fee mode
       baseFee = getFeeTimeSchedulerParams(
         percentToBps(feeFixedRate || 0.25),
         percentToBps(feeFixedRate || 0.25),
@@ -136,9 +128,7 @@ export function validateLaunchParams(
   try {
     const feeTokenMode = String(params.feeTokenMode ?? "quoteOnly");
     const collectFeeMode =
-      feeTokenMode === "both"
-        ? CollectFeeMode.BothToken
-        : CollectFeeMode.OnlyB;
+      feeTokenMode === "both" ? CollectFeeMode.BothToken : CollectFeeMode.OnlyB;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const poolFees: any = {
