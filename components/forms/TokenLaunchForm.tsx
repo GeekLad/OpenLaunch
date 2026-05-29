@@ -31,7 +31,6 @@ const tokenFormSchema = z.object({
   logoFile: z.instanceof(File, { message: "Logo image is required" }),
   totalSupply: z.number().min(1, "Total supply is required"),
   initialMarketCap: z.number().min(1, "Initial market cap is required"),
-  marketCapRangeMin: z.number().min(1),
   marketCapRangeMax: z.number().min(1),
   lockedLiquidityPercentage: z.number().min(0).max(100).optional(),
   quoteTokenMint: z.string().optional(),
@@ -75,8 +74,8 @@ const tokenFormSchema = z.object({
   }
 
   // Market cap range validation
-  validateMarketCapRange(data.marketCapRangeMin, data.initialMarketCap, data.marketCapRangeMax).forEach((err) => {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: err.message, path: [err.field as "marketCapRangeMin" | "marketCapRangeMax"] });
+      validateMarketCapRange(data.initialMarketCap, data.marketCapRangeMax).forEach((err) => {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: err.message, path: [err.field as "initialMarketCap" | "marketCapRangeMax"] });
   });
 
   // Fee scheduler market cap validation (when mode is market-cap-based)
@@ -149,7 +148,6 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
     defaultValues: {
       totalSupply: DEFAULT_LAUNCH_PARAMS.totalSupply,
       initialMarketCap: DEFAULT_LAUNCH_PARAMS.initialMarketCap,
-      marketCapRangeMin: DEFAULT_LAUNCH_PARAMS.marketCapRangeMin,
       marketCapRangeMax: DEFAULT_LAUNCH_PARAMS.marketCapRangeMax,
       lockedLiquidityPercentage: DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage,
       quoteTokenMint: DEFAULT_LAUNCH_PARAMS.quoteTokenMint,
@@ -174,7 +172,6 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
 
   const watchedSupply = watch("totalSupply");
   const watchedInitialMcap = watch("initialMarketCap");
-  const watchedMin = watch("marketCapRangeMin");
   const watchedMax = watch("marketCapRangeMax");
   const watchedLocked = watch("lockedLiquidityPercentage");
   const watchedQuoteToken = watch("quoteTokenMint");
@@ -191,21 +188,20 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
     return (
       watchedSupply !== DEFAULT_LAUNCH_PARAMS.totalSupply ||
       watchedInitialMcap !== DEFAULT_LAUNCH_PARAMS.initialMarketCap ||
-      watchedMin !== DEFAULT_LAUNCH_PARAMS.marketCapRangeMin ||
       watchedMax !== DEFAULT_LAUNCH_PARAMS.marketCapRangeMax ||
       watchedLocked !== DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage ||
       watchedQuoteToken !== DEFAULT_LAUNCH_PARAMS.quoteTokenMint ||
       watchedFeeMode !== 'market-cap-based' ||
       watchedFeeToken !== 'quoteOnly'
     );
-  }, [watchedSupply, watchedInitialMcap, watchedMin, watchedMax, watchedLocked, watchedQuoteToken, watchedFeeMode, watchedFeeToken]);
+  }, [watchedSupply, watchedInitialMcap, watchedMax, watchedLocked, watchedQuoteToken, watchedFeeMode, watchedFeeToken]);
 
   const isLowLockedLiquidity = useMemo(() => {
     return (watchedLocked ?? 100) < 90;
   }, [watchedLocked]);
 
   // Computed every render for instant UI feedback
-  const marketCapErrors = validateMarketCapRange(watchedMin, watchedInitialMcap, watchedMax);
+  const marketCapErrors = validateMarketCapRange(watchedInitialMcap, watchedMax);
 
   let feeSchedErrors: ValidationError[] = [];
   if (watchedFeeMode === 'market-cap-based') {
@@ -224,16 +220,14 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
 
   const isFormValid = !!(symbol && name && logoFile && !fileSizeWarning);
 
-  // Merge Zod errors + computed cross-field errors into a single lookup for DRY JSX
+  // Merge Zod errors + computed cross-field errors.
+  // Cross-field errors take priority (they are more specific than Zod's generic .min(1)).
   const allFieldErrors: Record<string, string> = {};
-  const addFieldError = (field: string, msg: string) => {
-    if (!allFieldErrors[field]) allFieldErrors[field] = msg;
-  };
+  marketCapErrors.forEach(e => { allFieldErrors[e.field] = e.message; });
+  feeSchedErrors.forEach(e => { allFieldErrors[e.field] = e.message; });
   for (const [key, val] of Object.entries(errors)) {
-    if (val?.message) addFieldError(String(key), String(val.message as string));
+    if (!allFieldErrors[key] && val?.message) allFieldErrors[key] = String(val.message);
   }
-  marketCapErrors.forEach(e => addFieldError(e.field, e.message));
-  feeSchedErrors.forEach(e => addFieldError(e.field, e.message));
 
   const getLocalDateString = (date: Date = new Date()): string => {
     const year = date.getFullYear();
@@ -340,7 +334,6 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
       feeTokenMode: pendingSubmitData.feeTokenMode ?? DEFAULT_LAUNCH_PARAMS.feeTokenMode,
       totalSupply: pendingSubmitData.totalSupply,
       initialMarketCap: pendingSubmitData.initialMarketCap,
-      marketCapRangeMin: pendingSubmitData.marketCapRangeMin,
       marketCapRangeMax: pendingSubmitData.marketCapRangeMax,
       lockedLiquidityPercentage: pendingSubmitData.lockedLiquidityPercentage ?? DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage,
       quoteTokenMint: pendingSubmitData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint,
@@ -378,7 +371,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
     addSection('Launch Parameters', [
       ['Total Supply', values.totalSupply !== DEFAULT_LAUNCH_PARAMS.totalSupply ? new Intl.NumberFormat().format(values.totalSupply) : undefined],
       ['Initial Market Cap', values.initialMarketCap !== DEFAULT_LAUNCH_PARAMS.initialMarketCap ? values.initialMarketCap : undefined],
-      ['Market Cap Range', values.marketCapRangeMin !== DEFAULT_LAUNCH_PARAMS.marketCapRangeMin || values.marketCapRangeMax !== DEFAULT_LAUNCH_PARAMS.marketCapRangeMax ? `${values.marketCapRangeMin} – ${values.marketCapRangeMax}` : undefined],
+      ['Market Cap Range', values.marketCapRangeMax !== DEFAULT_LAUNCH_PARAMS.marketCapRangeMax ? `${values.initialMarketCap} – ${values.marketCapRangeMax}` : undefined],
       ['Locked Liquidity', values.lockedLiquidityPercentage !== DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage ? `${values.lockedLiquidityPercentage}%` : undefined],
       ['Quote Token', values.quoteTokenMint !== DEFAULT_LAUNCH_PARAMS.quoteTokenMint ? (values.quoteTokenMint === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' ? 'USDC' : 'SOL') : undefined],
     ]);
@@ -569,42 +562,23 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
             {errors.initialMarketCap && <p className="text-sm text-destructive">{errors.initialMarketCap.message}</p>}
           </div>
 
-          {/* Market Cap Range (side by side) */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="marketCapRangeMin">Min Market Cap</Label>
-              <Controller
-                name="marketCapRangeMin"
-                control={control}
-                render={({ field: { onChange, value, onBlur } }) => (
-                  <NumberInput
-                    value={value}
-                    onChangeValue={onChange}
-                    integer
-                    onBlur={onBlur}
-                    disabled={isLoading}
-                  />
-                )}
-              />
-              {allFieldErrors["marketCapRangeMin"] && <p className="text-sm text-destructive">{allFieldErrors["marketCapRangeMin"]}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="marketCapRangeMax">Max Market Cap</Label>
-              <Controller
-                name="marketCapRangeMax"
-                control={control}
-                render={({ field: { onChange, value, onBlur } }) => (
-                  <NumberInput
-                    value={value}
-                    onChangeValue={onChange}
-                    integer
-                    onBlur={onBlur}
-                    disabled={isLoading}
-                  />
-                )}
-              />
-              {allFieldErrors["marketCapRangeMax"] && <p className="text-sm text-destructive">{allFieldErrors["marketCapRangeMax"]}</p>}
-            </div>
+          {/* Market Cap Max */}
+          <div className="space-y-2">
+            <Label htmlFor="marketCapRangeMax">Max Market Cap</Label>
+            <Controller
+              name="marketCapRangeMax"
+              control={control}
+              render={({ field: { onChange, value, onBlur } }) => (
+                <NumberInput
+                  value={value}
+                  onChangeValue={onChange}
+                  integer
+                  onBlur={onBlur}
+                  disabled={isLoading}
+                />
+              )}
+            />
+            {allFieldErrors["marketCapRangeMax"] && <p className="text-sm text-destructive">{allFieldErrors["marketCapRangeMax"]}</p>}
           </div>
 
           {/* Locked Liquidity Slider */}

@@ -62,7 +62,6 @@ export interface CreatePoolParams {
   tokenBDecimals: number;
   initialMarketCap: number; // Market cap in terms of quote token (totalSupply * price)
   totalSupply: number;
-  marketCapRangeMin: number;
   marketCapRangeMax: number;
   baseFeeNumerator?: number; // Base fee in basis points (default 25 = 0.25%)
   hasAlphaVault?: boolean;

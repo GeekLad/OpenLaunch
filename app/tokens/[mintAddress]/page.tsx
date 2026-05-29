@@ -324,7 +324,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <p className="text-sm"><strong>Quote Token:</strong> {token.quoteTokenMint === 'So11111111111111111111111111111111111111112' ? 'SOL' : 'USDC'}</p>
             <p className="text-sm"><strong>Initial Market Cap:</strong> {formatNumber(token.initialMarketCap)}</p>
-            <p className="text-sm"><strong>Market Cap Range:</strong> {formatNumber(token.marketCapRangeMin)} — {formatNumber(token.marketCapRangeMax)}</p>
+            <p className="text-sm"><strong>Market Cap Range:</strong> {formatNumber(token.initialMarketCap)} — {formatNumber(token.marketCapRangeMax)}</p>
             <p className="text-sm"><strong>Pool Liquidity %:</strong> {Number(token.poolLiquidityPercentage) * 100}%</p>
           </div>
         </CollapsibleSection>

@@ -129,7 +129,6 @@ export default function LaunchPage() {
               initialMarketCap: result.config.initialMarketCap,
               quoteTokenMint: result.config.quoteTokenMint.toBase58(),
               poolLiquidityPercentage: DEFAULT_LAUNCH_PARAMS.poolLiquidityPercentage,
-              marketCapRangeMin: result.formData.marketCapRangeMin ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMin,
               marketCapRangeMax: result.formData.marketCapRangeMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax,
               feeSchedulerMode: result.formData.feeSchedulerConfig.mode,
               feeTokenMode: result.formData.feeTokenMode,

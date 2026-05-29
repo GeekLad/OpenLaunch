@@ -29,7 +29,6 @@ export const tokens = sqliteTable('tokens', {
   initialMarketCap: real('initial_market_cap').notNull(),
   quoteTokenMint: text('quote_token_mint').notNull(),
   poolLiquidityPercentage: real('pool_liquidity_percentage').notNull(),
-  marketCapRangeMin: real('market_cap_range_min').notNull().default(1000),
   marketCapRangeMax: real('market_cap_range_max').notNull().default(1000000),
 
   // Fee configuration

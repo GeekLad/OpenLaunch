@@ -16,9 +16,8 @@ export const DEFAULT_QUOTE_TOKEN_MINT = 'So1111111111111111111111111111111111111
 export const DEFAULT_FEE_SCHEDULER_MODE = 'market-cap-based' as const;
 export const DEFAULT_FEE_TOKEN_MODE = 'quoteOnly' as const;
 
-// Market cap defaults (used for both pool range and fee scheduler defaults)
-export const DEFAULT_INITIAL_MARKET_CAP = 10_000; // 10k SOL market cap at launch
-export const DEFAULT_MARKET_CAP_RANGE_MIN = 1_000;
+// Market cap defaults
+export const DEFAULT_INITIAL_MARKET_CAP = 1_000;
 export const DEFAULT_MARKET_CAP_RANGE_MAX = 1_000_000;
 
 // Fee scheduler market cap defaults
@@ -93,7 +92,6 @@ export const DEFAULT_LAUNCH_PARAMS = {
   totalSupply: DEFAULT_TOTAL_SUPPLY,
   decimals: DEFAULT_DECIMALS,
   initialMarketCap: DEFAULT_INITIAL_MARKET_CAP,
-  marketCapRangeMin: DEFAULT_MARKET_CAP_RANGE_MIN,
   marketCapRangeMax: DEFAULT_MARKET_CAP_RANGE_MAX,
   feeSchedulerMode: DEFAULT_FEE_SCHEDULER_MODE,
   feeTokenMode: DEFAULT_FEE_TOKEN_MODE,

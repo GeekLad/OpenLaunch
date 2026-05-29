@@ -14,23 +14,18 @@ function isPositive(n: unknown): n is number {
 }
 
 /**
- * Validate the pool market cap range (min < initial < max).
+ * Validate the pool market cap range (initial < max).
  */
 export function validateMarketCapRange(
-  min: unknown,
   initial: unknown,
   max: unknown
 ): ValidationError[] {
   const errors: ValidationError[] = [];
-  const mCap = isPositive(min) ? min : 0;
   const iCap = isPositive(initial) ? initial : 0;
   const xCap = isPositive(max) ? max : 0;
 
-  if (mCap > 0 && iCap > 0 && mCap >= iCap) {
-    errors.push({ field: "marketCapRangeMin", message: "Minimum market cap must be less than initial market cap" });
-  }
-  if (mCap > 0 && xCap > 0 && mCap >= xCap) {
-    errors.push({ field: "marketCapRangeMin", message: "Minimum market cap must be less than maximum market cap" });
+  if (iCap <= 0) {
+    errors.push({ field: "initialMarketCap", message: "Initial market cap must be greater than 0" });
   }
   if (iCap > 0 && xCap > 0 && iCap >= xCap) {
     errors.push({ field: "marketCapRangeMax", message: "Initial market cap must be less than maximum market cap" });

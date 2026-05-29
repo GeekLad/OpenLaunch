@@ -30,7 +30,6 @@ export class ValidationError extends Error {
 export interface LaunchValidationInput {
   totalSupply: number;
   lockedLiquidityPercentage: number;
-  marketCapRangeMin: number;
   initialMarketCap: number;
   marketCapRangeMax: number;
   baseFeeBps: number;
@@ -72,14 +71,21 @@ export function validateLaunchParams(
   }
 
   // ─── Market cap range ───
-  if (formData.marketCapRangeMin === undefined || formData.marketCapRangeMin <= 0) {
-    add("marketCapRangeMin", "Minimum market cap must be greater than 0", "MCAP_MIN_INVALID");
+  if (
+    formData.initialMarketCap === undefined ||
+    formData.initialMarketCap <= 0
+  ) {
+    add("initialMarketCap", "Initial market cap must be greater than 0", "MCAP_INITIAL_INVALID");
   }
-  if (formData.initialMarketCap === undefined || formData.initialMarketCap <= (formData.marketCapRangeMin ?? 0)) {
-    add("initialMarketCap", "Initial market cap must be greater than minimum market cap", "MCAP_INITIAL_TOO_LOW");
-  }
-  if (formData.marketCapRangeMax === undefined || formData.marketCapRangeMax <= (formData.initialMarketCap ?? 0)) {
-    add("marketCapRangeMax", "Maximum market cap must be greater than initial market cap", "MCAP_MAX_TOO_LOW");
+  if (
+    formData.marketCapRangeMax === undefined ||
+    formData.marketCapRangeMax <= (formData.initialMarketCap ?? 0)
+  ) {
+    add(
+      "marketCapRangeMax",
+      "Maximum market cap must be greater than initial market cap",
+      "MCAP_MAX_TOO_LOW"
+    );
   }
 
   // ─── Base fee ───

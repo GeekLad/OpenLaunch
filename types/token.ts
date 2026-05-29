@@ -38,7 +38,6 @@ export interface TokenFormData {
   // Launch Parameters
   totalSupply: number;
   initialMarketCap: number;
-  marketCapRangeMin: number;
   marketCapRangeMax: number;
   lockedLiquidityPercentage: number;
   quoteTokenMint: string;
@@ -66,7 +65,6 @@ export interface TokenLaunchConfig {
   decimals: number;
   quoteTokenMint: PublicKey;
   initialMarketCap: number;
-  marketCapRangeMin: number;
   marketCapRangeMax: number;
   poolAddress?: PublicKey;
   positionAddress?: PublicKey;

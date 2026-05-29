@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
     const validationInput = {
       totalSupply: Number(data.totalSupply),
       lockedLiquidityPercentage: Number(data.lockedLiquidityPercentage),
-      marketCapRangeMin: Number(data.marketCapRangeMin ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMin),
       initialMarketCap: Number(data.initialMarketCap),
       marketCapRangeMax: Number(data.marketCapRangeMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax),
       baseFeeBps: Number(data.fixedBaseFeePercent ?? DEFAULT_LAUNCH_PARAMS.baseFeeBps),
@@ -89,7 +88,6 @@ export async function POST(request: NextRequest) {
       initialMarketCap: data.initialMarketCap,
       quoteTokenMint: data.quoteTokenMint,
       poolLiquidityPercentage: data.poolLiquidityPercentage,
-      marketCapRangeMin: data.marketCapRangeMin ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMin,
       marketCapRangeMax: data.marketCapRangeMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax,
       feeDecayDurationMinutes: data.feeDecayDurationMinutes ?? 0,
       feeDecayPeriods: data.feeDecayPeriods ?? 0,

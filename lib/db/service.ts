@@ -34,7 +34,6 @@ export interface TokenCreateInput {
   initialMarketCap: number;
   quoteTokenMint: string;
   poolLiquidityPercentage: number;
-  marketCapRangeMin: number;
   marketCapRangeMax: number;
 
   // Fee configuration
