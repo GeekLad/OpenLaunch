@@ -44,7 +44,9 @@ export async function POST(request: NextRequest) {
       } as unknown as import('@/types/fee').FeeSchedulerConfig,
       feeTokenMode: String(data.feeTokenMode ?? DEFAULT_LAUNCH_PARAMS.feeTokenMode),
       quoteTokenMint: String(data.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
-      feeDecayPeriods: Number(data.feeDecayPeriods ?? 0),
+      ...(data.feeDecayPeriods !== undefined && data.feeDecayPeriods !== null
+        ? { feeDecayPeriods: Number(data.feeDecayPeriods) }
+        : {}),
     };
     const validationErrors = validateLaunchParams(validationInput);
     if (validationErrors.length > 0) {

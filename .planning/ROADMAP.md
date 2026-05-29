@@ -16,8 +16,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Types, Schema & Defaults Foundation** - Data structures, database schema, and single source of truth for all configurable parameters (completed 2026-05-23)
 - [x] **Phase 2: Core Form Parameters & Basic UI** - Essential form expansion with supply, price, and range fields in an Advanced Options section
 - [x] **Phase 3: Advanced Parameters, Fee Modes & Complex Validation** - Holdback slider, quote token selection, fee scheduler modes, and server-side SDK validation (completed 2026-05-26)
-- [ ] **Phase 4: Blockchain Integration & Pre-flight Safety** - SDK upgrade, on-chain parameter mapping, holdback math, and transaction simulation
-- [ ] **Phase 5: Service Orchestration, Persistence & Detail Pages** - Full launch flow wiring, database persistence, and token detail page enhancement
+- [x] **Phase 4: Blockchain Integration & Pre-flight Safety** - SDK upgrade, on-chain parameter mapping, holdback math, and transaction simulation (completed 2026-05-26)
+- [x] **Phase 5: Service Orchestration, Persistence & Detail Pages** - Full launch flow wiring, database persistence, and token detail page enhancement (completed 2026-05-26)
 - [ ] **Phase 6: Background Jobs & Hardening** - Mode-aware fee updater, both-token fee tracking, and final safety hardening
 
 ## Phase Details
@@ -140,6 +140,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Types, Schema & Defaults Foundation | 5/5 | Complete   | 2026-05-23 |
 | 2. Core Form Parameters & Basic UI | 1/1 | Complete   | 2026-05-25 |
 | 3. Advanced Parameters, Fee Modes & Complex Validation | 5/5 | Complete   | 2026-05-26 |
-| 4. Blockchain Integration & Pre-flight Safety | 0/TBD | Not started | - |
-| 5. Service Orchestration, Persistence & Detail Pages | 0/TBD | Not started | - |
+| 4. Blockchain Integration & Pre-flight Safety | 3/3 | Complete | 2026-05-26 |
+| 5. Service Orchestration, Persistence & Detail Pages | 2/2 | Complete | 2026-05-26 |
 | 6. Background Jobs & Hardening | 0/TBD | Not started | - |

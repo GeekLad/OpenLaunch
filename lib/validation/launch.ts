@@ -115,9 +115,8 @@ export function validateLaunchParams(
 
   // ─── Base fee ───
   if (
-    formData.baseFeeBps === undefined ||
-    formData.baseFeeBps < 0 ||
-    formData.baseFeeBps > 10000
+    formData.baseFeeBps !== undefined &&
+    (formData.baseFeeBps < 0 || formData.baseFeeBps > 10000)
   ) {
     add(
       "baseFeeBps",
@@ -164,11 +163,10 @@ export function validateLaunchParams(
     );
   }
 
-  // ─── Decay periods ───
+  // ─── Decay periods (optional — not always present in TokenFormData) ───
   if (
-    formData.feeDecayPeriods === undefined ||
-    formData.feeDecayPeriods <= 0 ||
-    formData.feeDecayPeriods > 1000
+    formData.feeDecayPeriods !== undefined &&
+    (formData.feeDecayPeriods <= 0 || formData.feeDecayPeriods > 1000)
   ) {
     add(
       "feeDecayPeriods",

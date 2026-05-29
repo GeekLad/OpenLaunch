@@ -14,9 +14,14 @@ export const APP_URL = "https://openlaunch.app" as const;
 export const SOLANA_NETWORK = "mainnet-beta" as const;
 
 // Default public RPC endpoint baked into the client bundle.
-// The server can override via the RPC_URL secret if needed.
+// Override at build time with NEXT_PUBLIC_RPC_URL.
 export const DEFAULT_CLIENT_RPC_URL =
   "https://api.mainnet-beta.solana.com" as const;
+
+// Client-side RPC: respects NEXT_PUBLIC_RPC_URL env var at build time.
+export const CLIENT_RPC_URL =
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_RPC_URL) ||
+  DEFAULT_CLIENT_RPC_URL;
 
 export const TOKEN_DECIMALS = 9;
 

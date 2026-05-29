@@ -1,16 +1,16 @@
 ---
-gsd_state_version: 1.0
+gsd_state_version: "1.0"
 milestone: v1.4.3
 milestone_name: milestone
-status: Ready to execute
-stopped_at: Phase 4 context gathered
-last_updated: "2026-05-26T16:59:45.361Z"
+status: context
+current_phase: 6
+last_updated: "2026-05-29T12:00:00Z"
 progress:
   total_phases: 6
-  completed_phases: 3
-  total_plans: 14
-  completed_plans: 11
-  percent: 50
+  completed_phases: 5
+  total_plans: 19
+  completed_plans: 19
+  percent: 83
 ---
 
 # Project State
@@ -20,78 +20,61 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-23)
 
 **Core value:** Users can launch a token with a liquidity pool in a single guided flow, without writing code or manually building transactions.
-**Current focus:** Phase 4 — Blockchain Integration & Pre-flight Safety
+**Current focus:** Phase 6 — Background Jobs & Hardening
 
 ## Current Position
 
-Phase: 1 (Types, Schema & Defaults Foundation) — COMPLETE ✅
-Phase: 2 (Core Form Parameters & Basic UI) — COMPLETE ✅
-Phase: 3 (Advanced Parameters, Fee Modes & Complex Validation) — COMPLETE ✅ All 5 plans executed, 3 UAT gaps closed
-Phase: 4 (Blockchain Integration & Pre-flight Safety) — Not started → ready for planning
+Phase: 1 (Types, Schema & Defaults Foundation) — COMPLETE
+Phase: 2 (Core Form Parameters & Basic UI) — COMPLETE
+Phase: 3 (Advanced Parameters, Fee Modes & Complex Validation) — COMPLETE
+Phase: 4 (Blockchain Integration & Pre-flight Safety) — COMPLETE
+Phase: 5 (Service Orchestration, Persistence & Detail Pages) — COMPLETE (UAT: passed, Security: 0 open threats)
+Phase: 6 (Background Jobs & Hardening) — READY TO START
 
-Progress: [█████░░░░░] 50%
+Progress: [████████▓░] 83%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 5
+- Total plans completed: 19
 - Average duration: 12m
-- Total execution time: ~60m
+- Total execution time: ~70m
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01-types-schema-defaults-foundation | 5 | 5 | — |
-| 02-core-form-basic-ui | 1 | 1 | — |
-| 03-advanced-params-fee-modes-complex-validation | 5 | 5 | — |
+| Phase | Plans | Total | Status |
+|-------|-------|-------|--------|
+| 01-types-schema-defaults-foundation | 5 | 5 | Complete |
+| 02-core-form-basic-ui | 1 | 1 | Complete |
+| 03-advanced-params-fee-modes-complex-validation | 5 | 5 | Complete |
+| 04-blockchain-integration-pre-flight-safety | 3 | 3 | Complete |
+| 05-service-orchestration-persistence-detail-pages | 2 | 2 | Complete |
 
-**Recent Trend:**
+## Phase 5 Decisions Captured
 
-- Last 5 plans: 03-05 (gap closure complete)
-- Trend: All UAT gaps resolved; build and lint pass
-
-*Updated after each plan completion*
+- D-05-01: Retry on failure — reuse existing mint, retry same parameters, no DB save until all 3 txs succeed
+- D-05-02: Detail page layout — collapsible sections (Token Info expanded, rest collapsed)
+- D-05-03: Holdback warning on detail page — red badge on section header when >10%
+- D-05-04: Fee scheduler display — human-readable labels with raw mode in muted text
+- D-05-05: Service returns form data — `launchToken()` returns both `TokenLaunchConfig` and `TokenFormData`
+- D-05-06: API validation — `/api/tokens/create` re-runs `validateLaunchParams` before DB persistence
 
 ## Accumulated Context
 
-### Decisions
+See `.planning/phases/05-service-orchestration-persistence-detail-pages/05-CONTEXT.md` for full decisions, canonical refs, and code context.
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+## Deferred Ideas
 
-- [Phase 1]: Expose env defaults as form fields with current defaults — users want control without editing .env files
-- [Phase 1]: Market-cap-based fee scheduler as default — align with latest Meteora feature
-- [Phase 1]: Holdback >10% triggers red-flag warning — trader trust signal; warn but don't block
-- [Phase 2 Plan 02-01]: Computed badge over state: replaced isLaunchParamsModified useState with useMemo to avoid stale-state bugs
-- [Phase 2 Plan 02-01]: Global onBlur mode: acceptable trade-off since all sections benefit from blur-triggered validation
-- [Phase 2 Plan 02-01]: Integer-only supply input: Controller strips non-digit characters because SPL token supply must be integer
-- [Phase 3]: Holdback >10% warning shows as red badge on collapsed section header + full Alert banner inside expanded section (two-state visibility per FORM-05)
-- [Phase 3]: Fee scheduler dynamic sub-fields always rendered + CSS hidden (reuses Phase 2 pattern)
-- [Phase 3]: Quote token decimal math deferred to Phase 4; frontend shows raw values
-- [Phase 3]: Launch confirmation modal uses simple key-value list grouped by section
-- [Phase 3 Plan 03-05]: `feeSchedulerError` useMemo bypasses RHF resolver to display cross-field errors immediately, matching Phase 2 `priceError` pattern
-
-### Pending Todos
-
-None yet.
-
-### Blockers/Concerns
-
-- **Phase 4 readiness**: Project currently has zero automated tests; research Solana testing approach (bankrun vs solana-test-validator) during Phase 4 planning
-- **Fee token mode "both tokens"**: Supporting dual-path fee tracking is feasible but non-trivial; may need scoping adjustment if cron infrastructure is complex
-
-## Deferred Items
-
-Items acknowledged and carried forward from previous milestone close:
-
-| Category | Item | Status | Deferred At |
-|----------|------|--------|-------------|
-| *(none)* | | | |
+| Idea | Deferred To | Rationale |
+|------|-------------|-----------|
+| Audit log table for launch attempts | Phase 6 | Out of scope for persistence phase |
+| Token detail page edit capability | Future | Tokens immutable on-chain |
+| Comparative analysis (top % by fees) | Phase 6 | Requires cron data |
+| Social sharing cards | Future | Marketing phase |
 
 ## Session Continuity
 
-Last session: 2026-05-26T13:31:56.792Z
-Stopped at: Phase 4 context gathered
-Next: Phase 4 planning (Blockchain Integration & Pre-flight Safety)
+Last session: 2026-05-29T12:00:00Z
+Stopped at: Phase 5 complete, committed. Phase 6 ready to start.
+Next: `/gsd-plan-phase 6`
