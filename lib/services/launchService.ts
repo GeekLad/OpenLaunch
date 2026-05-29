@@ -44,7 +44,7 @@ export class TokenLaunchService {
     signAllTransactions: (transactions: Transaction[]) => Promise<Transaction[]>
   ): Promise<LaunchResult> {
     try {
-      // ─── Pre-flight validation: must pass before any transactions are built ───
+      // ─── Pre-flight validation ───
       const validationErrors = validateLaunchParams(formData as unknown as Parameters<typeof validateLaunchParams>[0]);
       if (validationErrors.length > 0) {
         throw new ValidationError(
@@ -62,7 +62,6 @@ export class TokenLaunchService {
 
       let mintKeypair: Keypair;
 
-      // Check if user provided a custom private key
       if (formData.enableCustomPrivateKey && formData.customPrivateKey) {
         const validationResult = validateAndParsePrivateKey(formData.customPrivateKey);
 
@@ -91,7 +90,7 @@ export class TokenLaunchService {
         TOKEN_DECIMALS
       );
 
-      // Step 3: Upload assets to IPFS (do this before preparing all transactions)
+      // Step 3: Upload assets to IPFS
       this.updateStatus({
         step: "metadata",
         message: "Uploading logo to IPFS...",
@@ -102,11 +101,10 @@ export class TokenLaunchService {
         throw new Error("Logo file is required");
       }
 
-      // Build metadata
       const metadata = buildMetadata(
         formData.name,
         formData.symbol,
-        "", // Will be filled after image upload
+        "",
         formData.description,
         {
           website: formData.websiteUrl,
@@ -117,45 +115,20 @@ export class TokenLaunchService {
         }
       );
 
-      // Upload to IPFS (server-side API handles Pinata/Filebase, falls back to mock)
       let metadataUri: string;
       let uploadResult: TokenAssetsUploadResult | null = null;
       try {
-        // Upload via server-side API (tries Pinata, then Filebase)
         uploadResult = await uploadTokenAssets(formData.logoFile, metadata);
         metadataUri = uploadResult.metadataGateway;
-        // Update metadata with the complete metadata that includes image URL
         metadata.image = uploadResult.imageGateway;
         console.log("✓ Uploaded to IPFS successfully");
-        console.log(`  Image URL: ${uploadResult.imageGateway}`);
-        console.log(`  Metadata URL: ${uploadResult.metadataGateway}`);
       } catch (uploadError) {
         console.warn("IPFS upload failed, using mock upload:", uploadError);
-
-        // Final fallback to mock upload for testing
         const mockImageResult = await mockIPFSUpload(formData.logoFile);
         metadata.image = mockImageResult.gateway;
         const mockMetadataResult = await mockMetadataUpload(metadata);
         metadataUri = mockMetadataResult.gateway;
-
-        console.error(
-          "\n⚠️  WARNING: Using mock IPFS upload - URLs will NOT work!\n\n" +
-          "To fix this, get a FREE API key from one of these services:\n\n" +
-          "Option 1: Filebase (RECOMMENDED - 5GB Free + S3-compatible)\n" +
-          "  1. Go to https://filebase.com\n" +
-          "  2. Sign up (free account)\n" +
-          "  3. Generate API key from dashboard\n" +
-          "  4. Add to .env.local: FILEBASE_API_KEY=your_key\n\n" +
-          "Option 2: Pinata (1GB Free)\n" +
-          "  1. Go to https://pinata.cloud\n" +
-          "  2. Sign up and get API credentials\n" +
-          "  3. Add to .env.local:\n" +
-          "     PINATA_API_KEY=your_key\n" +
-          "     PINATA_SECRET_KEY=your_secret\n"
-        );
       }
-
-      console.log(`Metadata uploaded: ${metadataUri}`);
 
       // Step 4: Prepare all three transactions for batch signing
       this.updateStatus({
@@ -164,10 +137,8 @@ export class TokenLaunchService {
         progress: 70,
       });
 
-      // Transaction 1: Mint creation (don't set blockhash yet)
       mintResult.transaction.feePayer = walletPublicKey;
 
-      // Transaction 2: Mint tokens + create metadata + revoke authorities
       const mintTokensResult = await mintTokens(
         this.connection,
         walletPublicKey,
@@ -195,19 +166,17 @@ export class TokenLaunchService {
       combinedTx.add(...revokeAuthTx.instructions);
       combinedTx.feePayer = walletPublicKey;
 
-      // Transaction 3: Create DAMMv2 pool (pass TOKEN_PROGRAM_ID to skip on-chain lookup)
+      // Pool creation — locked liquidity is the inverse of holdback
+      const lockedLiquidity = formData.lockedLiquidityPercentage ?? DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage;
       const poolTokenAmount = Math.floor(
-        (formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply) *
-        (100 - (formData.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage)) /
-        100
+        (formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply) * lockedLiquidity / 100
       );
 
       console.log(`Pool creation amounts:\n` +
         `  Token amount (to pool): ${poolTokenAmount}\n` +
-        `  Holdback amount (creator keeps): ${(formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply) - poolTokenAmount}\n` +
-        `  SOL amount: 0 SOL (single-sided pool)\n` +
-        `  Initial price: ${formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice} SOL per token\n` +
-        `  Market cap at launch: ${(poolTokenAmount * (formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice)).toFixed(4)} SOL`
+        `  Locked liquidity: ${lockedLiquidity}%\n` +
+        `  Creator keeps: ${(formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply) - poolTokenAmount}\n` +
+        `  Initial market cap: ${formData.initialMarketCap ?? DEFAULT_LAUNCH_PARAMS.initialMarketCap}`
       );
 
       const { TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
@@ -220,7 +189,10 @@ export class TokenLaunchService {
         tokenAAmount: poolTokenAmount,
         tokenADecimals: TOKEN_DECIMALS,
         tokenBDecimals: getQuoteTokenDecimals(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
-        initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
+        initialMarketCap: formData.initialMarketCap ?? DEFAULT_LAUNCH_PARAMS.initialMarketCap,
+        totalSupply: formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply,
+        marketCapRangeMin: formData.marketCapRangeMin ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMin,
+        marketCapRangeMax: formData.marketCapRangeMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax,
         tokenAProgram: TOKEN_PROGRAM_ID,
         tokenBProgram: TOKEN_PROGRAM_ID,
         launchTime: formData.enableTimedLaunch && formData.launchDateTime ? formData.launchDateTime : undefined,
@@ -234,38 +206,24 @@ export class TokenLaunchService {
       let launchTimeAdjusted = false;
       let requestedLaunchTime: Date | undefined = undefined;
 
-      // Step 4.5: Check if launch time is in the past and auto-adjust
+      // Step 4.5: Check if launch time is in the past
       this.updateStatus({
         step: "signing",
         message: "Validating pool configuration...",
         progress: 75,
       });
 
-      console.log("Checking pool launch time validity...");
-      console.log(`  enableTimedLaunch: ${formData.enableTimedLaunch}`);
-      console.log(`  launchDateTime: ${formData.launchDateTime}`);
-
-      // Check if launch time is in the past or too close to current time (within 2 minutes buffer)
       if (formData.enableTimedLaunch && formData.launchDateTime) {
         const now = new Date();
         const launchTime = new Date(formData.launchDateTime);
         const timeUntilLaunch = launchTime.getTime() - now.getTime();
         const twoMinutesInMs = 2 * 60 * 1000;
 
-        console.log(`  Current time: ${now.toISOString()}`);
-        console.log(`  Launch time: ${launchTime.toISOString()}`);
-        console.log(`  Time until launch: ${Math.floor(timeUntilLaunch / 1000)} seconds`);
-
         if (timeUntilLaunch < twoMinutesInMs) {
           console.warn(
-            '⚠️ Launch time is too close to current time or in the past.\n' +
-            `  Requested: ${launchTime.toISOString()}\n` +
-            `  Current:   ${now.toISOString()}\n` +
-            `  Difference: ${Math.floor(timeUntilLaunch / 1000)} seconds\n` +
-            'Automatically adjusting to immediate activation...'
+            '⚠️ Launch time is too close or in the past. Auto-adjusting to immediate...'
           );
 
-          // Track the adjustment
           launchTimeAdjusted = true;
           requestedLaunchTime = formData.launchDateTime;
 
@@ -277,7 +235,6 @@ export class TokenLaunchService {
             requestedLaunchTime: formData.launchDateTime,
           });
 
-          // Re-create pool with immediate activation
           poolResult = await createDAMMv2Pool({
             connection: this.connection,
             payer: walletPublicKey,
@@ -286,22 +243,22 @@ export class TokenLaunchService {
             tokenAAmount: poolTokenAmount,
             tokenADecimals: TOKEN_DECIMALS,
             tokenBDecimals: getQuoteTokenDecimals(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
-            initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
+            initialMarketCap: formData.initialMarketCap ?? DEFAULT_LAUNCH_PARAMS.initialMarketCap,
+            totalSupply: formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply,
+            marketCapRangeMin: formData.marketCapRangeMin ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMin,
+            marketCapRangeMax: formData.marketCapRangeMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax,
             tokenAProgram: TOKEN_PROGRAM_ID,
             tokenBProgram: TOKEN_PROGRAM_ID,
-            launchTime: undefined, // Immediate activation
+            launchTime: undefined,
             feeSchedulerConfig: formData.feeSchedulerConfig,
             collectFeeMode: formData.feeTokenMode === 'both' ? CollectFeeMode.BothToken : CollectFeeMode.OnlyB,
           });
 
           console.log("✓ Pool recreated for immediate activation");
-        } else {
-          console.log(`✓ Launch time is valid (${Math.floor(timeUntilLaunch / 1000)} seconds in the future)`);
         }
       }
 
-
-      // Step 5: Get fresh blockhash right before signing
+      // Step 5: Get fresh blockhash
       this.updateStatus({
         step: "signing",
         message: "Getting fresh blockhash...",
@@ -309,14 +266,12 @@ export class TokenLaunchService {
       });
 
       const { blockhash, lastValidBlockHeight } = await getRecentBlockhash(this.connection);
-      console.log("Fresh blockhash obtained for signing");
 
-      // Assign blockhash to all transactions
       mintResult.transaction.recentBlockhash = blockhash;
       combinedTx.recentBlockhash = blockhash;
       poolResult.transaction.recentBlockhash = blockhash;
 
-      // Step 6: Sign all transactions at once (single user approval!)
+      // Step 6: Sign all transactions at once
       this.updateStatus({
         step: "signing",
         message: "Please approve all transactions in your wallet...",
@@ -329,14 +284,12 @@ export class TokenLaunchService {
         poolResult.transaction,
       ];
 
-      console.log("Requesting user signature for all 3 transactions at once...");
       const signedTransactions = await signAllTransactions(allTransactions);
 
-      // Add keypair signatures after wallet signing
-      signedTransactions[0].partialSign(mintKeypair); // Mint transaction
-      signedTransactions[2].partialSign(poolResult.positionNft); // Pool transaction
+      signedTransactions[0].partialSign(mintKeypair);
+      signedTransactions[2].partialSign(poolResult.positionNft);
 
-      // Step 7: Submit all transactions sequentially
+      // Step 7: Submit sequentially
       this.updateStatus({
         step: "submitting",
         message: "Submitting mint transaction...",
@@ -345,36 +298,22 @@ export class TokenLaunchService {
 
       const mintSignature = await this.connection.sendRawTransaction(signedTransactions[0].serialize());
       await confirmTransaction(this.connection, mintSignature, blockhash, lastValidBlockHeight);
-      console.log(`✓ Mint created: ${mintResult.mint.toBase58()}, signature: ${mintSignature}`);
 
       this.updateStatus({
         step: "submitting",
         message: "Finalizing token setup...",
         progress: 90,
-        transactions: {
-          mintSignature,
-        },
+        transactions: { mintSignature },
       });
 
       const setupSignature = await this.connection.sendRawTransaction(signedTransactions[1].serialize());
       await confirmTransaction(this.connection, setupSignature, blockhash, lastValidBlockHeight);
-      console.log(
-        `✓ Token setup complete:\n` +
-        `  - Minted ${formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply} tokens\n` +
-        `  - Created immutable metadata\n` +
-        `  - Revoked mint authority\n` +
-        `  - Revoked freeze authority\n` +
-        `  Signature: ${setupSignature}`
-      );
 
       this.updateStatus({
         step: "pool",
         message: "Creating DAMMv2 pool...",
         progress: 95,
-        transactions: {
-          mintSignature,
-          setupSignature,
-        },
+        transactions: { mintSignature, setupSignature },
       });
 
       let poolSignature: string;
@@ -382,15 +321,7 @@ export class TokenLaunchService {
       try {
         poolSignature = await this.connection.sendRawTransaction(signedTransactions[2].serialize());
         await confirmTransaction(this.connection, poolSignature, blockhash, lastValidBlockHeight);
-        console.log(
-          `✓ DAMMv2 pool created:\n` +
-          `  Pool: ${poolResult.pool.toBase58()}\n` +
-          `  Position: ${poolResult.position.toBase58()}\n` +
-          `  Position NFT: ${poolResult.positionNft.publicKey.toBase58()}\n` +
-          `  Signature: ${poolSignature}`
-        );
       } catch (poolError: unknown) {
-        // Check if this is an InvalidActivationPoint error
         const errorMessage = (poolError as Error & { logs?: string[] })?.message || '';
         const errorLogs = (poolError as Error & { logs?: string[] })?.logs?.join('\n') || '';
 
@@ -398,18 +329,11 @@ export class TokenLaunchService {
           errorMessage.includes('InvalidActivationPoint') ||
           errorMessage.includes('0x177b') ||
           errorMessage.includes('6011') ||
-          errorLogs.includes('InvalidActivationPoint') ||
-          errorLogs.includes('0x177b') ||
-          errorLogs.includes('6011');
+          errorLogs.includes('InvalidActivationPoint');
 
         if (isActivationError && formData.enableTimedLaunch && formData.launchDateTime && !launchTimeAdjusted) {
-          console.warn(
-            '⚠️ Pool creation failed with InvalidActivationPoint error.\n' +
-            'Launch time expired between validation and submission.\n' +
-            'Recreating pool for immediate activation and requesting new approval...'
-          );
+          console.warn('⚠️ Pool creation failed with InvalidActivationPoint. Recreating for immediate launch...');
 
-          // Track the adjustment
           launchTimeAdjusted = true;
           requestedLaunchTime = formData.launchDateTime;
 
@@ -417,15 +341,11 @@ export class TokenLaunchService {
             step: "pool",
             message: "Launch time expired - recreating pool for immediate launch...",
             progress: 92,
-            transactions: {
-              mintSignature,
-              setupSignature,
-            },
+            transactions: { mintSignature, setupSignature },
             launchTimeAdjusted: true,
             requestedLaunchTime: formData.launchDateTime,
           });
 
-          // Re-create pool with immediate activation
           const newPoolResult = await createDAMMv2Pool({
             connection: this.connection,
             payer: walletPublicKey,
@@ -434,15 +354,17 @@ export class TokenLaunchService {
             tokenAAmount: poolTokenAmount,
             tokenADecimals: TOKEN_DECIMALS,
             tokenBDecimals: getQuoteTokenDecimals(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
-            initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
+            initialMarketCap: formData.initialMarketCap ?? DEFAULT_LAUNCH_PARAMS.initialMarketCap,
+            totalSupply: formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply,
+            marketCapRangeMin: formData.marketCapRangeMin ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMin,
+            marketCapRangeMax: formData.marketCapRangeMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax,
             tokenAProgram: TOKEN_PROGRAM_ID,
             tokenBProgram: TOKEN_PROGRAM_ID,
-            launchTime: undefined, // Immediate activation
+            launchTime: undefined,
             feeSchedulerConfig: formData.feeSchedulerConfig,
             collectFeeMode: formData.feeTokenMode === 'both' ? CollectFeeMode.BothToken : CollectFeeMode.OnlyB,
           });
 
-          // Get fresh blockhash for the retry
           const { blockhash: newBlockhash, lastValidBlockHeight: newLastValidBlockHeight } =
             await getRecentBlockhash(this.connection);
 
@@ -455,7 +377,6 @@ export class TokenLaunchService {
             progress: 93,
           });
 
-          console.log("Requesting user signature for corrected pool transaction...");
           const [signedPoolTx] = await signAllTransactions([newPoolResult.transaction]);
           signedPoolTx.partialSign(newPoolResult.positionNft);
 
@@ -468,18 +389,8 @@ export class TokenLaunchService {
           poolSignature = await this.connection.sendRawTransaction(signedPoolTx.serialize());
           await confirmTransaction(this.connection, poolSignature, newBlockhash, newLastValidBlockHeight);
 
-          // Update poolResult for the final config
-          poolResult = newPoolResult;
-
-          console.log(
-            `✓ DAMMv2 pool created (immediate activation):\n` +
-            `  Pool: ${poolResult.pool.toBase58()}\n` +
-            `  Position: ${poolResult.position.toBase58()}\n` +
-            `  Position NFT: ${poolResult.positionNft.publicKey.toBase58()}\n` +
-            `  Signature: ${poolSignature}`
-          );
+          console.log("✓ DAMMv2 pool created (immediate activation)");
         } else {
-          // Different error or already adjusted - rethrow
           throw poolError;
         }
       }
@@ -490,11 +401,7 @@ export class TokenLaunchService {
         message: "Token launch complete!",
         progress: 100,
         txSignature: setupSignature,
-        transactions: {
-          mintSignature,
-          setupSignature,
-          poolSignature,
-        },
+        transactions: { mintSignature, setupSignature, poolSignature },
         launchTimeAdjusted,
         requestedLaunchTime,
       });
@@ -502,19 +409,19 @@ export class TokenLaunchService {
       const launchConfig: TokenLaunchConfig = {
         mint: mintResult.mint,
         metadata: metadata,
-        metadataUri: metadataUri, // IPFS URI where metadata JSON is stored
+        metadataUri: metadataUri,
         totalSupply: formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply,
         decimals: TOKEN_DECIMALS,
         quoteTokenMint: new PublicKey(QUOTE_TOKEN_MINT),
-        initialPrice: formData.initialPrice ?? DEFAULT_LAUNCH_PARAMS.initialPrice,
-        priceRangeMin: formData.priceRangeMin ?? DEFAULT_LAUNCH_PARAMS.priceRangeMin,
-        priceRangeMax: formData.priceRangeMax ?? DEFAULT_LAUNCH_PARAMS.priceRangeMax,
+        initialMarketCap: formData.initialMarketCap ?? DEFAULT_LAUNCH_PARAMS.initialMarketCap,
+        marketCapRangeMin: formData.marketCapRangeMin ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMin,
+        marketCapRangeMax: formData.marketCapRangeMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax,
         poolAddress: poolResult.pool,
         positionAddress: poolResult.position,
         positionNft: poolResult.positionNft.publicKey,
         feeSchedulerConfig: formData.feeSchedulerConfig,
         feeTokenMode: formData.feeTokenMode,
-        holdbackPercentage: formData.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage,
+        lockedLiquidityPercentage: formData.lockedLiquidityPercentage ?? DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage,
         launchTime: formData.enableTimedLaunch ? formData.launchDateTime || undefined : undefined,
       };
 

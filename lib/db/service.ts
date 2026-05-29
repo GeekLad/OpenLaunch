@@ -31,11 +31,11 @@ export interface TokenCreateInput {
   totalSupply: string;
 
   // Pool configuration
-  initialPrice: number;
+  initialMarketCap: number;
   quoteTokenMint: string;
   poolLiquidityPercentage: number;
-  priceRangeMin: number;
-  priceRangeMax: number;
+  marketCapRangeMin: number;
+  marketCapRangeMax: number;
 
   // Fee configuration
   feeDecayDurationMinutes?: number;
@@ -44,11 +44,11 @@ export interface TokenCreateInput {
   feeTokenMode: string;
   startingMarketCap: string;
   endingMarketCap: string;
-  startRate: number;
-  endRate: number;
+  startRatePercent: number;
+  endRatePercent: number;
   durationMinutes: number;
-  fixedBaseFeeBps: number;
-  holdbackPercentage: number;
+  fixedBaseFeePercent: number;
+  lockedLiquidityPercentage: number;
 
   // Launch info
   launchDate: Date;

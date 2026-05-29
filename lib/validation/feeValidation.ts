@@ -13,6 +13,7 @@ import {
   CollectFeeMode,
   ActivationType,
 } from "@meteora-ag/cp-amm-sdk";
+import { percentToBps } from "@/config/defaults";
 
 /**
  * Validates launch parameters against SDK-specific constraints.
@@ -25,31 +26,33 @@ export function validateLaunchParams(
 ): { valid: boolean; errors: Record<string, string> } {
   const errors: Record<string, string> = {};
 
-  const holdback = Number(params.holdbackPercentage ?? 0);
-  if (holdback < 0 || holdback > 100) {
-    errors.holdbackPercentage = "Holdback percentage must be between 0 and 100";
+  const lockedLiquidity = Number(params.lockedLiquidityPercentage ?? 100);
+  if (lockedLiquidity < 0 || lockedLiquidity > 100) {
+    errors.lockedLiquidityPercentage = "Locked liquidity must be between 0 and 100";
   }
 
+  // Fee rates are stored as percentages (e.g., 0.5 for 0.5%)
   const feeStartRate = Number(params.feeStartRate ?? 0);
   const feeEndRate = Number(params.feeEndRate ?? 0);
   const feeFixedRate = Number(params.feeFixedRate ?? 0);
 
-  if (feeStartRate !== 0 && (feeStartRate < 1 || feeStartRate > 9900)) {
-    errors.feeStartRate = "Fee start rate must be between 1 and 9900 basis points";
+  // Convert to bps for validation range: 0.01% to 99% = 1 to 9900 bps
+  if (feeStartRate !== 0 && (feeStartRate < 0.01 || feeStartRate > 99)) {
+    errors.feeStartRate = "Fee start rate must be between 0.01% and 99%";
   }
-  if (feeEndRate !== 0 && (feeEndRate < 1 || feeEndRate > 9900)) {
-    errors.feeEndRate = "Fee end rate must be between 1 and 9900 basis points";
+  if (feeEndRate !== 0 && (feeEndRate < 0.01 || feeEndRate > 99)) {
+    errors.feeEndRate = "Fee end rate must be between 0.01% and 99%";
   }
-  if (feeFixedRate !== 0 && (feeFixedRate < 1 || feeFixedRate > 9900)) {
-    errors.feeFixedRate = "Fixed fee rate must be between 1 and 9900 basis points";
+  if (feeFixedRate !== 0 && (feeFixedRate < 0.01 || feeFixedRate > 99)) {
+    errors.feeFixedRate = "Fixed fee rate must be between 0.01% and 99%";
   }
 
   const startingMarketCap = Number(params.startingMarketCap ?? 0);
   const endingMarketCap = Number(params.endingMarketCap ?? 0);
-  if (startingMarketCap < 0) {
+  if (startingMarketCap <= 0) {
     errors.startingMarketCap = "Starting market cap must be greater than 0";
   }
-  if (endingMarketCap < 0) {
+  if (endingMarketCap <= 0) {
     errors.endingMarketCap = "Ending market cap must be greater than 0";
   }
 
@@ -67,6 +70,18 @@ export function validateLaunchParams(
     errors.quoteTokenMint = "Quote token must be SOL or USDC";
   }
 
+  // Market cap must be >= launch market cap validation
+  const totalSupply = Number(params.totalSupply ?? 0);
+  const initialMarketCap = Number(params.initialMarketCap ?? 0);
+  const launchMarketCap = totalSupply > 0 ? initialMarketCap : 0;
+
+  if (launchMarketCap > 0 && startingMarketCap > 0 && startingMarketCap < launchMarketCap) {
+    errors.startingMarketCap = `Starting market cap (${startingMarketCap}) must be >= launch market cap (${launchMarketCap})`;
+  }
+  if (launchMarketCap > 0 && endingMarketCap > 0 && endingMarketCap < launchMarketCap) {
+    errors.endingMarketCap = `Ending market cap (${endingMarketCap}) must be >= launch market cap (${launchMarketCap})`;
+  }
+
   // If basic bounds already failed, skip SDK constructor validation
   if (Object.keys(errors).length > 0) {
     return { valid: false, errors };
@@ -78,8 +93,8 @@ export function validateLaunchParams(
   try {
     if (feeSchedulerMode === "time-based") {
       baseFee = getFeeTimeSchedulerParams(
-        feeStartRate || 50,
-        feeEndRate || 25,
+        percentToBps(feeStartRate || 0.5),
+        percentToBps(feeEndRate || 0.25),
         BaseFeeMode.FeeTimeSchedulerLinear,
         60,
         (feeDurationHours || 1) * 3600
@@ -87,7 +102,7 @@ export function validateLaunchParams(
     } else if (feeSchedulerMode === "market-cap-based") {
       const priceMultiple =
         startingMarketCap > 0
-          ? Math.round(endingMarketCap / startingMarketCap)
+          ? endingMarketCap / startingMarketCap
           : 1;
       if (priceMultiple <= 1) {
         errors.feeSchedulerConfig =
@@ -95,8 +110,8 @@ export function validateLaunchParams(
         return { valid: false, errors };
       }
       baseFee = getFeeMarketCapSchedulerParams(
-        feeStartRate || 50,
-        feeEndRate || 25,
+        percentToBps(feeStartRate || 0.5),
+        percentToBps(feeEndRate || 0.25),
         BaseFeeMode.FeeMarketCapSchedulerLinear,
         60,
         priceMultiple,
@@ -105,8 +120,8 @@ export function validateLaunchParams(
     } else {
       // Fixed fee mode
       baseFee = getFeeTimeSchedulerParams(
-        feeFixedRate || 25,
-        feeFixedRate || 25,
+        percentToBps(feeFixedRate || 0.25),
+        percentToBps(feeFixedRate || 0.25),
         BaseFeeMode.FeeTimeSchedulerLinear,
         0,
         0

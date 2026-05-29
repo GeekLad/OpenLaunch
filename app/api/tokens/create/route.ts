@@ -22,24 +22,24 @@ export async function POST(request: NextRequest) {
     // Belt-and-suspenders: re-validate launch parameters server-side
     const validationInput = {
       totalSupply: Number(data.totalSupply),
-      holdbackPercentage: Number(data.holdbackPercentage),
-      priceRangeMin: Number(data.priceRangeMin ?? DEFAULT_LAUNCH_PARAMS.priceRangeMin),
-      initialPrice: Number(data.initialPrice),
-      priceRangeMax: Number(data.priceRangeMax ?? DEFAULT_LAUNCH_PARAMS.priceRangeMax),
-      baseFeeBps: Number(data.fixedBaseFeeBps ?? DEFAULT_LAUNCH_PARAMS.baseFeeBps),
+      lockedLiquidityPercentage: Number(data.lockedLiquidityPercentage),
+      marketCapRangeMin: Number(data.marketCapRangeMin ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMin),
+      initialMarketCap: Number(data.initialMarketCap),
+      marketCapRangeMax: Number(data.marketCapRangeMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax),
+      baseFeeBps: Number(data.fixedBaseFeePercent ?? DEFAULT_LAUNCH_PARAMS.baseFeeBps),
       feeSchedulerConfig: {
         mode: String(data.feeSchedulerMode ?? DEFAULT_LAUNCH_PARAMS.feeSchedulerMode),
         ...(data.feeSchedulerMode === 'market-cap-based' ? {
           startingMarketCap: Number(data.startingMarketCap ?? 0),
           endingMarketCap: Number(data.endingMarketCap ?? 0),
-          feeMarketCapStartRate: Number(data.startRate ?? 0),
-          feeMarketCapEndRate: Number(data.endRate ?? 0),
+          feeMarketCapStartRatePercent: Number(data.startRatePercent ?? 0),
+          feeMarketCapEndRatePercent: Number(data.endRatePercent ?? 0),
         } : data.feeSchedulerMode === 'time-based' ? {
-          startRate: Number(data.startRate ?? 0),
-          endRate: Number(data.endRate ?? 0),
+          startRatePercent: Number(data.startRatePercent ?? 0),
+          endRatePercent: Number(data.endRatePercent ?? 0),
           durationMinutes: Number(data.durationMinutes ?? 0),
         } : {
-          baseFeeBps: Number(data.fixedBaseFeeBps ?? 0),
+          baseFeePercent: Number(data.fixedBaseFeePercent ?? 0),
         }),
       } as unknown as import('@/types/fee').FeeSchedulerConfig,
       feeTokenMode: String(data.feeTokenMode ?? DEFAULT_LAUNCH_PARAMS.feeTokenMode),
@@ -77,51 +77,36 @@ export async function POST(request: NextRequest) {
 
     // Prepare token data for database
     const tokenData: TokenCreateInput = {
-      // Token identifiers
       mintAddress: data.mintAddress,
       poolAddress: data.poolAddress,
-
-      // Token metadata
       name: data.name,
       symbol: data.symbol,
       description: data.description || undefined,
       logoUrl: data.logoUrl,
       metadataUri: data.metadataUri || undefined,
-
-      // Token configuration
       decimals: data.decimals,
       totalSupply: data.totalSupply,
-
-      // Pool configuration
-      initialPrice: data.initialPrice,
+      initialMarketCap: data.initialMarketCap,
       quoteTokenMint: data.quoteTokenMint,
       poolLiquidityPercentage: data.poolLiquidityPercentage,
-      priceRangeMin: data.priceRangeMin ?? DEFAULT_LAUNCH_PARAMS.priceRangeMin,
-      priceRangeMax: data.priceRangeMax ?? DEFAULT_LAUNCH_PARAMS.priceRangeMax,
-
-      // Fee configuration
+      marketCapRangeMin: data.marketCapRangeMin ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMin,
+      marketCapRangeMax: data.marketCapRangeMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax,
       feeDecayDurationMinutes: data.feeDecayDurationMinutes ?? 0,
       feeDecayPeriods: data.feeDecayPeriods ?? 0,
       feeSchedulerMode: data.feeSchedulerMode ?? DEFAULT_LAUNCH_PARAMS.feeSchedulerMode,
       feeTokenMode: data.feeTokenMode ?? DEFAULT_LAUNCH_PARAMS.feeTokenMode,
       startingMarketCap: data.startingMarketCap ?? DEFAULT_LAUNCH_PARAMS.startingMarketCap.toString(),
       endingMarketCap: data.endingMarketCap ?? DEFAULT_LAUNCH_PARAMS.endingMarketCap.toString(),
-      startRate: data.startRate ?? DEFAULT_LAUNCH_PARAMS.feeStartRate,
-      endRate: data.endRate ?? DEFAULT_LAUNCH_PARAMS.feeEndRate,
+      startRatePercent: data.startRatePercent ?? DEFAULT_LAUNCH_PARAMS.feeStartPercent,
+      endRatePercent: data.endRatePercent ?? DEFAULT_LAUNCH_PARAMS.feeEndPercent,
       durationMinutes: data.durationMinutes ?? DEFAULT_FEE_DURATION_MINUTES,
-      fixedBaseFeeBps: data.fixedBaseFeeBps ?? DEFAULT_LAUNCH_PARAMS.baseFeeBps,
-      holdbackPercentage: data.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage,
-
-      // Launch info
+      fixedBaseFeePercent: data.fixedBaseFeePercent ?? DEFAULT_LAUNCH_PARAMS.feeFixedPercent,
+      lockedLiquidityPercentage: data.lockedLiquidityPercentage ?? DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage,
       launchDate: data.launchDate ? new Date(data.launchDate) : new Date(),
       launchSlot: data.launchSlot || undefined,
-
-      // Transaction signatures
       mintTxSignature: data.mintTxSignature,
       metadataTxSignature: data.metadataTxSignature,
       poolTxSignature: data.poolTxSignature,
-
-      // Creator
       creatorWallet: data.creatorWallet,
     };
 
@@ -131,20 +116,19 @@ export async function POST(request: NextRequest) {
     console.log('[API] ✓ Token created in database:', token.id);
 
     // Create initial fee update schedule
-    // Determine initial update interval based on launch date
     const now = new Date();
     const launchDate = new Date(tokenData.launchDate);
     const hoursSinceLaunch = (now.getTime() - launchDate.getTime()) / (1000 * 60 * 60);
 
     let updateIntervalMinutes: number;
     if (hoursSinceLaunch < 1) {
-      updateIntervalMinutes = 1; // First hour: every 1 minute
+      updateIntervalMinutes = 1;
     } else if (hoursSinceLaunch < 24) {
-      updateIntervalMinutes = 5; // 1-24 hours: every 5 minutes
+      updateIntervalMinutes = 5;
     } else if (hoursSinceLaunch < 96) {
-      updateIntervalMinutes = 10; // 24-96 hours: every 10 minutes
+      updateIntervalMinutes = 10;
     } else {
-      updateIntervalMinutes = 60; // 96+ hours: every 60 minutes
+      updateIntervalMinutes = 60;
     }
 
     const nextUpdate = new Date(now.getTime() + updateIntervalMinutes * 60 * 1000);

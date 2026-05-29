@@ -18,6 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Advanced Parameters, Fee Modes & Complex Validation** - Holdback slider, quote token selection, fee scheduler modes, and server-side SDK validation (completed 2026-05-26)
 - [x] **Phase 4: Blockchain Integration & Pre-flight Safety** - SDK upgrade, on-chain parameter mapping, holdback math, and transaction simulation (completed 2026-05-26)
 - [x] **Phase 5: Service Orchestration, Persistence & Detail Pages** - Full launch flow wiring, database persistence, and token detail page enhancement (completed 2026-05-26)
+- [ ] **Phase 5.1: Detail Page & Form UX Polish** - Reorganize token detail layout, move RPC to server-side env, invert holdback to locked liquidity, convert price to market cap, two-column form, percent-based fees (INSERTED)
 - [ ] **Phase 6: Background Jobs & Hardening** - Mode-aware fee updater, both-token fee tracking, and final safety hardening
 
 ## Phase Details

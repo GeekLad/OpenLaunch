@@ -21,9 +21,8 @@ export default function LaunchPage() {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
 
-  const MIN_BALANCE_REQUIRED = 0.05; // SOL
+  const MIN_BALANCE_REQUIRED = 0.05;
 
-  // Check wallet balance when publicKey changes
   useEffect(() => {
     async function checkWalletBalance() {
       if (!publicKey) {
@@ -65,7 +64,7 @@ export default function LaunchPage() {
 
       const launchService = new TokenLaunchService((status) => {
         setLaunchStatus(status);
-        finalStatus = status; // Capture the final status
+        finalStatus = status;
       });
 
       const result = await launchService.launchToken(formData, publicKey, signAllTransactions);
@@ -73,10 +72,7 @@ export default function LaunchPage() {
       setLaunchResult(result);
       setIsLaunching(false);
 
-      // Save successful launch to database and redirect
-      // Check if we have a complete launch with all transaction signatures
       if (finalStatus && finalStatus.step === "complete" && finalStatus.transactions) {
-        // Update status to show we're gathering token information
         setLaunchStatus({
           step: "complete",
           message: "Gathering token information...",
@@ -91,85 +87,72 @@ export default function LaunchPage() {
         try {
           console.log("[Database] Saving token launch to database...");
 
-          // Get the current slot for launch time tracking
           const connection = await import("@/lib/solana/connection").then(m => m.getConnection());
           const launchSlot = await connection.getSlot();
 
+          // Build fee scheduler payload from discriminated union
+          let feePayload: Record<string, unknown>;
+          const config = result.formData.feeSchedulerConfig;
+          if (config.mode === 'market-cap-based') {
+            feePayload = {
+              startingMarketCap: String(config.startingMarketCap),
+              endingMarketCap: String(config.endingMarketCap),
+              startRatePercent: config.feeMarketCapStartRatePercent,
+              endRatePercent: config.feeMarketCapEndRatePercent,
+            };
+          } else if (config.mode === 'time-based') {
+            feePayload = {
+              startRatePercent: config.startRatePercent,
+              endRatePercent: config.endRatePercent,
+              durationMinutes: config.durationMinutes,
+              feeDecayPeriods: DEFAULT_NUMBER_OF_PERIODS,
+            };
+          } else {
+            feePayload = {
+              fixedBaseFeePercent: config.baseFeePercent,
+            };
+          }
+
           const response = await fetch("/api/tokens/create", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              // Token identifiers
               mintAddress: result.config.mint.toBase58(),
               poolAddress: result.config.poolAddress?.toBase58() || "",
-
-              // Token metadata
               name: result.config.metadata.name,
               symbol: result.config.metadata.symbol,
               description: result.config.metadata.description || "",
-              logoUrl: result.config.metadata.image, // IPFS URL for the logo image
-              metadataUri: result.config.metadataUri || "", // IPFS URI for the metadata JSON
-
-              // Token configuration
+              logoUrl: result.config.metadata.image,
+              metadataUri: result.config.metadataUri || "",
               decimals: result.config.decimals,
               totalSupply: result.config.totalSupply.toString(),
-
-              // Pool configuration
-              initialPrice: result.config.initialPrice,
+              initialMarketCap: result.config.initialMarketCap,
               quoteTokenMint: result.config.quoteTokenMint.toBase58(),
               poolLiquidityPercentage: DEFAULT_LAUNCH_PARAMS.poolLiquidityPercentage,
-              priceRangeMin: result.formData.priceRangeMin ?? DEFAULT_LAUNCH_PARAMS.priceRangeMin,
-              priceRangeMax: result.formData.priceRangeMax ?? DEFAULT_LAUNCH_PARAMS.priceRangeMax,
-
-              // Fee configuration — from formData to preserve user choices
+              marketCapRangeMin: result.formData.marketCapRangeMin ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMin,
+              marketCapRangeMax: result.formData.marketCapRangeMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax,
               feeSchedulerMode: result.formData.feeSchedulerConfig.mode,
               feeTokenMode: result.formData.feeTokenMode,
-              holdbackPercentage: result.formData.holdbackPercentage ?? DEFAULT_LAUNCH_PARAMS.holdbackPercentage,
-
-              // Spread discriminated union fields from feeSchedulerConfig
-              ...(result.formData.feeSchedulerConfig.mode === 'market-cap-based' ? {
-                startingMarketCap: String(result.formData.feeSchedulerConfig.startingMarketCap),
-                endingMarketCap: String(result.formData.feeSchedulerConfig.endingMarketCap),
-                startRate: result.formData.feeSchedulerConfig.feeMarketCapStartRate,
-                endRate: result.formData.feeSchedulerConfig.feeMarketCapEndRate,
-              } : result.formData.feeSchedulerConfig.mode === 'time-based' ? {
-                startRate: result.formData.feeSchedulerConfig.startRate,
-                endRate: result.formData.feeSchedulerConfig.endRate,
-                durationMinutes: result.formData.feeSchedulerConfig.durationMinutes,
-                feeDecayPeriods: DEFAULT_NUMBER_OF_PERIODS,
-              } : {
-                fixedBaseFeeBps: result.formData.feeSchedulerConfig.baseFeeBps,
-              }),
-
-              // Launch info
+              lockedLiquidityPercentage: result.formData.lockedLiquidityPercentage ?? DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage,
+              ...feePayload,
               launchDate: result.config.launchTime || new Date(),
-              launchSlot: launchSlot,
-
-              // Transaction signatures
+              launchSlot,
               mintTxSignature: finalStatus!.transactions.mintSignature || "",
               metadataTxSignature: finalStatus!.transactions.setupSignature || "",
               poolTxSignature: finalStatus!.transactions.poolSignature || "",
-
-              // Creator
               creatorWallet: publicKey.toBase58(),
             }),
           });
 
           if (response.ok) {
             console.log("[Database] ✓ Token saved successfully");
-
-            // Redirect to token detail page immediately
             router.push(`/tokens/${result.config.mint.toBase58()}`);
           } else {
             const error = await response.json();
             console.error("[Database] Failed to save token:", error);
-            // Don't fail the launch if database save fails - it's not critical
           }
         } catch (dbError) {
           console.error("[Database] Error saving to database:", dbError);
-          // Don't fail the launch if database save fails
         } finally {
           setIsSavingToDatabase(false);
         }
@@ -188,16 +171,14 @@ export default function LaunchPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-        <div className="mx-auto max-w-4xl space-y-8">
-          {/* Page Title */}
-          <div>
-            <h1 className="text-4xl font-bold">Launch Your Meme Token</h1>
-            <p className="mt-2 text-muted-foreground">
-              Deploy your token on Solana with DAMMv2 liquidity
-            </p>
-          </div>
+      <div className="mx-auto max-w-4xl space-y-8">
+        <div>
+          <h1 className="text-4xl font-bold">Launch Your Meme Token</h1>
+          <p className="mt-2 text-muted-foreground">
+            Deploy your token on Solana with DAMMv2 liquidity
+          </p>
+        </div>
 
-        {/* Connection Check */}
         {!publicKey && (
           <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
             <CardContent className="pt-6">
@@ -208,7 +189,6 @@ export default function LaunchPage() {
           </Card>
         )}
 
-        {/* Insufficient Balance Warning */}
         {publicKey && !isCheckingBalance && walletBalance !== null && walletBalance < MIN_BALANCE_REQUIRED && (
           <Card className="border-red-500 bg-red-50 dark:bg-red-950">
             <CardContent className="pt-6">
@@ -222,15 +202,11 @@ export default function LaunchPage() {
                 <p className="text-sm text-red-600 dark:text-red-400">
                   Current balance: <span className="font-bold">{walletBalance.toFixed(4)} SOL</span>
                 </p>
-                <p className="text-xs text-red-500 dark:text-red-500 mt-2">
-                  Please fund your wallet before launching a token.
-                </p>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Launch Status */}
         {launchStatus && launchStatus.step !== "idle" && (
           <Card>
             <CardHeader>
@@ -266,12 +242,10 @@ export default function LaunchPage() {
           </Card>
         )}
 
-
-          {/* Launch Form */}
-          {publicKey && !isLaunching && launchStatus?.step !== "complete" && !isCheckingBalance && (walletBalance === null || walletBalance >= MIN_BALANCE_REQUIRED) && (
-            <TokenLaunchForm onSubmit={handleLaunch} isLoading={isLaunching} />
-          )}
-        </div>
+        {publicKey && !isLaunching && launchStatus?.step !== "complete" && !isCheckingBalance && (walletBalance === null || walletBalance >= MIN_BALANCE_REQUIRED) && (
+          <TokenLaunchForm onSubmit={handleLaunch} isLoading={isLaunching} />
+        )}
+      </div>
     </div>
   );
 }

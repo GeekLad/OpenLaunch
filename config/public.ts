@@ -18,7 +18,9 @@ export const SOLANA_NETWORK = "mainnet-beta" as const;
 export const DEFAULT_CLIENT_RPC_URL =
   "https://api.mainnet-beta.solana.com" as const;
 
-// Client-side RPC: respects NEXT_PUBLIC_RPC_URL env var at build time.
+// Client-side RPC: falls back to the default public endpoint.
+// NOTE: Server-side RPC is set via the non-public RPC_URL env var
+// (see config/secrets.ts) so it can be changed without rebuilding.
 export const CLIENT_RPC_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_RPC_URL) ||
   DEFAULT_CLIENT_RPC_URL;

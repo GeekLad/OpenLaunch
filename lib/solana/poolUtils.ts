@@ -2,7 +2,7 @@ import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js";
 import { CpAmm, type PoolFeesParams, getFeeTimeSchedulerParams, getFeeMarketCapSchedulerParams, BaseFeeMode, CollectFeeMode, getDynamicFeeParams } from "@meteora-ag/cp-amm-sdk";
 import { getMint, Mint, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import BN from "bn.js";
-import { DEFAULT_NUMBER_OF_PERIODS } from "@/config/defaults";
+import { DEFAULT_NUMBER_OF_PERIODS, percentToBps } from "@/config/defaults";
 import type { FeeSchedulerConfig } from "@/types/fee";
 
 // Meteora DAMMv2 Program ID
@@ -60,13 +60,15 @@ export interface CreatePoolParams {
   tokenAAmount: number; // Only token A amount for single-sided pool
   tokenADecimals: number;
   tokenBDecimals: number;
-  initialPrice: number; // Price in terms of token B per token A (SOL per token)
-  maxPrice?: number; // Maximum price (defaults to 100x initial price)
-  baseFeeNumerator?: number; // Base fee in basis points (default 30 = 0.3%)
-  hasAlphaVault?: boolean; // Whether to enable alpha vault (default false)
-  tokenAProgram?: PublicKey; // Optional: Token A program ID (auto-detected if not provided)
-  tokenBProgram?: PublicKey; // Optional: Token B program ID (auto-detected if not provided)
-  launchTime?: Date; // Optional: Schedule when the pool becomes active
+  initialMarketCap: number; // Market cap in terms of quote token (totalSupply * price)
+  totalSupply: number;
+  marketCapRangeMin: number;
+  marketCapRangeMax: number;
+  baseFeeNumerator?: number; // Base fee in basis points (default 25 = 0.25%)
+  hasAlphaVault?: boolean;
+  tokenAProgram?: PublicKey;
+  tokenBProgram?: PublicKey;
+  launchTime?: Date;
   feeSchedulerConfig?: FeeSchedulerConfig;
   collectFeeMode?: CollectFeeMode;
 }
@@ -78,14 +80,9 @@ export interface CreatePoolResult {
   positionNft: Keypair;
 }
 
-// Fee configuration types matching Meteora SDK
-// Note: These should match the SDK's internal types exactly
-
 /**
- * Creates a DAMMv2 pool on Meteora with single-sided liquidity (token only, no SOL)
- * This implementation follows the Meteora reference implementation for one-sided pools
- * @param params - Pool creation parameters
- * @returns Transaction, pool address, position address, and NFT keypair
+ * Creates a DAMMv2 pool on Meteora with single-sided liquidity.
+ * Converts market cap values to price internally for the SDK.
  */
 export async function createDAMMv2Pool(params: CreatePoolParams): Promise<CreatePoolResult> {
   const {
@@ -96,9 +93,10 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
     tokenAAmount,
     tokenADecimals,
     tokenBDecimals,
-    initialPrice,
-    maxPrice,
-    baseFeeNumerator = 25, // 0.25% default fee
+    initialMarketCap,
+    totalSupply,
+    marketCapRangeMax,
+    baseFeeNumerator = 25,
     hasAlphaVault = false,
     tokenAProgram: providedTokenAProgram,
     tokenBProgram: providedTokenBProgram,
@@ -106,6 +104,10 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
     feeSchedulerConfig,
     collectFeeMode,
   } = params;
+
+  // Convert market cap to price for SDK
+  const initialPrice = totalSupply > 0 ? initialMarketCap / totalSupply : 0;
+  const maxPrice = totalSupply > 0 ? marketCapRangeMax / totalSupply : 0;
 
   // Initialize CpAmm SDK
   const cpAmm = new CpAmm(connection);
@@ -123,7 +125,6 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
     tokenAProgram = providedTokenAProgram;
     isTokenA2022 = providedTokenAProgram.equals(TOKEN_2022_PROGRAM_ID);
   } else {
-    // Fetch token A mint info to check if it's TOKEN_2022
     tokenAMintInfo = await getMint(connection, tokenAMint);
     isTokenA2022 = tokenAMintInfo.tlvData && tokenAMintInfo.tlvData.length > 0;
     tokenAProgram = isTokenA2022 ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID;
@@ -132,7 +133,6 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
   if (providedTokenBProgram) {
     tokenBProgram = providedTokenBProgram;
   } else {
-    // Fetch token B mint info to check if it's TOKEN_2022
     const tokenBMintInfo = await getMint(connection, tokenBMint);
     const isTokenB2022 = tokenBMintInfo.tlvData && tokenBMintInfo.tlvData.length > 0;
     tokenBProgram = isTokenB2022 ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID;
@@ -141,23 +141,17 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
   // Convert token amount to BN with proper decimals
   const tokenAAmountBN = new BN(tokenAAmount).mul(new BN(10).pow(new BN(tokenADecimals)));
 
-  // Handle TOKEN_2022 transfer fees if applicable
-  // Note: For simplicity, we're not implementing full transfer fee calculation here
-  // In production, you should use the SDK's calculateTransferFeeIncludedAmount helper
-
-  // Calculate sqrt prices
+  // Calculate sqrt prices from price
   const initSqrtPrice = priceToSqrtPrice(initialPrice, tokenADecimals, tokenBDecimals);
 
-  // For one-sided pools, min price = initial price, max price is higher
-  const sqrtMinPrice = initSqrtPrice; // Must equal init price for one-sided
-  const calculatedMaxPrice = maxPrice || (initialPrice * 100);
-  const sqrtMaxPrice = priceToSqrtPrice(calculatedMaxPrice, tokenADecimals, tokenBDecimals);
+  // For one-sided pools, min price = initial price, max price from range
+  const sqrtMinPrice = initSqrtPrice;
+  const sqrtMaxPrice = priceToSqrtPrice(maxPrice, tokenADecimals, tokenBDecimals);
 
   // Calculate liquidity delta using single-sided helper
-  // This is critical for one-sided pools - only token A is deposited
   const tokenAInfo = isTokenA2022 && tokenAMintInfo ? {
     mint: tokenAMintInfo,
-    currentEpoch: 0, // You should fetch actual epoch in production
+    currentEpoch: 0,
   } : undefined;
 
   const liquidityDelta = cpAmm.preparePoolCreationSingleSide({
@@ -170,35 +164,26 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
   });
 
   // Create pool fees configuration
-  // Convert basis points to fee numerator (denominator is 1,000,000,000)
-  // e.g., 30 bps (0.3%) -> 3,000,000
-
   let poolFees: PoolFeesParams;
-
-  // Configure dynamic fees (adjusts fees based on market volatility)
-  // baseFeeNumerator is used as base, maxPriceChangeBps max is 1500 (15% price change tolerance)
-  const dynamicFee = getDynamicFeeParams(baseFeeNumerator, 1500); // Enable dynamic fees with 15% max price change
+  const dynamicFee = getDynamicFeeParams(baseFeeNumerator, 1500);
 
   if (feeSchedulerConfig && feeSchedulerConfig.mode !== "fixed") {
-    // Fee scheduler mode with dynamic fees
     let baseFee;
     if (feeSchedulerConfig.mode === "market-cap-based") {
-      const startBps = feeSchedulerConfig.feeMarketCapStartRate * 100;
-      const endBps = feeSchedulerConfig.feeMarketCapEndRate * 100;
+      const startBps = percentToBps(feeSchedulerConfig.feeMarketCapStartRatePercent);
+      const endBps = percentToBps(feeSchedulerConfig.feeMarketCapEndRatePercent);
       const numberOfPeriod = DEFAULT_NUMBER_OF_PERIODS;
-      const priceMultiple = Math.pow(
-        feeSchedulerConfig.endingMarketCap / feeSchedulerConfig.startingMarketCap,
-        1 / numberOfPeriod
-      );
-      const schedulerExpirationDuration = 365 * 24 * 60 * 60; // 1 year in seconds
+      // FIX: priceMultiple is the direct ratio, NOT the nth root
+      const priceMultiple = feeSchedulerConfig.endingMarketCap / feeSchedulerConfig.startingMarketCap;
+      const schedulerExpirationDuration = 365 * 24 * 60 * 60;
       const baseFeeMode = feeSchedulerConfig.decayMode === "linear"
         ? BaseFeeMode.FeeMarketCapSchedulerLinear
         : BaseFeeMode.FeeMarketCapSchedulerExponential;
 
       console.log(
         `Fee configuration (market-cap-based):\n` +
-          `  Start rate: ${feeSchedulerConfig.feeMarketCapStartRate}% (${startBps} bps)\n` +
-          `  End rate: ${feeSchedulerConfig.feeMarketCapEndRate}% (${endBps} bps)\n` +
+          `  Start rate: ${feeSchedulerConfig.feeMarketCapStartRatePercent}% (${startBps} bps)\n` +
+          `  End rate: ${feeSchedulerConfig.feeMarketCapEndRatePercent}% (${endBps} bps)\n` +
           `  Starting market cap: ${feeSchedulerConfig.startingMarketCap}\n` +
           `  Ending market cap: ${feeSchedulerConfig.endingMarketCap}\n` +
           `  Number of periods: ${numberOfPeriod}\n` +
@@ -217,15 +202,15 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
       );
     } else {
       // time-based
-      const startBps = feeSchedulerConfig.startRate * 100;
-      const endBps = feeSchedulerConfig.endRate * 100;
+      const startBps = percentToBps(feeSchedulerConfig.startRatePercent);
+      const endBps = percentToBps(feeSchedulerConfig.endRatePercent);
       const durationSeconds = feeSchedulerConfig.durationMinutes * 60;
       const numberOfPeriods = DEFAULT_NUMBER_OF_PERIODS;
 
       console.log(
         `Fee configuration (time-based):\n` +
-          `  Start rate: ${feeSchedulerConfig.startRate}% (${startBps} bps)\n` +
-          `  End rate: ${feeSchedulerConfig.endRate}% (${endBps} bps)\n` +
+          `  Start rate: ${feeSchedulerConfig.startRatePercent}% (${startBps} bps)\n` +
+          `  End rate: ${feeSchedulerConfig.endRatePercent}% (${endBps} bps)\n` +
           `  Decay duration: ${feeSchedulerConfig.durationMinutes} minutes (${durationSeconds} seconds)\n` +
           `  Number of periods: ${numberOfPeriods}\n` +
           `  Dynamic fees: Enabled (adjusts based on volatility)`
@@ -247,10 +232,11 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
       dynamicFee,
     };
   } else {
-    // Fixed fee mode with dynamic fees
+    // Fixed fee mode
+    const baseFeeBps = feeSchedulerConfig ? percentToBps(feeSchedulerConfig.baseFeePercent) : baseFeeNumerator;
     const baseFee = getFeeTimeSchedulerParams(
-      baseFeeNumerator,
-      baseFeeNumerator,
+      baseFeeBps,
+      baseFeeBps,
       BaseFeeMode.FeeTimeSchedulerLinear,
       0,
       0
@@ -258,7 +244,7 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
 
     console.log(
       `Fee configuration:\n` +
-        `  Base fee: ${baseFeeNumerator} bps\n` +
+        `  Base fee: ${baseFeeBps} bps\n` +
         `  Mode: Fixed\n` +
         `  Dynamic fees: Enabled (adjusts based on volatility)`
     );
@@ -276,35 +262,23 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
   let activationPoint: BN | null;
 
   if (launchTime) {
-    // Timed activation - pool becomes active at specified timestamp
-    activationType = 1; // 1 = slot-based activation
-    // Convert launch time to Unix timestamp (seconds)
+    activationType = 1;
     const launchTimestamp = Math.floor(launchTime.getTime() / 1000);
     activationPoint = new BN(launchTimestamp);
-
-    console.log(`Pool scheduled for timed launch:\n` +
-      `  Launch time: ${launchTime.toISOString()}\n` +
-      `  Timestamp: ${launchTimestamp}\n` +
-      `  Activation type: Slot-based (1)`
-    );
   } else {
-    // Immediate activation
-    activationType = 0; // 0 = immediate activation
+    activationType = 0;
     activationPoint = null;
-
-    console.log(`Pool configured for immediate activation`);
   }
 
-  // Create the pool using createCustomPool (not createPool)
-  // This gives us full control over fees and configuration
+  // Create the pool using createCustomPool
   const { tx: transaction, pool, position } = await cpAmm.createCustomPool({
     payer,
     creator: payer,
     positionNft: positionNft.publicKey,
     tokenAMint,
     tokenBMint,
-    tokenAAmount: tokenAAmountBN, // All our tokens (base token A)
-    tokenBAmount: new BN(0), // 0 SOL (quote token B) - single-sided pool
+    tokenAAmount: tokenAAmountBN,
+    tokenBAmount: new BN(0),
     sqrtMinPrice,
     sqrtMaxPrice,
     liquidityDelta,
@@ -312,11 +286,11 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
     poolFees,
     hasAlphaVault,
     activationType,
-    collectFeeMode: collectFeeMode ?? CollectFeeMode.OnlyB, // Collect fees only in token B (SOL/quote token) by default
+    collectFeeMode: collectFeeMode ?? CollectFeeMode.OnlyB,
     activationPoint,
     tokenAProgram,
     tokenBProgram,
-    isLockLiquidity: true, // Lock 100% of the liquidity
+    isLockLiquidity: true,
   });
 
   return {
@@ -340,11 +314,6 @@ export interface PoolInfo {
 
 /**
  * Gets the current price from a pool
- * @param connection - Solana connection
- * @param poolAddress - Pool public key
- * @param tokenADecimals - Decimals of token A (base token)
- * @param tokenBDecimals - Decimals of token B (quote token, usually SOL)
- * @returns Current price in terms of token B per token A
  */
 export async function getCurrentPoolPrice(
   connection: Connection,
@@ -354,7 +323,6 @@ export async function getCurrentPoolPrice(
 ): Promise<number | null> {
   try {
     const poolInfo = await getPoolInfo(connection, poolAddress);
-    // Convert sqrt price to human-readable price
     return sqrtPriceToPrice(poolInfo.sqrtPrice, tokenADecimals, tokenBDecimals);
   } catch (error) {
     console.error(`Error getting current price for pool ${poolAddress}:`, error);
@@ -364,14 +332,9 @@ export async function getCurrentPoolPrice(
 
 /**
  * Fetches pool information from DAMMv2
- * @param connection - Solana connection
- * @param poolAddress - Pool public key
- * @returns Pool information
  */
 export async function getPoolInfo(connection: Connection, poolAddress: PublicKey): Promise<PoolInfo> {
   const cpAmm = new CpAmm(connection);
-
-  // Fetch pool state
   const poolState = await cpAmm.fetchPoolState(poolAddress);
 
   if (!poolState) {
@@ -392,11 +355,6 @@ export async function getPoolInfo(connection: Connection, poolAddress: PublicKey
 
 /**
  * Checks if a pool exists for given token pair
- * Note: For customizable pools created with createCustomPool, the pool address is derived differently
- * and doesn't use a config PDA. This function is kept for reference but may not work with custom pools.
- * @param connection - Solana connection
- * @param poolAddress - The pool address to check
- * @returns true if pool exists, false otherwise
  */
 export async function poolExists(
   connection: Connection,

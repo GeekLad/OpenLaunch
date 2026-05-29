@@ -4,13 +4,13 @@ milestone: v1.4.3
 milestone_name: milestone
 status: context
 current_phase: 6
-last_updated: "2026-05-29T12:00:00Z"
+last_updated: "2026-05-29T14:00:00Z"
 progress:
-  total_phases: 6
-  completed_phases: 5
-  total_plans: 19
-  completed_plans: 19
-  percent: 83
+  total_phases: 7
+  completed_phases: 6
+  total_plans: 20
+  completed_plans: 20
+  percent: 86
 ---
 
 # Project State
@@ -29,15 +29,16 @@ Phase: 2 (Core Form Parameters & Basic UI) — COMPLETE
 Phase: 3 (Advanced Parameters, Fee Modes & Complex Validation) — COMPLETE
 Phase: 4 (Blockchain Integration & Pre-flight Safety) — COMPLETE
 Phase: 5 (Service Orchestration, Persistence & Detail Pages) — COMPLETE (UAT: passed, Security: 0 open threats)
+Phase: 5.1 (Detail Page & Form UX Polish) — COMPLETE (INSERTED)
 Phase: 6 (Background Jobs & Hardening) — READY TO START
 
-Progress: [████████▓░] 83%
+Progress: [████████▓░] 86%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 19
+- Total plans completed: 20
 - Average duration: 12m
 - Total execution time: ~70m
 
@@ -50,31 +51,23 @@ Progress: [████████▓░] 83%
 | 03-advanced-params-fee-modes-complex-validation | 5 | 5 | Complete |
 | 04-blockchain-integration-pre-flight-safety | 3 | 3 | Complete |
 | 05-service-orchestration-persistence-detail-pages | 2 | 2 | Complete |
+| 05.1-detail-page-form-ux-polish | 1 | 1 | Complete |
 
-## Phase 5 Decisions Captured
+## Phase 5.1 Decisions Captured
 
-- D-05-01: Retry on failure — reuse existing mint, retry same parameters, no DB save until all 3 txs succeed
-- D-05-02: Detail page layout — collapsible sections (Token Info expanded, rest collapsed)
-- D-05-03: Holdback warning on detail page — red badge on section header when >10%
-- D-05-04: Fee scheduler display — human-readable labels with raw mode in muted text
-- D-05-05: Service returns form data — `launchToken()` returns both `TokenLaunchConfig` and `TokenFormData`
-- D-05-06: API validation — `/api/tokens/create` re-runs `validateLaunchParams` before DB persistence
-
-## Accumulated Context
-
-See `.planning/phases/05-service-orchestration-persistence-detail-pages/05-CONTEXT.md` for full decisions, canonical refs, and code context.
-
-## Deferred Ideas
-
-| Idea | Deferred To | Rationale |
-|------|-------------|-----------|
-| Audit log table for launch attempts | Phase 6 | Out of scope for persistence phase |
-| Token detail page edit capability | Future | Tokens immutable on-chain |
-| Comparative analysis (top % by fees) | Phase 6 | Requires cron data |
-| Social sharing cards | Future | Marketing phase |
+- D-05.1-01: RPC URL moved to server-side `RPC_URL` env var — no rebuild needed on change
+- D-05.1-02: Holdback reversed to "Locked Liquidity" — inverse percentage, default 100%, warn <90%
+- D-05.1-03: Launch params converted from price to market cap terms — easier user comprehension
+- D-05.1-04: Reusable `NumberInput` component with locale-based thousands separators (DRY)
+- D-05.1-05: Fee rates displayed as percentages (0.5%) instead of basis points (50 bps)
+- D-05.1-06: Social links moved up on detail page — right after Token Header
+- D-05.1-07: Two-column form layout on desktop for short fields (supply+quote, min+max market cap, fee rates)
+- D-05.1-08: Quote token label simplified — decimals language removed
+- D-05.1-09: Market-cap fee scheduler validation — both caps must be >= launch market cap
+- D-05.1-10: `priceMultiple` bug fixed in poolUtils.ts — direct ratio instead of nth root
 
 ## Session Continuity
 
-Last session: 2026-05-29T12:00:00Z
-Stopped at: Phase 5 complete, committed. Phase 6 ready to start.
+Last session: 2026-05-29T14:00:00Z
+Stopped at: Phase 5.1 complete, committed. Phase 6 ready to start.
 Next: `/gsd-plan-phase 6`

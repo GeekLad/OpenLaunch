@@ -16,23 +16,23 @@ const sampleTokens: TokenCreateInput[] = [
     metadataUri: 'https://arweave.net/sample-metadata-1',
     decimals: 9,
     totalSupply: '1000000000',
-    initialPrice: 0.0000001,
+    initialMarketCap: 10000,
     quoteTokenMint: 'So11111111111111111111111111111111111111112',
     poolLiquidityPercentage: 1.0,
     feeDecayDurationMinutes: 0,
     feeDecayPeriods: 0,
-    priceRangeMin: 0.000001,
-    priceRangeMax: 0.0001,
+    marketCapRangeMin: 1000,
+    marketCapRangeMax: 1000000,
     feeSchedulerMode: 'market-cap-based',
     feeTokenMode: 'quoteOnly',
-    startingMarketCap: '1000',
+    startingMarketCap: '10000',
     endingMarketCap: '100000',
-    startRate: 0,
-    endRate: 0,
+    startRatePercent: 0.5,
+    endRatePercent: 0.25,
     durationMinutes: 0,
-    fixedBaseFeeBps: 0,
-    holdbackPercentage: 0,
-    launchDate: new Date(Date.now() - 48 * 60 * 60 * 1000), // 2 days ago
+    fixedBaseFeePercent: 0,
+    lockedLiquidityPercentage: 100,
+    launchDate: new Date(Date.now() - 48 * 60 * 60 * 1000),
     launchSlot: 123456789,
     mintTxSignature: 'SampleMintTx1111111111111111111111111111111111111111111111111111111111111',
     metadataTxSignature: 'SampleMetaTx1111111111111111111111111111111111111111111111111111111111111',
@@ -49,23 +49,23 @@ const sampleTokens: TokenCreateInput[] = [
     metadataUri: 'https://arweave.net/sample-metadata-2',
     decimals: 9,
     totalSupply: '500000000',
-    initialPrice: 0.0000002,
+    initialMarketCap: 50000,
     quoteTokenMint: 'So11111111111111111111111111111111111111112',
     poolLiquidityPercentage: 1.0,
     feeDecayDurationMinutes: 60,
     feeDecayPeriods: 60,
-    priceRangeMin: 0.000001,
-    priceRangeMax: 0.0001,
+    marketCapRangeMin: 1000,
+    marketCapRangeMax: 1000000,
     feeSchedulerMode: 'time-based',
     feeTokenMode: 'quoteOnly',
     startingMarketCap: '0',
     endingMarketCap: '0',
-    startRate: 50,
-    endRate: 0.25,
+    startRatePercent: 0.5,
+    endRatePercent: 0.25,
     durationMinutes: 60,
-    fixedBaseFeeBps: 0,
-    holdbackPercentage: 0,
-    launchDate: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+    fixedBaseFeePercent: 0,
+    lockedLiquidityPercentage: 100,
+    launchDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
     launchSlot: 123456790,
     mintTxSignature: 'SampleMintTx2222222222222222222222222222222222222222222222222222222222222',
     metadataTxSignature: 'SampleMetaTx2222222222222222222222222222222222222222222222222222222222222',
@@ -82,23 +82,23 @@ const sampleTokens: TokenCreateInput[] = [
     metadataUri: 'https://arweave.net/sample-metadata-3',
     decimals: 9,
     totalSupply: '2000000000',
-    initialPrice: 0.00000015,
+    initialMarketCap: 20000,
     quoteTokenMint: 'So11111111111111111111111111111111111111112',
     poolLiquidityPercentage: 1.0,
     feeDecayDurationMinutes: 0,
     feeDecayPeriods: 0,
-    priceRangeMin: 0.000001,
-    priceRangeMax: 0.0001,
+    marketCapRangeMin: 1000,
+    marketCapRangeMax: 1000000,
     feeSchedulerMode: 'fixed',
     feeTokenMode: 'quoteOnly',
     startingMarketCap: '0',
     endingMarketCap: '0',
-    startRate: 0,
-    endRate: 0,
+    startRatePercent: 0,
+    endRatePercent: 0,
     durationMinutes: 0,
-    fixedBaseFeeBps: 25,
-    holdbackPercentage: 0,
-    launchDate: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
+    fixedBaseFeePercent: 0.25,
+    lockedLiquidityPercentage: 100,
+    launchDate: new Date(Date.now() + 2 * 60 * 60 * 1000),
     launchSlot: 123456791,
     mintTxSignature: 'SampleMintTx3333333333333333333333333333333333333333333333333333333333333',
     metadataTxSignature: 'SampleMetaTx3333333333333333333333333333333333333333333333333333333333333',
@@ -111,36 +111,31 @@ export async function seedDatabase(): Promise<void> {
   console.log('[Seed] Starting database seeding...');
 
   try {
-    // Create sample tokens
     for (const tokenData of sampleTokens) {
       console.log(`[Seed] Creating token: ${tokenData.symbol}`);
 
       const token = await dbService.createToken(tokenData);
 
-      // Only create pool stats for launched tokens (not future launches)
       if (token.launchDate <= new Date()) {
         console.log(`[Seed] Creating pool stats for: ${tokenData.symbol}`);
 
-        // Create initial snapshot
         await dbService.createPoolStatsSnapshot(token.id, token.poolAddress, {
-          totalFeesGenerated: '1000000', // 1 SOL in lamports
+          totalFeesGenerated: '1000000',
           fees24h: '250000',
           volume24h: '5000000000',
           currentLiquidity: '10000000000',
         });
 
-        // Create fee update schedule
         const now = new Date();
-        const nextUpdate = new Date(now.getTime() + 1 * 60 * 1000); // 1 minute from now
+        const nextUpdate = new Date(now.getTime() + 1 * 60 * 1000);
 
         await dbService.upsertFeeUpdateSchedule(
           token.id,
           token.poolAddress,
           nextUpdate,
-          1 // Update every 1 minute (recent launch)
+          1
         );
 
-        // Update cumulative fees snapshot
         await dbService.updateCumulativeFeesSnapshot(token.mintAddress, '1000000');
       }
     }
@@ -153,10 +148,6 @@ export async function seedDatabase(): Promise<void> {
   }
 }
 
-/**
- * CLI script to seed database
- * Usage: npm run db:seed
- */
 if (require.main === module) {
   seedDatabase()
     .then(() => {

@@ -28,10 +28,10 @@ export class ValidationError extends Error {
 
 export interface LaunchValidationInput {
   totalSupply: number;
-  holdbackPercentage: number;
-  priceRangeMin: number;
-  initialPrice: number;
-  priceRangeMax: number;
+  lockedLiquidityPercentage: number;
+  marketCapRangeMin: number;
+  initialMarketCap: number;
+  marketCapRangeMax: number;
   baseFeeBps: number;
   feeSchedulerConfig: FeeSchedulerConfig;
   feeTokenMode: string;
@@ -41,7 +41,6 @@ export interface LaunchValidationInput {
 
 /**
  * Type-safe branch extractor for the FeeSchedulerConfig discriminated union.
- * Use after narrowing on `mode` to pull out branch-specific fields.
  */
 type MarketCapConfig = Extract<FeeSchedulerConfig, { mode: "market-cap-based" }>;
 type TimeBasedConfig = Extract<FeeSchedulerConfig, { mode: "time-based" }>;
@@ -72,44 +71,44 @@ export function validateLaunchParams(
     );
   }
 
-  // ─── Holdback ───
+  // ─── Locked Liquidity ───
   if (
-    formData.holdbackPercentage === undefined ||
-    formData.holdbackPercentage < 0 ||
-    formData.holdbackPercentage > 100
+    formData.lockedLiquidityPercentage === undefined ||
+    formData.lockedLiquidityPercentage < 0 ||
+    formData.lockedLiquidityPercentage > 100
   ) {
     add(
-      "holdbackPercentage",
-      "Holdback percentage must be between 0 and 100",
-      "HOLDBACK_OUT_OF_RANGE"
+      "lockedLiquidityPercentage",
+      "Locked liquidity must be between 0 and 100",
+      "LIQUIDITY_OUT_OF_RANGE"
     );
   }
 
-  // ─── Price range ───
+  // ─── Market cap range ───
   if (
-    formData.priceRangeMin === undefined ||
-    formData.priceRangeMin <= 0
+    formData.marketCapRangeMin === undefined ||
+    formData.marketCapRangeMin <= 0
   ) {
-    add("priceRangeMin", "Minimum price must be greater than 0", "PRICE_MIN_INVALID");
+    add("marketCapRangeMin", "Minimum market cap must be greater than 0", "MCAP_MIN_INVALID");
   }
   if (
-    formData.initialPrice === undefined ||
-    formData.initialPrice <= (formData.priceRangeMin ?? 0)
+    formData.initialMarketCap === undefined ||
+    formData.initialMarketCap <= (formData.marketCapRangeMin ?? 0)
   ) {
     add(
-      "initialPrice",
-      "Initial price must be greater than minimum price",
-      "PRICE_INITIAL_TOO_LOW"
+      "initialMarketCap",
+      "Initial market cap must be greater than minimum market cap",
+      "MCAP_INITIAL_TOO_LOW"
     );
   }
   if (
-    formData.priceRangeMax === undefined ||
-    formData.priceRangeMax <= (formData.initialPrice ?? 0)
+    formData.marketCapRangeMax === undefined ||
+    formData.marketCapRangeMax <= (formData.initialMarketCap ?? 0)
   ) {
     add(
-      "priceRangeMax",
-      "Maximum price must be greater than initial price",
-      "PRICE_MAX_TOO_LOW"
+      "marketCapRangeMax",
+      "Maximum market cap must be greater than initial market cap",
+      "MCAP_MAX_TOO_LOW"
     );
   }
 
@@ -141,6 +140,24 @@ export function validateLaunchParams(
         "MCAP_END_TOO_LOW"
       );
     }
+    // Fee scheduler caps must be >= launch market cap
+    const launchMcap = (formData.totalSupply ?? 0) > 0
+      ? (formData.initialMarketCap ?? 0)
+      : 0;
+    if (launchMcap > 0 && branch.startingMarketCap < launchMcap) {
+      add(
+        "startingMarketCap",
+        `Fee schedule starting market cap (${branch.startingMarketCap}) must be >= launch market cap (${launchMcap})`,
+        "MCAP_SCHEDULER_BELOW_LAUNCH"
+      );
+    }
+    if (launchMcap > 0 && branch.endingMarketCap < launchMcap) {
+      add(
+        "endingMarketCap",
+        `Fee schedule ending market cap (${branch.endingMarketCap}) must be >= launch market cap (${launchMcap})`,
+        "MCAP_SCHEDULER_BELOW_LAUNCH"
+      );
+    }
   } else if (mode === "time-based" && sched) {
     const branch = sched as TimeBasedConfig;
     if (branch.durationMinutes <= 0) {
@@ -163,7 +180,7 @@ export function validateLaunchParams(
     );
   }
 
-  // ─── Decay periods (optional — not always present in TokenFormData) ───
+  // ─── Decay periods (optional) ───
   if (
     formData.feeDecayPeriods !== undefined &&
     (formData.feeDecayPeriods <= 0 || formData.feeDecayPeriods > 1000)
@@ -182,9 +199,7 @@ const BASE58_ALPHABET =
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 /**
- * Quick Solana-base58 sanity check. Does NOT guarantee the address is on-curve
- * (that requires a PublicKey construction / ed25519 verify), but catches
- * obvious typos and non-base58 strings.
+ * Quick Solana-base58 sanity check.
  */
 export function isValidSolanaAddress(address: string): boolean {
   if (!address || address.length < 32 || address.length > 44) return false;

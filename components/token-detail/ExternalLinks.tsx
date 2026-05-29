@@ -3,7 +3,7 @@
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { ExternalLink, Globe, Users, LineChart } from "lucide-react";
+import { ExternalLink, Globe, LineChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ExternalLinksProps {
@@ -26,38 +26,26 @@ export function ExternalLinks({ mintAddress, poolAddress, metadataUri }: Externa
   useEffect(() => {
     async function fetchSocials() {
       if (!metadataUri) return;
-
       try {
         const response = await fetch(metadataUri);
         if (!response.ok) return;
-
         const metadata = await response.json();
         const socialLinks: SocialLinks = {};
-
-        // Get website from external_url
         if (metadata.external_url) {
           socialLinks.website = metadata.external_url;
         }
-
-        // Get socials from attributes
         if (metadata.attributes && Array.isArray(metadata.attributes)) {
           metadata.attributes.forEach((attr: { trait_type: string; value: string }) => {
-            if (attr.trait_type === "Twitter") {
-              socialLinks.twitter = attr.value;
-            } else if (attr.trait_type === "Telegram") {
-              socialLinks.telegram = attr.value;
-            } else if (attr.trait_type === "Discord") {
-              socialLinks.discord = attr.value;
-            }
+            if (attr.trait_type === "Twitter") socialLinks.twitter = attr.value;
+            else if (attr.trait_type === "Telegram") socialLinks.telegram = attr.value;
+            else if (attr.trait_type === "Discord") socialLinks.discord = attr.value;
           });
         }
-
         setSocials(socialLinks);
       } catch (error) {
         console.error("Failed to fetch metadata:", error);
       }
     }
-
     fetchSocials();
   }, [metadataUri]);
 
@@ -111,11 +99,7 @@ export function ExternalLinks({ mintAddress, poolAddress, metadataUri }: Externa
   const hasSocials = Object.values(socials).some(Boolean);
 
   const socialLinks = [
-    socials.website && {
-      name: "Website",
-      url: socials.website,
-      icon: <Globe className="h-5 w-5" />,
-    },
+    socials.website && { name: "Website", url: socials.website, icon: <Globe className="h-5 w-5" /> },
     socials.twitter && {
       name: "X (Twitter)",
       url: socials.twitter,
@@ -151,7 +135,6 @@ export function ExternalLinks({ mintAddress, poolAddress, metadataUri }: Externa
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
               Community & Social
             </CardTitle>
           </CardHeader>
@@ -167,9 +150,7 @@ export function ExternalLinks({ mintAddress, poolAddress, metadataUri }: Externa
                 >
                   <div className="flex-shrink-0">{link.icon}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm group-hover:text-primary transition-colors">
-                      {link.name}
-                    </p>
+                    <p className="font-medium text-sm group-hover:text-primary transition-colors">{link.name}</p>
                   </div>
                   <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary flex-shrink-0" />
                 </a>
@@ -198,12 +179,8 @@ export function ExternalLinks({ mintAddress, poolAddress, metadataUri }: Externa
               >
                 <div className="flex-shrink-0">{link.icon}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm group-hover:text-primary transition-colors">
-                    {link.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {link.description}
-                  </p>
+                  <p className="font-medium text-sm group-hover:text-primary transition-colors">{link.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{link.description}</p>
                 </div>
                 <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary flex-shrink-0" />
               </a>

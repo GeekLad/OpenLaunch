@@ -1,5 +1,6 @@
 import { Connection, ConnectionConfig, Commitment, PublicKey } from "@solana/web3.js";
 import { CLIENT_RPC_URL } from "@/config/public";
+import { RPC_URL } from "@/config/secrets";
 
 const DEFAULT_RPC_URL = "https://api.mainnet-beta.solana.com";
 
@@ -14,13 +15,14 @@ let connection: Connection | null = null;
 
 export function getConnection(): Connection {
   if (!connection) {
-    connection = new Connection(CLIENT_RPC_URL || DEFAULT_RPC_URL, connectionConfig);
+    // Prefer server-side RPC_URL (runtime-configurable), fall back to client RPC
+    connection = new Connection(RPC_URL || CLIENT_RPC_URL || DEFAULT_RPC_URL, connectionConfig);
   }
   return connection;
 }
 
 export function createConnection(rpcUrl?: string, commitment?: Commitment): Connection {
-  const url = rpcUrl || CLIENT_RPC_URL || DEFAULT_RPC_URL;
+  const url = rpcUrl || RPC_URL || CLIENT_RPC_URL || DEFAULT_RPC_URL;
   const config: ConnectionConfig = {
     ...connectionConfig,
     commitment: commitment || DEFAULT_COMMITMENT,

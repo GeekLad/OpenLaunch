@@ -9,14 +9,14 @@ export type FeeSchedulerMode = 'market-cap-based' | 'time-based' | 'fixed';
  *
  * - `market-cap-based`: Fees decay as market cap grows between
  *   `startingMarketCap` and `endingMarketCap`.
- * - `time-based`: Fees decay over a fixed duration from `startRate`
- *   to `endRate`.
- * - `fixed`: Static fee set by `baseFeeBps`.
+ * - `time-based`: Fees decay over a fixed duration from `startRatePercent`
+ *   to `endRatePercent`.
+ * - `fixed`: Static fee set by `baseFeePercent`.
  */
 export type FeeSchedulerConfig =
-  | { mode: 'market-cap-based'; startingMarketCap: number; endingMarketCap: number; feeMarketCapStartRate: number; feeMarketCapEndRate: number; decayMode?: 'linear' | 'exponential' }
-  | { mode: 'time-based'; startRate: number; endRate: number; durationMinutes: number }
-  | { mode: 'fixed'; baseFeeBps: number };
+  | { mode: 'market-cap-based'; startingMarketCap: number; endingMarketCap: number; feeMarketCapStartRatePercent: number; feeMarketCapEndRatePercent: number; decayMode?: 'linear' | 'exponential' }
+  | { mode: 'time-based'; startRatePercent: number; endRatePercent: number; durationMinutes: number }
+  | { mode: 'fixed'; baseFeePercent: number };
 
 /**
  * Which token(s) fees are collected in.
