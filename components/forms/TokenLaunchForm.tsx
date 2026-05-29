@@ -22,6 +22,7 @@ import { FeeSchedulerConfig } from "@/types/fee";
 import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
 import { validateAndParsePrivateKey } from "@/lib/utils/keypairUtils";
 import { cn } from "@/lib/utils";
+import { validateFeeSchedulerMarketCap, validateMarketCapRange } from "@/lib/validation/feeScheduler";
 
 const tokenFormSchema = z.object({
   symbol: z.string().min(1, "Symbol is required").max(10, "Symbol must be 10 characters or less"),
@@ -184,49 +185,44 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
     return (watchedLocked ?? 100) < 90;
   }, [watchedLocked]);
 
-  const marketCapError = useMemo(() => {
-    if (watchedMin >= watchedInitialMcap) {
-      return { field: "marketCapRangeMin", message: "Minimum market cap must be less than initial market cap" };
-    }
-    if (watchedMin >= watchedMax) {
-      return { field: "marketCapRangeMin", message: "Minimum market cap must be less than maximum market cap" };
-    }
-    if (watchedInitialMcap >= watchedMax) {
-      return { field: "marketCapRangeMax", message: "Initial market cap must be less than maximum market cap" };
-    }
-    return null;
+  // Pool market cap range errors (shared DRY logic)
+  const marketCapErrors = useMemo(() => {
+    return validateMarketCapRange(watchedMin, watchedInitialMcap, watchedMax);
   }, [watchedMin, watchedInitialMcap, watchedMax]);
 
-  const feeSchedulerError = useMemo(() => {
+  const marketCapError = marketCapErrors.length > 0 ? marketCapErrors[0] : null;
+
+  // Fee scheduler errors (shared DRY logic)
+  const feeSchedulerErrors = useMemo(() => {
     if (watchedFeeMode === 'market-cap-based') {
       const startMcap = watch("startingMarketCap") ?? 0;
       const endMcap = watch("endingMarketCap") ?? 0;
+      const schedulerErrors = validateFeeSchedulerMarketCap(
+        startMcap,
+        endMcap,
+        watchedInitialMcap,
+        watchedMax
+      );
+
+      // Fee rate validation (not covered by shared validator)
       const startRate = watch("feeMarketCapStartRate") ?? 0;
       const endRate = watch("feeMarketCapEndRate") ?? 0;
-
-      if (endMcap <= startMcap) {
-        return { field: "endingMarketCap", message: "Ending market cap must be greater than starting market cap" };
-      }
       if (endRate > startRate) {
-        return { field: "feeMarketCapEndRate", message: "Ending fee rate must be less than or equal to starting fee rate" };
+        schedulerErrors.push({ field: "feeMarketCapEndRate", message: "Ending fee rate must be less than or equal to starting fee rate" });
       }
-      // Validate fee scheduler caps within pool range
-      if (watchedInitialMcap > 0 && startMcap > 0 && startMcap < watchedInitialMcap) {
-        return { field: "startingMarketCap", message: `Starting market cap must be >= initial market cap (${watchedInitialMcap})` };
-      }
-      if (endMcap > watchedMax) {
-        return { field: "endingMarketCap", message: `Ending market cap must be <= pool max market cap (${watchedMax})` };
-      }
+      return schedulerErrors;
     }
     if (watchedFeeMode === 'time-based') {
       const startRate = watch("feeStartRate") ?? 0;
       const endRate = watch("feeEndRate") ?? 0;
       if (endRate > startRate) {
-        return { field: "feeEndRate", message: "Ending fee rate must be less than or equal to starting fee rate" };
+        return [{ field: "feeEndRate", message: "Ending fee rate must be less than or equal to starting fee rate" }];
       }
     }
-    return null;
+    return [];
   }, [watchedFeeMode, watchedInitialMcap, watchedMax, watch]);
+
+  const feeSchedulerError = feeSchedulerErrors.length > 0 ? feeSchedulerErrors[0] : null;
 
   const isFormValid = !!(symbol && name && logoFile && !fileSizeWarning);
 
