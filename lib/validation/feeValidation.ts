@@ -70,16 +70,16 @@ export function validateLaunchParams(
     errors.quoteTokenMint = "Quote token must be SOL or USDC";
   }
 
-  // Market cap must be >= launch market cap validation
+  // Fee scheduler caps must be within pool range
   const totalSupply = Number(params.totalSupply ?? 0);
   const initialMarketCap = Number(params.initialMarketCap ?? 0);
-  const launchMarketCap = totalSupply > 0 ? initialMarketCap : 0;
+  const marketCapRangeMax = Number(params.marketCapRangeMax ?? Number.MAX_SAFE_INTEGER);
 
-  if (launchMarketCap > 0 && startingMarketCap > 0 && startingMarketCap < launchMarketCap) {
-    errors.startingMarketCap = `Starting market cap (${startingMarketCap}) must be >= launch market cap (${launchMarketCap})`;
+  if (totalSupply > 0 && startingMarketCap > 0 && startingMarketCap < initialMarketCap) {
+    errors.startingMarketCap = `Starting market cap (${startingMarketCap}) must be >= launch market cap (${initialMarketCap})`;
   }
-  if (launchMarketCap > 0 && endingMarketCap > 0 && endingMarketCap < launchMarketCap) {
-    errors.endingMarketCap = `Ending market cap (${endingMarketCap}) must be >= launch market cap (${launchMarketCap})`;
+  if (endingMarketCap > marketCapRangeMax) {
+    errors.endingMarketCap = `Ending market cap (${endingMarketCap}) must be <= pool max market cap (${marketCapRangeMax})`;
   }
 
   // If basic bounds already failed, skip SDK constructor validation

@@ -140,10 +140,12 @@ export function validateLaunchParams(
         "MCAP_END_TOO_LOW"
       );
     }
-    // Fee scheduler caps must be >= launch market cap
+    // Fee scheduler caps must be within pool range:
+    // starting >= initial (launch) market cap, and ending <= max market cap range
     const launchMcap = (formData.totalSupply ?? 0) > 0
       ? (formData.initialMarketCap ?? 0)
       : 0;
+    const maxMcap = formData.marketCapRangeMax ?? Number.MAX_SAFE_INTEGER;
     if (launchMcap > 0 && branch.startingMarketCap < launchMcap) {
       add(
         "startingMarketCap",
@@ -151,11 +153,11 @@ export function validateLaunchParams(
         "MCAP_SCHEDULER_BELOW_LAUNCH"
       );
     }
-    if (launchMcap > 0 && branch.endingMarketCap < launchMcap) {
+    if (branch.endingMarketCap > maxMcap) {
       add(
         "endingMarketCap",
-        `Fee schedule ending market cap (${branch.endingMarketCap}) must be >= launch market cap (${launchMcap})`,
-        "MCAP_SCHEDULER_BELOW_LAUNCH"
+        `Fee schedule ending market cap (${branch.endingMarketCap}) must be <= pool max market cap (${maxMcap})`,
+        "MCAP_SCHEDULER_ABOVE_MAX"
       );
     }
   } else if (mode === "time-based" && sched) {

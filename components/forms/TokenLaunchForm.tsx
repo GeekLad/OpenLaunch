@@ -210,12 +210,12 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
       if (endRate > startRate) {
         return { field: "feeMarketCapEndRate", message: "Ending fee rate must be less than or equal to starting fee rate" };
       }
-      // Validate fee scheduler caps >= launch market cap
+      // Validate fee scheduler caps within pool range
       if (watchedInitialMcap > 0 && startMcap > 0 && startMcap < watchedInitialMcap) {
         return { field: "startingMarketCap", message: `Starting market cap must be >= initial market cap (${watchedInitialMcap})` };
       }
-      if (watchedInitialMcap > 0 && endMcap > 0 && endMcap < watchedInitialMcap) {
-        return { field: "endingMarketCap", message: `Ending market cap must be >= initial market cap (${watchedInitialMcap})` };
+      if (endMcap > watchedMax) {
+        return { field: "endingMarketCap", message: `Ending market cap must be <= pool max market cap (${watchedMax})` };
       }
     }
     if (watchedFeeMode === 'time-based') {
@@ -226,7 +226,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
       }
     }
     return null;
-  }, [watchedFeeMode, watchedInitialMcap, watch]);
+  }, [watchedFeeMode, watchedInitialMcap, watchedMax, watch]);
 
   const isFormValid = !!(symbol && name && logoFile && !fileSizeWarning);
 
@@ -714,7 +714,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                     <NumberInput value={value ?? 0} onChangeValue={onChange} integer onBlur={onBlur} disabled={isLoading} />
                   )}
                 />
-                <p className="text-sm text-muted-foreground">Must be &gt;= initial market cap</p>
+                <p className="text-sm text-muted-foreground">Must be &lt;= pool max market cap</p>
                 {errors.endingMarketCap && <p className="text-sm text-destructive">{errors.endingMarketCap.message}</p>}
                 {feeSchedulerError?.field === "endingMarketCap" && !errors.endingMarketCap && <p className="text-sm text-destructive">{feeSchedulerError.message}</p>}
               </div>

@@ -22,8 +22,10 @@ export const DEFAULT_MARKET_CAP_RANGE_MIN = 1_000;
 export const DEFAULT_MARKET_CAP_RANGE_MAX = 1_000_000;
 
 // Fee scheduler market cap defaults
-export const DEFAULT_STARTING_MARKET_CAP = 10_000;
-export const DEFAULT_ENDING_MARKET_CAP = 100_000;
+// Starting market cap defaults to the initial market cap (launch market cap)
+export const DEFAULT_STARTING_MARKET_CAP = DEFAULT_INITIAL_MARKET_CAP;
+// Ending market cap defaults to the pool's max market cap range
+export const DEFAULT_ENDING_MARKET_CAP = DEFAULT_MARKET_CAP_RANGE_MAX;
 
 // Fee rate defaults (stored as percent values in the UI, 0.5% = 50 bps)
 export const DEFAULT_FEE_START_PERCENT = 0.5;   // 0.5%
