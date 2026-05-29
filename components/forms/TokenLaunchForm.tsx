@@ -22,7 +22,7 @@ import { FeeSchedulerConfig } from "@/types/fee";
 import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
 import { validateAndParsePrivateKey } from "@/lib/utils/keypairUtils";
 import { cn } from "@/lib/utils";
-import { validateFeeSchedulerMarketCap, validateMarketCapRange } from "@/lib/validation/feeScheduler";
+import { validateFeeSchedulerMarketCap, validateMarketCapRange, type ValidationError } from "@/lib/validation/feeScheduler";
 
 const tokenFormSchema = z.object({
   symbol: z.string().min(1, "Symbol is required").max(10, "Symbol must be 10 characters or less"),
@@ -75,26 +75,39 @@ const tokenFormSchema = z.object({
   }
 
   // Market cap range validation
-  if (data.marketCapRangeMin >= data.initialMarketCap) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Minimum market cap must be less than initial market cap",
-      path: ["marketCapRangeMin"],
+  validateMarketCapRange(data.marketCapRangeMin, data.initialMarketCap, data.marketCapRangeMax).forEach((err) => {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: err.message, path: [err.field as "marketCapRangeMin" | "marketCapRangeMax"] });
+  });
+
+  // Fee scheduler market cap validation (when mode is market-cap-based)
+  if (data.feeSchedulerMode === 'market-cap-based') {
+    validateFeeSchedulerMarketCap(
+      data.startingMarketCap ?? 0,
+      data.endingMarketCap ?? 0,
+      data.initialMarketCap,
+      data.marketCapRangeMax
+    ).forEach((err) => {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: err.message, path: [err.field as "startingMarketCap" | "endingMarketCap"] });
     });
+
+    if ((data.feeMarketCapEndRate ?? 0) > (data.feeMarketCapStartRate ?? 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Ending fee rate must be less than or equal to starting fee rate",
+        path: ["feeMarketCapEndRate"],
+      });
+    }
   }
-  if (data.initialMarketCap >= data.marketCapRangeMax) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Initial market cap must be less than maximum market cap",
-      path: ["marketCapRangeMax"],
-    });
-  }
-  if (data.marketCapRangeMin >= data.marketCapRangeMax) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Minimum market cap must be less than maximum market cap",
-      path: ["marketCapRangeMin"],
-    });
+
+  // Fee scheduler time-based validation
+  if (data.feeSchedulerMode === 'time-based') {
+    if ((data.feeEndRate ?? 0) > (data.feeStartRate ?? 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Ending fee rate must be less than or equal to starting fee rate",
+        path: ["feeEndRate"],
+      });
+    }
   }
 });
 
@@ -131,7 +144,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
     setError,
   } = useForm<TokenFormSchemaType>({
     resolver: zodResolver(tokenFormSchema),
-    mode: "onBlur",
+    mode: "onChange",
     shouldUnregister: false,
     defaultValues: {
       totalSupply: DEFAULT_LAUNCH_PARAMS.totalSupply,
@@ -167,6 +180,12 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   const watchedQuoteToken = watch("quoteTokenMint");
   const watchedFeeMode = watch("feeSchedulerMode");
   const watchedFeeToken = watch("feeTokenMode");
+  const watchedStartMcap = watch("startingMarketCap");
+  const watchedEndMcap = watch("endingMarketCap");
+  const watchedFeeMcapStartRate = watch("feeMarketCapStartRate");
+  const watchedFeeMcapEndRate = watch("feeMarketCapEndRate");
+  const watchedTimeStartRate = watch("feeStartRate");
+  const watchedTimeEndRate = watch("feeEndRate");
 
   const isModified = useMemo(() => {
     return (
@@ -185,46 +204,36 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
     return (watchedLocked ?? 100) < 90;
   }, [watchedLocked]);
 
-  // Pool market cap range errors (shared DRY logic)
-  const marketCapErrors = useMemo(() => {
-    return validateMarketCapRange(watchedMin, watchedInitialMcap, watchedMax);
-  }, [watchedMin, watchedInitialMcap, watchedMax]);
+  // Computed every render for instant UI feedback
+  const marketCapErrors = validateMarketCapRange(watchedMin, watchedInitialMcap, watchedMax);
 
-  const marketCapError = marketCapErrors.length > 0 ? marketCapErrors[0] : null;
-
-  // Fee scheduler errors (shared DRY logic)
-  const feeSchedulerErrors = useMemo(() => {
-    if (watchedFeeMode === 'market-cap-based') {
-      const startMcap = watch("startingMarketCap") ?? 0;
-      const endMcap = watch("endingMarketCap") ?? 0;
-      const schedulerErrors = validateFeeSchedulerMarketCap(
-        startMcap,
-        endMcap,
-        watchedInitialMcap,
-        watchedMax
-      );
-
-      // Fee rate validation (not covered by shared validator)
-      const startRate = watch("feeMarketCapStartRate") ?? 0;
-      const endRate = watch("feeMarketCapEndRate") ?? 0;
-      if (endRate > startRate) {
-        schedulerErrors.push({ field: "feeMarketCapEndRate", message: "Ending fee rate must be less than or equal to starting fee rate" });
-      }
-      return schedulerErrors;
+  let feeSchedErrors: ValidationError[] = [];
+  if (watchedFeeMode === 'market-cap-based') {
+    feeSchedErrors = validateFeeSchedulerMarketCap(
+      watchedStartMcap ?? 0, watchedEndMcap ?? 0,
+      watchedInitialMcap, watchedMax
+    );
+    if ((watchedFeeMcapEndRate ?? 0) > (watchedFeeMcapStartRate ?? 0)) {
+      feeSchedErrors.push({ field: "feeMarketCapEndRate", message: "Ending fee rate must be less than or equal to starting fee rate" });
     }
-    if (watchedFeeMode === 'time-based') {
-      const startRate = watch("feeStartRate") ?? 0;
-      const endRate = watch("feeEndRate") ?? 0;
-      if (endRate > startRate) {
-        return [{ field: "feeEndRate", message: "Ending fee rate must be less than or equal to starting fee rate" }];
-      }
+  } else if (watchedFeeMode === 'time-based') {
+    if ((watchedTimeEndRate ?? 0) > (watchedTimeStartRate ?? 0)) {
+      feeSchedErrors.push({ field: "feeEndRate", message: "Ending fee rate must be less than or equal to starting fee rate" });
     }
-    return [];
-  }, [watchedFeeMode, watchedInitialMcap, watchedMax, watch]);
-
-  const feeSchedulerError = feeSchedulerErrors.length > 0 ? feeSchedulerErrors[0] : null;
+  }
 
   const isFormValid = !!(symbol && name && logoFile && !fileSizeWarning);
+
+  // Merge Zod errors + computed cross-field errors into a single lookup for DRY JSX
+  const allFieldErrors: Record<string, string> = {};
+  const addFieldError = (field: string, msg: string) => {
+    if (!allFieldErrors[field]) allFieldErrors[field] = msg;
+  };
+  for (const [key, val] of Object.entries(errors)) {
+    if (val?.message) addFieldError(String(key), String(val.message as string));
+  }
+  marketCapErrors.forEach(e => addFieldError(e.field, e.message));
+  feeSchedErrors.forEach(e => addFieldError(e.field, e.message));
 
   const getLocalDateString = (date: Date = new Date()): string => {
     const year = date.getFullYear();
@@ -577,8 +586,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                   />
                 )}
               />
-              {errors.marketCapRangeMin && <p className="text-sm text-destructive">{errors.marketCapRangeMin.message}</p>}
-              {marketCapError?.field === "marketCapRangeMin" && !errors.marketCapRangeMin && <p className="text-sm text-destructive">{marketCapError.message}</p>}
+              {allFieldErrors["marketCapRangeMin"] && <p className="text-sm text-destructive">{allFieldErrors["marketCapRangeMin"]}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="marketCapRangeMax">Max Market Cap</Label>
@@ -595,8 +603,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                   />
                 )}
               />
-              {errors.marketCapRangeMax && <p className="text-sm text-destructive">{errors.marketCapRangeMax.message}</p>}
-              {marketCapError?.field === "marketCapRangeMax" && !errors.marketCapRangeMax && <p className="text-sm text-destructive">{marketCapError.message}</p>}
+              {allFieldErrors["marketCapRangeMax"] && <p className="text-sm text-destructive">{allFieldErrors["marketCapRangeMax"]}</p>}
             </div>
           </div>
 
@@ -698,8 +705,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                   )}
                 />
                 <p className="text-sm text-muted-foreground">Must be &gt;= initial market cap</p>
-                {errors.startingMarketCap && <p className="text-sm text-destructive">{errors.startingMarketCap.message}</p>}
-                {feeSchedulerError?.field === "startingMarketCap" && !errors.startingMarketCap && <p className="text-sm text-destructive">{feeSchedulerError.message}</p>}
+                {allFieldErrors["startingMarketCap"] && <p className="text-sm text-destructive">{allFieldErrors["startingMarketCap"]}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="endingMarketCap">Ending Market Cap</Label>
@@ -711,8 +717,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                   )}
                 />
                 <p className="text-sm text-muted-foreground">Must be &lt;= pool max market cap</p>
-                {errors.endingMarketCap && <p className="text-sm text-destructive">{errors.endingMarketCap.message}</p>}
-                {feeSchedulerError?.field === "endingMarketCap" && !errors.endingMarketCap && <p className="text-sm text-destructive">{feeSchedulerError.message}</p>}
+                {allFieldErrors["endingMarketCap"] && <p className="text-sm text-destructive">{allFieldErrors["endingMarketCap"]}</p>}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -739,7 +744,6 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                 />
                 <p className="text-sm text-muted-foreground">Min fee at ending market cap (e.g., 0.25%)</p>
                 {errors.feeMarketCapEndRate && <p className="text-sm text-destructive">{errors.feeMarketCapEndRate.message}</p>}
-                {feeSchedulerError?.field === "feeMarketCapEndRate" && !errors.feeMarketCapEndRate && <p className="text-sm text-destructive">{feeSchedulerError.message}</p>}
               </div>
             </div>
           </div>
@@ -770,7 +774,6 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                 />
                 <p className="text-sm text-muted-foreground">Ending fee (e.g., 0.25%)</p>
                 {errors.feeEndRate && <p className="text-sm text-destructive">{errors.feeEndRate.message}</p>}
-                {feeSchedulerError?.field === "feeEndRate" && !errors.feeEndRate && <p className="text-sm text-destructive">{feeSchedulerError.message}</p>}
               </div>
             </div>
             <div className="space-y-2">
