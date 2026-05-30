@@ -544,7 +544,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
 
           {/* Initial Market Cap */}
           <div className="space-y-2">
-            <Label htmlFor="initialMarketCap">Initial Market Cap</Label>
+            <Label htmlFor="initialMarketCap">Initial Market Cap {watchedQuoteToken === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' ? '(in USDC)' : '(in SOL)'}</Label>
             <Controller
               name="initialMarketCap"
               control={control}
@@ -564,7 +564,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
 
           {/* Market Cap Max */}
           <div className="space-y-2">
-            <Label htmlFor="marketCapRangeMax">Max Market Cap</Label>
+            <Label htmlFor="marketCapRangeMax">Max Market Cap {watchedQuoteToken === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' ? '(in USDC)' : '(in SOL)'}</Label>
             <Controller
               name="marketCapRangeMax"
               control={control}
@@ -670,7 +670,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
           <div className={cn("space-y-4", watchedFeeMode !== 'market-cap-based' && "hidden")}>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="startingMarketCap">Starting Market Cap</Label>
+                <Label htmlFor="startingMarketCap">Starting Market Cap {watchedQuoteToken === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' ? '(in USDC)' : '(in SOL)'}</Label>
                 <Controller
                   name="startingMarketCap"
                   control={control}
@@ -682,7 +682,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                 {allFieldErrors["startingMarketCap"] && <p className="text-sm text-destructive">{allFieldErrors["startingMarketCap"]}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="endingMarketCap">Ending Market Cap</Label>
+                <Label htmlFor="endingMarketCap">Ending Market Cap {watchedQuoteToken === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' ? '(in USDC)' : '(in SOL)'}</Label>
                 <Controller
                   name="endingMarketCap"
                   control={control}

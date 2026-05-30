@@ -323,8 +323,8 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
         <CollapsibleSection title="Pool Configuration">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <p className="text-sm"><strong>Quote Token:</strong> {token.quoteTokenMint === 'So11111111111111111111111111111111111111112' ? 'SOL' : 'USDC'}</p>
-            <p className="text-sm"><strong>Initial Market Cap:</strong> {formatNumber(token.initialMarketCap)}</p>
-            <p className="text-sm"><strong>Market Cap Range:</strong> {formatNumber(token.initialMarketCap)} — {formatNumber(token.marketCapRangeMax)}</p>
+            <p className="text-sm"><strong>Initial Market Cap ({token.quoteTokenMint === 'So11111111111111111111111111111111111111112' ? 'SOL' : 'USDC'}):</strong> {formatNumber(token.initialMarketCap)}</p>
+            <p className="text-sm"><strong>Max Market Cap ({token.quoteTokenMint === 'So11111111111111111111111111111111111111112' ? 'SOL' : 'USDC'}):</strong> {formatNumber(token.marketCapRangeMax)}</p>
             <p className="text-sm"><strong>Pool Liquidity %:</strong> {Number(token.poolLiquidityPercentage) * 100}%</p>
           </div>
         </CollapsibleSection>
@@ -336,8 +336,8 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
             <p className="text-sm"><strong>Fee Token Mode:</strong> {getFeeTokenModeLabel(token.feeTokenMode)}</p>
             {token.feeSchedulerMode === 'market-cap-based' && (
               <>
-                <p className="text-sm"><strong>Starting Market Cap:</strong> {formatNumber(token.startingMarketCap)}</p>
-                <p className="text-sm"><strong>Ending Market Cap:</strong> {formatNumber(token.endingMarketCap)}</p>
+                <p className="text-sm"><strong>Starting Market Cap ({token.quoteTokenMint === 'So11111111111111111111111111111111111111112' ? 'SOL' : 'USDC'}):</strong> {formatNumber(token.startingMarketCap)}</p>
+                <p className="text-sm"><strong>Ending Market Cap ({token.quoteTokenMint === 'So11111111111111111111111111111111111111112' ? 'SOL' : 'USDC'}):</strong> {formatNumber(token.endingMarketCap)}</p>
                 <p className="text-sm"><strong>Start Fee Rate:</strong> {token.startRatePercent}%</p>
                 <p className="text-sm"><strong>End Fee Rate:</strong> {token.endRatePercent}%</p>
               </>
