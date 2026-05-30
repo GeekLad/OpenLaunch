@@ -27,10 +27,10 @@ export const DEFAULT_STARTING_MARKET_CAP = DEFAULT_INITIAL_MARKET_CAP;
 export const DEFAULT_ENDING_MARKET_CAP = DEFAULT_MARKET_CAP_RANGE_MAX;
 
 // Fee rate defaults (stored as percent values in the UI, 0.5% = 50 bps)
-export const DEFAULT_FEE_START_PERCENT = 0.5;   // 0.5%
-export const DEFAULT_FEE_END_PERCENT = 0.25;    // 0.25%
-export const DEFAULT_MARKET_CAP_FEE_START_PERCENT = 0.5;
-export const DEFAULT_MARKET_CAP_FEE_END_PERCENT = 0.25;
+export const DEFAULT_FEE_START_PERCENT = 50;   // 50%
+export const DEFAULT_FEE_END_PERCENT = 0.5;    // 0.5%
+export const DEFAULT_MARKET_CAP_FEE_START_PERCENT = 50;
+export const DEFAULT_MARKET_CAP_FEE_END_PERCENT = 0.5;
 export const DEFAULT_FEE_DURATION_MINUTES = 60;
 export const DEFAULT_FIXED_FEE_PERCENT = 0.25;  // 0.25%
 export const DEFAULT_NUMBER_OF_PERIODS = 60;

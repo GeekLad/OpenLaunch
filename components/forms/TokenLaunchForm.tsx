@@ -16,7 +16,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { NumberInput } from "@/components/ui/number-input";
-import { ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronUp, AlertTriangle, RotateCcw } from "lucide-react";
 import { getMaxImageSizeBytes, getMaxImageSizeMB } from "@/lib/services/ipfsService";
 import { FeeSchedulerConfig } from "@/types/fee";
 import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
@@ -127,6 +127,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   const [launchMinute, setLaunchMinute] = useState<string>("");
   const [launchPeriod, setLaunchPeriod] = useState<"AM" | "PM">("AM");
   const [isLaunchParamsOpen, setIsLaunchParamsOpen] = useState(false);
+  const [isFeeScheduleOpen, setIsFeeScheduleOpen] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSubmitData, setPendingSubmitData] = useState<TokenFormSchemaType | null>(null);
   const [isValidating, setIsValidating] = useState(false);
@@ -183,6 +184,8 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
   const watchedFeeMcapEndRate = watch("feeMarketCapEndRate");
   const watchedTimeStartRate = watch("feeStartRate");
   const watchedTimeEndRate = watch("feeEndRate");
+  const watchedFeeDuration = watch("feeDurationHours");
+  const watchedFeeFixed = watch("feeFixedRate");
 
   const isModified = useMemo(() => {
     return (
@@ -190,11 +193,24 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
       watchedInitialMcap !== DEFAULT_LAUNCH_PARAMS.initialMarketCap ||
       watchedMax !== DEFAULT_LAUNCH_PARAMS.marketCapRangeMax ||
       watchedLocked !== DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage ||
-      watchedQuoteToken !== DEFAULT_LAUNCH_PARAMS.quoteTokenMint ||
-      watchedFeeMode !== 'market-cap-based' ||
-      watchedFeeToken !== 'quoteOnly'
+      watchedQuoteToken !== DEFAULT_LAUNCH_PARAMS.quoteTokenMint
     );
-  }, [watchedSupply, watchedInitialMcap, watchedMax, watchedLocked, watchedQuoteToken, watchedFeeMode, watchedFeeToken]);
+  }, [watchedSupply, watchedInitialMcap, watchedMax, watchedLocked, watchedQuoteToken]);
+
+  const isFeeModified = useMemo(() => {
+    return (
+      watchedFeeMode !== DEFAULT_LAUNCH_PARAMS.feeSchedulerMode ||
+      watchedFeeToken !== DEFAULT_LAUNCH_PARAMS.feeTokenMode ||
+      watchedStartMcap !== DEFAULT_LAUNCH_PARAMS.startingMarketCap ||
+      watchedEndMcap !== DEFAULT_LAUNCH_PARAMS.endingMarketCap ||
+      watchedTimeStartRate !== DEFAULT_LAUNCH_PARAMS.feeStartPercent ||
+      watchedTimeEndRate !== DEFAULT_LAUNCH_PARAMS.feeEndPercent ||
+      watchedFeeMcapStartRate !== DEFAULT_LAUNCH_PARAMS.feeMarketCapStartPercent ||
+      watchedFeeMcapEndRate !== DEFAULT_LAUNCH_PARAMS.feeMarketCapEndPercent ||
+      (watchedFeeDuration ?? 1) !== 1 ||
+      watchedFeeFixed !== DEFAULT_LAUNCH_PARAMS.feeFixedPercent
+    );
+  }, [watchedFeeMode, watchedFeeToken, watchedStartMcap, watchedEndMcap, watchedTimeStartRate, watchedTimeEndRate, watchedFeeMcapStartRate, watchedFeeMcapEndRate, watchedFeeDuration, watchedFeeFixed]);
 
   const isLowLockedLiquidity = useMemo(() => {
     return (watchedLocked ?? 100) < 90;
@@ -390,6 +406,39 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
     return sections;
   };
 
+  const resetLaunchParams = () => {
+    setValue("totalSupply", DEFAULT_LAUNCH_PARAMS.totalSupply);
+    setValue("initialMarketCap", DEFAULT_LAUNCH_PARAMS.initialMarketCap);
+    setValue("marketCapRangeMax", DEFAULT_LAUNCH_PARAMS.marketCapRangeMax);
+    setValue("lockedLiquidityPercentage", DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage);
+    setValue("quoteTokenMint", DEFAULT_LAUNCH_PARAMS.quoteTokenMint);
+    setValue("feeSchedulerMode", DEFAULT_LAUNCH_PARAMS.feeSchedulerMode);
+    setValue("feeTokenMode", DEFAULT_LAUNCH_PARAMS.feeTokenMode);
+    setValue("startingMarketCap", DEFAULT_LAUNCH_PARAMS.startingMarketCap);
+    setValue("endingMarketCap", DEFAULT_LAUNCH_PARAMS.endingMarketCap);
+    setValue("feeStartRate", DEFAULT_LAUNCH_PARAMS.feeStartPercent);
+    setValue("feeEndRate", DEFAULT_LAUNCH_PARAMS.feeEndPercent);
+    setValue("feeMarketCapStartRate", DEFAULT_LAUNCH_PARAMS.feeMarketCapStartPercent);
+    setValue("feeMarketCapEndRate", DEFAULT_LAUNCH_PARAMS.feeMarketCapEndPercent);
+    setValue("feeDurationHours", 1);
+    setValue("feeFixedRate", DEFAULT_LAUNCH_PARAMS.feeFixedPercent);
+    trigger();
+  };
+
+  const resetFeeSchedule = () => {
+    setValue("feeSchedulerMode", DEFAULT_LAUNCH_PARAMS.feeSchedulerMode);
+    setValue("feeTokenMode", DEFAULT_LAUNCH_PARAMS.feeTokenMode);
+    setValue("startingMarketCap", DEFAULT_LAUNCH_PARAMS.startingMarketCap);
+    setValue("endingMarketCap", DEFAULT_LAUNCH_PARAMS.endingMarketCap);
+    setValue("feeStartRate", DEFAULT_LAUNCH_PARAMS.feeStartPercent);
+    setValue("feeEndRate", DEFAULT_LAUNCH_PARAMS.feeEndPercent);
+    setValue("feeMarketCapStartRate", DEFAULT_LAUNCH_PARAMS.feeMarketCapStartPercent);
+    setValue("feeMarketCapEndRate", DEFAULT_LAUNCH_PARAMS.feeMarketCapEndPercent);
+    setValue("feeDurationHours", 1);
+    setValue("feeFixedRate", DEFAULT_LAUNCH_PARAMS.feeFixedPercent);
+    trigger();
+  };
+
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       {/* Token Info Section */}
@@ -487,9 +536,20 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
         >
           <div className="flex items-center gap-2">
             <CardTitle>Launch Parameters</CardTitle>
-            {!isLaunchParamsOpen && isModified && (
-              <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+            {isModified && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
                 Modified
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetLaunchParams();
+                  }}
+                  className="ml-1 rounded-sm hover:bg-slate-200 p-0.5 transition-colors"
+                  title="Reset to defaults"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                </button>
               </span>
             )}
             {!isLaunchParamsOpen && isLowLockedLiquidity && (
@@ -542,43 +602,44 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
             </div>
           </div>
 
-          {/* Initial Market Cap */}
-          <div className="space-y-2">
-            <Label htmlFor="initialMarketCap">Initial Market Cap {watchedQuoteToken === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' ? '(in USDC)' : '(in SOL)'}</Label>
-            <Controller
-              name="initialMarketCap"
-              control={control}
-              render={({ field: { onChange, value, onBlur } }) => (
-                <NumberInput
-                  value={value}
-                  onChangeValue={onChange}
-                  integer
-                  onBlur={onBlur}
-                  disabled={isLoading}
-                />
-              )}
-            />
-            <p className="text-sm text-muted-foreground">Target market cap at launch (in quote token value)</p>
-            {errors.initialMarketCap && <p className="text-sm text-destructive">{errors.initialMarketCap.message}</p>}
-          </div>
-
-          {/* Market Cap Max */}
-          <div className="space-y-2">
-            <Label htmlFor="marketCapRangeMax">Max Market Cap {watchedQuoteToken === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' ? '(in USDC)' : '(in SOL)'}</Label>
-            <Controller
-              name="marketCapRangeMax"
-              control={control}
-              render={({ field: { onChange, value, onBlur } }) => (
-                <NumberInput
-                  value={value}
-                  onChangeValue={onChange}
-                  integer
-                  onBlur={onBlur}
-                  disabled={isLoading}
-                />
-              )}
-            />
-            {allFieldErrors["marketCapRangeMax"] && <p className="text-sm text-destructive">{allFieldErrors["marketCapRangeMax"]}</p>}
+          {/* Initial Market Cap + Max Market Cap (side by side) */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="initialMarketCap">Initial Market Cap {watchedQuoteToken === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' ? '(in USDC)' : '(in SOL)'}</Label>
+              <Controller
+                name="initialMarketCap"
+                control={control}
+                render={({ field: { onChange, value, onBlur } }) => (
+                  <NumberInput
+                    value={value}
+                    onChangeValue={onChange}
+                    integer
+                    onBlur={onBlur}
+                    disabled={isLoading}
+                  />
+                )}
+              />
+              <p className="text-sm text-muted-foreground">Market cap at launch</p>
+              {errors.initialMarketCap && <p className="text-sm text-destructive">{errors.initialMarketCap.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="marketCapRangeMax">Max Market Cap {watchedQuoteToken === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' ? '(in USDC)' : '(in SOL)'}</Label>
+              <Controller
+                name="marketCapRangeMax"
+                control={control}
+                render={({ field: { onChange, value, onBlur } }) => (
+                  <NumberInput
+                    value={value}
+                    onChangeValue={onChange}
+                    integer
+                    onBlur={onBlur}
+                    disabled={isLoading}
+                  />
+                )}
+              />
+              <p className="text-sm text-muted-foreground">Max market cap for pool liquidity</p>
+              {allFieldErrors["marketCapRangeMax"] && <p className="text-sm text-destructive">{allFieldErrors["marketCapRangeMax"]}</p>}
+            </div>
           </div>
 
           {/* Locked Liquidity Slider */}
@@ -620,11 +681,32 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
 
       {/* Fee Schedule Section */}
       <Card>
-        <CardHeader>
-          <CardTitle>Fee Schedule</CardTitle>
-          <CardDescription>Configure dynamic fee scheduling for your token</CardDescription>
+        <CardHeader
+          className="cursor-pointer flex flex-row items-center justify-between"
+          onClick={() => setIsFeeScheduleOpen(!isFeeScheduleOpen)}
+        >
+          <div className="flex items-center gap-2">
+            <CardTitle>Fee Schedule</CardTitle>
+            {isFeeModified && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+                Modified
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetFeeSchedule();
+                  }}
+                  className="ml-1 rounded-sm hover:bg-slate-200 p-0.5 transition-colors"
+                  title="Reset to defaults"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+          </div>
+          {isFeeScheduleOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={cn("space-y-4", !isFeeScheduleOpen && "hidden")}>
           {/* Fee Scheduler Mode + Fee Token Mode (side by side) */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -651,17 +733,21 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
               <Controller
                 name="feeTokenMode"
                 control={control}
-                render={({ field: { onChange, value } }) => (
-                  <Select value={value} onValueChange={onChange} disabled={isLoading}>
-                    <SelectTrigger id="feeTokenMode" className="w-full">
-                      <SelectValue placeholder="Select fee token mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="quoteOnly">Quote Token Only</SelectItem>
-                      <SelectItem value="both">Both Quote + Base Token</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
+                render={({ field: { onChange, value } }) => {
+                  const quoteSymbol = watchedQuoteToken === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' ? 'USDC' : 'SOL';
+                  const baseLabel = symbol?.trim() || 'Token';
+                  return (
+                    <Select value={value} onValueChange={onChange} disabled={isLoading}>
+                      <SelectTrigger id="feeTokenMode" className="w-full">
+                        <SelectValue placeholder="Select fee token mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="quoteOnly">{quoteSymbol} Only</SelectItem>
+                        <SelectItem value="both">{quoteSymbol} + {baseLabel}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  );
+                }}
               />
             </div>
           </div>
@@ -704,7 +790,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                     <NumberInput value={value ?? 0} onChangeValue={onChange} decimalPlaces={2} suffix="%" onBlur={onBlur} disabled={isLoading} />
                   )}
                 />
-                <p className="text-sm text-muted-foreground">Max fee at starting market cap (e.g., 0.5%)</p>
+                <p className="text-sm text-muted-foreground">Max fee at starting market cap (e.g., 50%)</p>
                 {errors.feeMarketCapStartRate && <p className="text-sm text-destructive">{errors.feeMarketCapStartRate.message}</p>}
               </div>
               <div className="space-y-2">
@@ -716,7 +802,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                     <NumberInput value={value ?? 0} onChangeValue={onChange} decimalPlaces={2} suffix="%" onBlur={onBlur} disabled={isLoading} />
                   )}
                 />
-                <p className="text-sm text-muted-foreground">Min fee at ending market cap (e.g., 0.25%)</p>
+                <p className="text-sm text-muted-foreground">Min fee at ending market cap (e.g., 0.5%)</p>
                 {errors.feeMarketCapEndRate && <p className="text-sm text-destructive">{errors.feeMarketCapEndRate.message}</p>}
               </div>
             </div>
@@ -734,7 +820,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                     <NumberInput value={value ?? 0} onChangeValue={onChange} decimalPlaces={2} suffix="%" onBlur={onBlur} disabled={isLoading} />
                   )}
                 />
-                <p className="text-sm text-muted-foreground">Starting fee (e.g., 0.5%)</p>
+                <p className="text-sm text-muted-foreground">Starting fee (e.g., 50%)</p>
                 {errors.feeStartRate && <p className="text-sm text-destructive">{errors.feeStartRate.message}</p>}
               </div>
               <div className="space-y-2">
@@ -746,7 +832,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
                     <NumberInput value={value ?? 0} onChangeValue={onChange} decimalPlaces={2} suffix="%" onBlur={onBlur} disabled={isLoading} />
                   )}
                 />
-                <p className="text-sm text-muted-foreground">Ending fee (e.g., 0.25%)</p>
+                <p className="text-sm text-muted-foreground">Ending fee (e.g., 0.5%)</p>
                 {errors.feeEndRate && <p className="text-sm text-destructive">{errors.feeEndRate.message}</p>}
               </div>
             </div>

@@ -39,8 +39,8 @@ export const tokens = sqliteTable('tokens', {
   startingMarketCap: text('starting_market_cap').notNull().default('10000'),
   endingMarketCap: text('ending_market_cap').notNull().default('100000'),
   // Fee rates stored as percent (e.g., 0.5 = 0.5%), not bps
-  startRatePercent: real('start_rate_percent').notNull().default(0.5),
-  endRatePercent: real('end_rate_percent').notNull().default(0.25),
+  startRatePercent: real('start_rate_percent').notNull().default(50),
+  endRatePercent: real('end_rate_percent').notNull().default(0.5),
   durationMinutes: integer('duration_minutes').notNull().default(0),
   fixedBaseFeePercent: real('fixed_base_fee_percent').notNull().default(0.25),
   // Locked liquidity % (inverse of holdback, default 100% = all to pool)
