@@ -36,6 +36,13 @@
       "when": 1750000000003,
       "tag": "0005_ui_polish_market_cap",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1750000000004,
+      "tag": "0006_cleanup_obsolete_columns",
+      "breakpoints": true
     }
   ]
 }

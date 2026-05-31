@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { TokenFormData, LaunchStatus, LaunchResult } from "@/types/token";
-import { TokenLaunchForm } from "@/components/forms/TokenLaunchForm";
+import { TokenLaunchForm } from "@/components/forms/token-launch-form";
 import { TokenLaunchService } from "@/lib/services/launchService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DEFAULT_LAUNCH_PARAMS, DEFAULT_NUMBER_OF_PERIODS } from "@/config/defaults";
@@ -147,8 +147,10 @@ export default function LaunchPage() {
             console.log("[Database] ✓ Token saved successfully");
             router.push(`/tokens/${result.config.mint.toBase58()}`);
           } else {
-            const error = await response.json();
-            console.error("[Database] Failed to save token:", error);
+            const text = await response.text();
+            let errorBody: unknown;
+            try { errorBody = JSON.parse(text); } catch { errorBody = text; }
+            console.error(`[Database] Failed to save token (status ${response.status} ${response.statusText}):`, errorBody);
           }
         } catch (dbError) {
           console.error("[Database] Error saving to database:", dbError);

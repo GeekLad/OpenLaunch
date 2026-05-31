@@ -48,6 +48,7 @@ export function getSqlite(): Database.Database {
     // Performance optimizations for SQLite
     sqlite.pragma('journal_mode = WAL'); // Write-Ahead Logging for better concurrency
     sqlite.pragma('synchronous = NORMAL'); // Balance between safety and performance
+    sqlite.pragma('busy_timeout = 5000'); // Wait up to 5 s when another connection has a lock
 
     console.log('[Database] Connected successfully');
   }
