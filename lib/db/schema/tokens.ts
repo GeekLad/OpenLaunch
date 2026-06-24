@@ -1,4 +1,16 @@
 import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
+import {
+  DEFAULT_DECIMALS,
+  DEFAULT_MARKET_CAP_RANGE_MAX,
+  DEFAULT_FEE_SCHEDULER_MODE,
+  DEFAULT_FEE_TOKEN_MODE,
+  DEFAULT_STARTING_MARKET_CAP,
+  DEFAULT_ENDING_MARKET_CAP,
+  DEFAULT_FEE_START_PERCENT,
+  DEFAULT_FEE_END_PERCENT,
+  DEFAULT_FIXED_FEE_PERCENT,
+  DEFAULT_LOCKED_LIQUIDITY_PERCENTAGE,
+} from '@/config/defaults';
 
 /**
  * Tokens table - stores information about launched tokens
@@ -22,29 +34,29 @@ export const tokens = sqliteTable('tokens', {
   metadataUri: text('metadata_uri'),
 
   // Token configuration
-  decimals: integer('decimals').notNull().default(9),
+  decimals: integer('decimals').notNull().default(DEFAULT_DECIMALS),
   totalSupply: text('total_supply').notNull(),
 
   // Pool configuration (market cap-based, replacing price-based)
   initialMarketCap: real('initial_market_cap').notNull(),
   quoteTokenMint: text('quote_token_mint').notNull(),
   poolLiquidityPercentage: real('pool_liquidity_percentage').notNull(),
-  marketCapRangeMax: real('market_cap_range_max').notNull().default(1000000),
+  marketCapRangeMax: real('market_cap_range_max').notNull().default(DEFAULT_MARKET_CAP_RANGE_MAX),
 
   // Fee configuration
   feeDecayDurationMinutes: integer('fee_decay_duration_minutes').notNull().default(0),
   feeDecayPeriods: integer('fee_decay_periods').notNull().default(0),
-  feeSchedulerMode: text('fee_scheduler_mode').notNull().default('market-cap-based'),
-  feeTokenMode: text('fee_token_mode').notNull().default('quoteOnly'),
-  startingMarketCap: text('starting_market_cap').notNull().default('1000'),
-  endingMarketCap: text('ending_market_cap').notNull().default('1000000'),
+  feeSchedulerMode: text('fee_scheduler_mode').notNull().default(DEFAULT_FEE_SCHEDULER_MODE),
+  feeTokenMode: text('fee_token_mode').notNull().default(DEFAULT_FEE_TOKEN_MODE),
+  startingMarketCap: text('starting_market_cap').notNull().default(String(DEFAULT_STARTING_MARKET_CAP)),
+  endingMarketCap: text('ending_market_cap').notNull().default(String(DEFAULT_ENDING_MARKET_CAP)),
   // Fee rates stored as percent (e.g., 0.5 = 0.5%), not bps
-  startRatePercent: real('start_rate_percent').notNull().default(50),
-  endRatePercent: real('end_rate_percent').notNull().default(0.5),
+  startRatePercent: real('start_rate_percent').notNull().default(DEFAULT_FEE_START_PERCENT),
+  endRatePercent: real('end_rate_percent').notNull().default(DEFAULT_FEE_END_PERCENT),
   durationMinutes: integer('duration_minutes').notNull().default(0),
-  fixedBaseFeePercent: real('fixed_base_fee_percent').notNull().default(0.25),
+  fixedBaseFeePercent: real('fixed_base_fee_percent').notNull().default(DEFAULT_FIXED_FEE_PERCENT),
   // Locked liquidity % (inverse of holdback, default 100% = all to pool)
-  lockedLiquidityPercentage: real('locked_liquidity_percentage').notNull().default(100),
+  lockedLiquidityPercentage: real('locked_liquidity_percentage').notNull().default(DEFAULT_LOCKED_LIQUIDITY_PERCENTAGE),
 
   // Launch timestamps
   launchDate: integer('launch_date', { mode: 'timestamp' }).notNull(),
