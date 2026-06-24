@@ -36,8 +36,8 @@ export const tokens = sqliteTable('tokens', {
   feeDecayPeriods: integer('fee_decay_periods').notNull().default(0),
   feeSchedulerMode: text('fee_scheduler_mode').notNull().default('market-cap-based'),
   feeTokenMode: text('fee_token_mode').notNull().default('quoteOnly'),
-  startingMarketCap: text('starting_market_cap').notNull().default('10000'),
-  endingMarketCap: text('ending_market_cap').notNull().default('100000'),
+  startingMarketCap: text('starting_market_cap').notNull().default('1000'),
+  endingMarketCap: text('ending_market_cap').notNull().default('1000000'),
   // Fee rates stored as percent (e.g., 0.5 = 0.5%), not bps
   startRatePercent: real('start_rate_percent').notNull().default(50),
   endRatePercent: real('end_rate_percent').notNull().default(0.5),

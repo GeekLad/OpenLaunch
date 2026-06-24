@@ -397,5 +397,16 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
     watchedFeeMode,
     symbol,
     logoFile,
+
+    // Watched fee schedule values (for live chart preview)
+    watchedStartMcap,
+    watchedEndMcap,
+    watchedFeeMcapStartRate,
+    watchedFeeMcapEndRate,
+    watchedTimeStartRate,
+    watchedTimeEndRate,
+    watchedFeeDuration,
+    watchedFeeFixed,
+    watchedSupply,
   };
 }

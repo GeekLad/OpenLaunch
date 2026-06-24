@@ -4,6 +4,8 @@
  * Every function returns ALL failures at once, not just the first one.
  */
 
+import { DEFAULT_NUMBER_OF_PERIODS } from "@/config/defaults";
+
 export interface ValidationError {
   field: string;
   message: string;
@@ -12,6 +14,12 @@ export interface ValidationError {
 function isPositive(n: unknown): n is number {
   return typeof n === "number" && !Number.isNaN(n) && n > 0;
 }
+
+/**
+ * Minimum viable price ratio so the SDK's sqrtPriceStepBps stays ≥ 1.
+ * Derived from: (1 + DEFAULT_NUMBER_OF_PERIODS / 10000) ^ 2
+ */
+export const MIN_PRICE_MULTIPLE = (1 + DEFAULT_NUMBER_OF_PERIODS / 10000) ** 2;
 
 /**
  * Validate the pool market cap range (initial < max).
@@ -72,6 +80,13 @@ export function validateFeeSchedulerMarketCap(
     }
     if (eCap > pMax) {
       errors.push({ field: "endingMarketCap", message: `Ending market cap must be \u003c= pool max market cap (${pMax})` });
+    }
+    if (eCap > sCap) {
+      const priceMultiple = eCap / sCap;
+      if (priceMultiple < MIN_PRICE_MULTIPLE) {
+        const minEndingMcap = Math.ceil(sCap * MIN_PRICE_MULTIPLE);
+        errors.push({ field: "endingMarketCap", message: `Ending market cap too close to starting market cap. Must be at least ${minEndingMcap}} for ${DEFAULT_NUMBER_OF_PERIODS} periods)` });
+      }
     }
   }
 

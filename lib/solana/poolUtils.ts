@@ -1,55 +1,36 @@
 import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js";
-import { CpAmm, type PoolFeesParams, getFeeTimeSchedulerParams, getFeeMarketCapSchedulerParams, BaseFeeMode, CollectFeeMode, getDynamicFeeParams } from "@meteora-ag/cp-amm-sdk";
+import { CpAmm, type PoolFeesParams, getFeeTimeSchedulerParams, getFeeMarketCapSchedulerParams, BaseFeeMode, CollectFeeMode, getDynamicFeeParams, getSqrtPriceFromPrice, getPriceFromSqrtPrice } from "@meteora-ag/cp-amm-sdk";
 import { getMint, Mint, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import BN from "bn.js";
-import { DEFAULT_NUMBER_OF_PERIODS, percentToBps } from "@/config/defaults";
+import { DEFAULT_NUMBER_OF_PERIODS, DEFAULT_SCHEDULER_EXPIRATION_SECONDS, percentToBps } from "@/config/defaults";
 import type { FeeSchedulerConfig } from "@/types/fee";
 
 // Meteora DAMMv2 Program ID
 export const DAMM_V2_PROGRAM_ID = new PublicKey("cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG");
 
 /**
- * Converts a human-readable price to sqrt price in Q64 format
+ * Converts a human-readable price to sqrt price in Q64 format.
+ * Delegates to the Meteora SDK's `getSqrtPriceFromPrice` for exact precision
+ * (uses decimal.js internally instead of float64).
  * @param price - Human readable price (e.g., 0.00001)
- * @param tokenADecimals - Decimals for token A
- * @param tokenBDecimals - Decimals for token B
+ * @param tokenADecimals - Decimals for token A (base token)
+ * @param tokenBDecimals - Decimals for token B (quote token)
  * @returns BN representing sqrt price in Q64 format
  */
 export function priceToSqrtPrice(price: number, tokenADecimals: number, tokenBDecimals: number): BN {
-  // Price = (amount of B / 10^decimalsB) / (amount of A / 10^decimalsA)
-  // Adjust for decimal difference
-  const decimalAdjustment = Math.pow(10, tokenBDecimals - tokenADecimals);
-  const adjustedPrice = price * decimalAdjustment;
-
-  // Calculate sqrt price
-  const sqrtPrice = Math.sqrt(adjustedPrice);
-
-  // Convert to Q64 format (multiply by 2^64)
-  // Use string representation to avoid precision issues with large numbers
-  const sqrtPriceScaled = sqrtPrice * Math.pow(2, 32); // Scale by 2^32 first (safe range)
-  const sqrtPriceBN = new BN(Math.floor(sqrtPriceScaled)).shln(32); // Then shift left by 32 more bits (total 2^64)
-
-  return sqrtPriceBN;
+  return getSqrtPriceFromPrice(String(price), tokenADecimals, tokenBDecimals);
 }
 
 /**
- * Converts sqrt price in Q64 format to human-readable price
+ * Converts sqrt price in Q64 format to human-readable price.
+ * Delegates to the Meteora SDK's `getPriceFromSqrtPrice` for exact precision.
  * @param sqrtPrice - Sqrt price in Q64 format
- * @param tokenADecimals - Decimals for token A
- * @param tokenBDecimals - Decimals for token B
+ * @param tokenADecimals - Decimals for token A (base token)
+ * @param tokenBDecimals - Decimals for token B (quote token)
  * @returns Human readable price
  */
 export function sqrtPriceToPrice(sqrtPrice: BN, tokenADecimals: number, tokenBDecimals: number): number {
-  // Convert Q64 to normal number
-  const Q64 = Math.pow(2, 64);
-  const sqrtPriceNum = sqrtPrice.toNumber() / Q64;
-
-  // Square to get price
-  const price = Math.pow(sqrtPriceNum, 2);
-
-  // Adjust for decimals
-  const decimalAdjustment = Math.pow(10, tokenBDecimals - tokenADecimals);
-  return price / decimalAdjustment;
+  return getPriceFromSqrtPrice(sqrtPrice, tokenADecimals, tokenBDecimals).toNumber();
 }
 
 export interface CreatePoolParams {
@@ -172,9 +153,21 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
       const startBps = percentToBps(feeSchedulerConfig.feeMarketCapStartRatePercent);
       const endBps = percentToBps(feeSchedulerConfig.feeMarketCapEndRatePercent);
       const numberOfPeriod = DEFAULT_NUMBER_OF_PERIODS;
-      // FIX: priceMultiple is the direct ratio, NOT the nth root
-      const priceMultiple = feeSchedulerConfig.endingMarketCap / feeSchedulerConfig.startingMarketCap;
-      const schedulerExpirationDuration = 365 * 24 * 60 * 60;
+      // Derive priceMultiple from sqrt prices computed via the SAME priceToSqrtPrice
+      // function used for the pool range. This guarantees consistent decimal handling
+      // between the pool's price range and the scheduler's price range.
+      // The scheduler uses its own independent startingMarketCap/endingMarketCap
+      // fields, so the user can set a different range than the pool if desired.
+      const schedulerStartPrice = totalSupply > 0 ? feeSchedulerConfig.startingMarketCap / totalSupply : 0;
+      const schedulerEndPrice = totalSupply > 0 ? feeSchedulerConfig.endingMarketCap / totalSupply : 0;
+      const schedulerStartSqrt = priceToSqrtPrice(schedulerStartPrice, tokenADecimals, tokenBDecimals);
+      const schedulerEndSqrt = priceToSqrtPrice(schedulerEndPrice, tokenADecimals, tokenBDecimals);
+      // priceMultiple = (endSqrt / startSqrt)^2 = endPrice / startPrice
+      const sqrtRatio = schedulerStartSqrt.gt(new BN(0))
+        ? Number(schedulerEndSqrt) / Number(schedulerStartSqrt)
+        : 1;
+      const priceMultiple = sqrtRatio * sqrtRatio;
+      const schedulerExpirationDuration = DEFAULT_SCHEDULER_EXPIRATION_SECONDS;
       const baseFeeMode = feeSchedulerConfig.decayMode === "linear"
         ? BaseFeeMode.FeeMarketCapSchedulerLinear
         : BaseFeeMode.FeeMarketCapSchedulerExponential;
@@ -183,10 +176,12 @@ export async function createDAMMv2Pool(params: CreatePoolParams): Promise<Create
         `Fee configuration (market-cap-based):\n` +
           `  Start rate: ${feeSchedulerConfig.feeMarketCapStartRatePercent}% (${startBps} bps)\n` +
           `  End rate: ${feeSchedulerConfig.feeMarketCapEndRatePercent}% (${endBps} bps)\n` +
-          `  Starting market cap: ${feeSchedulerConfig.startingMarketCap}\n` +
-          `  Ending market cap: ${feeSchedulerConfig.endingMarketCap}\n` +
+          `  Scheduler starting market cap: ${feeSchedulerConfig.startingMarketCap}\n` +
+          `  Scheduler ending market cap: ${feeSchedulerConfig.endingMarketCap}\n` +
+          `  Scheduler start price: ${schedulerStartPrice}\n` +
+          `  Scheduler end price: ${schedulerEndPrice}\n` +
           `  Number of periods: ${numberOfPeriod}\n` +
-          `  Price multiple: ${priceMultiple}\n` +
+          `  Price multiple (from sqrt prices): ${priceMultiple}\n` +
           `  Decay mode: ${feeSchedulerConfig.decayMode ?? "exponential"}\n` +
           `  Dynamic fees: Enabled (adjusts based on volatility)`
       );

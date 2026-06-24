@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Controller, Control } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TokenFormSchemaType } from "./schema";
+import { FeeScheduleChart, type XAxisMode, type XScaleMode } from "./FeeScheduleChart";
 
 interface FeeScheduleSectionProps {
   control: Control<TokenFormSchemaType>;
@@ -20,6 +22,15 @@ interface FeeScheduleSectionProps {
   setIsFeeScheduleOpen: (open: boolean) => void;
   isFeeModified: boolean;
   resetFeeSchedule: () => void;
+  watchedFeeMcapStartRate: number | undefined;
+  watchedFeeMcapEndRate: number | undefined;
+  watchedTimeStartRate: number | undefined;
+  watchedTimeEndRate: number | undefined;
+  watchedFeeDuration: number | undefined;
+  watchedFeeFixed: number | undefined;
+  watchedSupply: number | undefined;
+  watchedStartMcap: number | undefined;
+  watchedEndMcap: number | undefined;
 }
 
 export function FeeScheduleSection({
@@ -33,7 +44,21 @@ export function FeeScheduleSection({
   setIsFeeScheduleOpen,
   isFeeModified,
   resetFeeSchedule,
+  watchedFeeMcapStartRate,
+  watchedFeeMcapEndRate,
+  watchedTimeStartRate,
+  watchedTimeEndRate,
+  watchedFeeDuration,
+  watchedFeeFixed,
+  watchedSupply,
+  watchedStartMcap,
+  watchedEndMcap,
 }: FeeScheduleSectionProps) {
+  const quoteTokenSymbol = watchedQuoteToken === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? "USDC" : "SOL";
+  const showChart = watchedFeeMode === "market-cap-based" || watchedFeeMode === "time-based" || watchedFeeMode === "fixed";
+  const [xAxisMode, setXAxisMode] = useState<XAxisMode>("marketCap");
+  const [xScaleMode, setXScaleMode] = useState<XScaleMode>("log");
+
   return (
     <Card>
       <CardHeader
@@ -66,50 +91,178 @@ export function FeeScheduleSection({
         )}
       </CardHeader>
       <CardContent className={cn("space-y-4", !isFeeScheduleOpen && "hidden")}>
-        {/* Fee Scheduler Mode + Fee Token Mode (side by side) */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="feeSchedulerMode">Fee Scheduler Mode</Label>
-            <Controller
-              name="feeSchedulerMode"
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <Select value={value} onValueChange={onChange} disabled={isLoading}>
-                  <SelectTrigger id="feeSchedulerMode" className="w-full">
-                    <SelectValue placeholder="Select fee scheduler mode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="market-cap-based">Market-Cap Based</SelectItem>
-                    <SelectItem value="time-based">Time-Based</SelectItem>
-                    <SelectItem value="fixed">Disabled (Fixed Fee)</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="feeTokenMode">Fee Token Mode</Label>
-            <Controller
-              name="feeTokenMode"
-              control={control}
-              render={({ field: { onChange, value } }) => {
-                const quoteSymbol = watchedQuoteToken === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? "USDC" : "SOL";
-                const baseLabel = symbol?.trim() || "Token";
-                return (
+        {watchedFeeMode === "fixed" ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="feeSchedulerMode">Fee Scheduler Mode</Label>
+              <Controller
+                name="feeSchedulerMode"
+                control={control}
+                render={({ field: { onChange, value } }) => (
                   <Select value={value} onValueChange={onChange} disabled={isLoading}>
-                    <SelectTrigger id="feeTokenMode" className="w-full">
-                      <SelectValue placeholder="Select fee token mode" />
+                    <SelectTrigger id="feeSchedulerMode" className="w-full">
+                      <SelectValue placeholder="Select fee scheduler mode" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="quoteOnly">{quoteSymbol} Only</SelectItem>
-                      <SelectItem value="both">{quoteSymbol} + {baseLabel}</SelectItem>
+                      <SelectItem value="market-cap-based">Market-Cap Based</SelectItem>
+                      <SelectItem value="time-based">Time-Based</SelectItem>
+                      <SelectItem value="fixed">Disabled (Fixed Fee)</SelectItem>
                     </SelectContent>
                   </Select>
-                );
-              }}
-            />
+                )}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="feeTokenMode">Fee Token Mode</Label>
+              <Controller
+                name="feeTokenMode"
+                control={control}
+                render={({ field: { onChange, value } }) => {
+                  const quoteSymbol = watchedQuoteToken === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? "USDC" : "SOL";
+                  const baseLabel = symbol?.trim() || "Token";
+                  return (
+                    <Select value={value} onValueChange={onChange} disabled={isLoading}>
+                      <SelectTrigger id="feeTokenMode" className="w-full">
+                        <SelectValue placeholder="Select fee token mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="quoteOnly">{quoteSymbol} Only</SelectItem>
+                        <SelectItem value="both">{quoteSymbol} + {baseLabel}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  );
+                }}
+              />
+            </div>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-stretch">
+            {/* Column 1: Fee Scheduler Mode + Fee Token Mode */}
+            <div className="flex flex-col gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="feeSchedulerMode">Fee Scheduler Mode</Label>
+                <Controller
+                  name="feeSchedulerMode"
+                  control={control}
+                  render={({ field: { onChange, value } }) => (
+                    <Select value={value} onValueChange={onChange} disabled={isLoading}>
+                      <SelectTrigger id="feeSchedulerMode" className="w-full">
+                        <SelectValue placeholder="Select fee scheduler mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="market-cap-based">Market-Cap Based</SelectItem>
+                        <SelectItem value="time-based">Time-Based</SelectItem>
+                        <SelectItem value="fixed">Disabled (Fixed Fee)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="feeTokenMode">Fee Token Mode</Label>
+                <Controller
+                  name="feeTokenMode"
+                  control={control}
+                  render={({ field: { onChange, value } }) => {
+                    const quoteSymbol = watchedQuoteToken === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? "USDC" : "SOL";
+                    const baseLabel = symbol?.trim() || "Token";
+                    return (
+                      <Select value={value} onValueChange={onChange} disabled={isLoading}>
+                        <SelectTrigger id="feeTokenMode" className="w-full">
+                          <SelectValue placeholder="Select fee token mode" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="quoteOnly">{quoteSymbol} Only</SelectItem>
+                          <SelectItem value="both">{quoteSymbol} + {baseLabel}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    );
+                  }}
+                />
+              </div>
+            </div>
+
+          {/* Column 2: Live fee schedule visualization */}
+          {showChart && (
+            <div className="flex flex-col rounded-md border border-border bg-card/40 p-3">
+              {watchedFeeMode === "market-cap-based" && (
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setXAxisMode("marketCap")}
+                      className={cn(
+                        "rounded px-2 py-0.5 text-xs font-medium transition-colors",
+                        xAxisMode === "marketCap"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      Market Cap
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setXAxisMode("price")}
+                      className={cn(
+                        "rounded px-2 py-0.5 text-xs font-medium transition-colors",
+                        xAxisMode === "price"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      Price
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setXScaleMode("linear")}
+                      className={cn(
+                        "rounded px-2 py-0.5 text-xs font-medium transition-colors",
+                        xScaleMode === "linear"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      Linear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setXScaleMode("log")}
+                      className={cn(
+                        "rounded px-2 py-0.5 text-xs font-medium transition-colors",
+                        xScaleMode === "log"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      Log
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="h-[200px] sm:h-[250px]">
+                <FeeScheduleChart
+                  feeMode={watchedFeeMode}
+                  startingMarketCap={watchedStartMcap}
+                  endingMarketCap={watchedEndMcap}
+                  feeMarketCapStartRate={watchedFeeMcapStartRate}
+                  feeMarketCapEndRate={watchedFeeMcapEndRate}
+                  quoteTokenSymbol={quoteTokenSymbol}
+                  quoteTokenMint={watchedQuoteToken}
+                  feeStartRate={watchedTimeStartRate}
+                  feeEndRate={watchedTimeEndRate}
+                  feeDurationHours={watchedFeeDuration}
+                  feeFixedRate={watchedFeeFixed}
+                  totalSupply={watchedSupply}
+                  xAxisMode={watchedFeeMode === "market-cap-based" ? xAxisMode : undefined}
+                  xScaleMode={xScaleMode}
+                />
+              </div>
+            </div>
+          )}
         </div>
+        )}
 
         {/* Market-Cap Based sub-fields */}
         <div className={cn("space-y-4", watchedFeeMode !== "market-cap-based" && "hidden")}>

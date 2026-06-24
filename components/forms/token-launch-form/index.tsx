@@ -61,6 +61,15 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
         setIsFeeScheduleOpen={form.setIsFeeScheduleOpen}
         isFeeModified={form.isFeeModified}
         resetFeeSchedule={form.resetFeeSchedule}
+        watchedFeeMcapStartRate={form.watchedFeeMcapStartRate}
+        watchedFeeMcapEndRate={form.watchedFeeMcapEndRate}
+        watchedTimeStartRate={form.watchedTimeStartRate}
+        watchedTimeEndRate={form.watchedTimeEndRate}
+        watchedFeeDuration={form.watchedFeeDuration}
+        watchedFeeFixed={form.watchedFeeFixed}
+        watchedSupply={form.watchedSupply}
+        watchedStartMcap={form.watchedStartMcap}
+        watchedEndMcap={form.watchedEndMcap}
       />
 
       <LaunchTimeSection

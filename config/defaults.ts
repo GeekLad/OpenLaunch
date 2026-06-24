@@ -36,6 +36,14 @@ export const DEFAULT_FIXED_FEE_PERCENT = 0.25;  // 0.25%
 export const DEFAULT_NUMBER_OF_PERIODS = 60;
 
 /**
+ * Scheduler expiration duration (seconds) for market-cap-based fee scheduler.
+ * After this duration elapses, the fee snaps to the ending rate regardless of
+ * price movement. Used by both pool creation (lib/solana/poolUtils.ts) and
+ * server-side validation (lib/validation/feeValidation.ts) to stay in sync.
+ */
+export const DEFAULT_SCHEDULER_EXPIRATION_SECONDS = 365 * 24 * 60 * 60;
+
+/**
  * Known quote token mints and their decimal places.
  */
 export const QUOTE_TOKEN_DECIMALS: Record<string, number> = {
