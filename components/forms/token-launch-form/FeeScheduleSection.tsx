@@ -92,7 +92,7 @@ export function FeeScheduleSection({
       </CardHeader>
       <CardContent className={cn("space-y-4", !isFeeScheduleOpen && "hidden")}>
         {watchedFeeMode === "fixed" ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="feeSchedulerMode">Fee Scheduler Mode</Label>
               <Controller
@@ -133,6 +133,17 @@ export function FeeScheduleSection({
                   );
                 }}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="feeFixedRate">Fixed Base Fee (%)</Label>
+              <Controller
+                name="feeFixedRate"
+                control={control}
+                render={({ field: { onChange, value, onBlur } }) => (
+                  <NumberInput value={value ?? 0} onChangeValue={onChange} decimalPlaces={2} suffix="%" onBlur={onBlur} disabled={isLoading} />
+                )}
+              />
+              <p className="text-sm text-muted-foreground">Constant fee (e.g., 0.25%)</p>
             </div>
           </div>
         ) : (
@@ -361,20 +372,6 @@ export function FeeScheduleSection({
           </div>
         </div>
 
-        {/* Fixed Fee sub-fields */}
-        <div className={cn("space-y-4", watchedFeeMode !== "fixed" && "hidden")}>
-          <div className="space-y-2">
-            <Label htmlFor="feeFixedRate">Fixed Base Fee (%)</Label>
-            <Controller
-              name="feeFixedRate"
-              control={control}
-              render={({ field: { onChange, value, onBlur } }) => (
-                <NumberInput value={value ?? 0} onChangeValue={onChange} decimalPlaces={2} suffix="%" onBlur={onBlur} disabled={isLoading} />
-              )}
-            />
-            <p className="text-sm text-muted-foreground">Constant fee (e.g., 0.25%)</p>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
