@@ -437,7 +437,11 @@ export async function upsertFeeUpdateSchedule(
 }
 
 /**
- * Get all pools that need updating (nextUpdate <= now)
+ * Get all pools that need updating (nextUpdate <= now).
+ *
+ * Excludes stale pools (D-15) — once a pool hits the circuit-breaker threshold
+ * it stays out of the rotation until manually reset. The `stale` column was
+ * added in Plan 06-01 (Wave 0).
  */
 export async function getPoolsDueForUpdate(limit: number = 50): Promise<FeeUpdateSchedule[]> {
   const now = new Date();
@@ -445,7 +449,12 @@ export async function getPoolsDueForUpdate(limit: number = 50): Promise<FeeUpdat
   return await db
     .select()
     .from(feeUpdateSchedule)
-    .where(lt(feeUpdateSchedule.nextUpdate, now))
+    .where(
+      and(
+        lt(feeUpdateSchedule.nextUpdate, now),
+        eq(feeUpdateSchedule.stale, false),
+      )
+    )
     .orderBy(asc(feeUpdateSchedule.nextUpdate))
     .limit(limit);
 }
@@ -478,6 +487,21 @@ export async function getFeeUpdateSchedule(tokenId: number): Promise<FeeUpdateSc
     .limit(1);
 
   return schedule || null;
+}
+
+/**
+ * Mark a pool as stale after MAX_CONSECUTIVE_FAILURES — the cron will skip it
+ * until manually reset (D-14/D-16). Used by the circuit breaker in Plan 06-03.
+ *
+ * Manual reset: `UPDATE fee_update_schedule SET stale=0, consecutive_failures=0 WHERE token_id=N;`
+ *
+ * @param tokenId - The token whose pool should be marked stale
+ */
+export async function markPoolStale(tokenId: number): Promise<void> {
+  await db
+    .update(feeUpdateSchedule)
+    .set({ stale: true })
+    .where(eq(feeUpdateSchedule.tokenId, tokenId));
 }
 
 // ============================================================================
@@ -645,6 +669,7 @@ export const dbService = {
   getPoolsDueForUpdate,
   recordUpdateFailure,
   getFeeUpdateSchedule,
+  markPoolStale,
 
   // Leaderboard
   getLeaderboard,
