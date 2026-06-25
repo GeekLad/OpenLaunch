@@ -131,7 +131,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 3 plans
 **Plan list:**
 
-- [ ] 06-01-PLAN.md — Test harness (RED tests) + stale schema column + BLOCKING drizzle-kit push
+- [x] 06-01-PLAN.md — Test harness (RED tests) + stale schema column + BLOCKING drizzle-kit push
 - [ ] 06-02-PLAN.md — Meteora client rewrite + DB service stale filter + markPoolStale
 - [ ] 06-03-PLAN.md — Cron rewrite: USD microunits, feeTokenMode read, circuit breaker
 
@@ -149,4 +149,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Advanced Parameters, Fee Modes & Complex Validation | 5/5 | Complete   | 2026-05-26 |
 | 4. Blockchain Integration & Pre-flight Safety | 3/3 | Complete | 2026-05-26 |
 | 5. Service Orchestration, Persistence & Detail Pages | 2/2 | Complete | 2026-05-26 |
-| 6. Background Jobs & Hardening | 0/TBD | Not started | - |
+| 6. Background Jobs & Hardening | 1/3 | In Progress | - |
