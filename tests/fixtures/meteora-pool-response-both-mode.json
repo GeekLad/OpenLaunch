@@ -1,0 +1,95 @@
+{
+  "address": "BothTokenPoolAddressBothModeBBBBBBBBBBBBBBBBBBBBB",
+  "name": "BOTH/USDC",
+  "token_x": {
+    "address": "BaseTokenAddressBothMode111111111111111111111111",
+    "name": "Base Token",
+    "symbol": "BOTH",
+    "decimals": 6,
+    "is_verified": true,
+    "holders": 5432,
+    "freeze_authority_disabled": true,
+    "total_supply": 1000000000,
+    "price": 0.5,
+    "market_cap": 500000000
+  },
+  "token_y": {
+    "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "name": "USD Coin",
+    "symbol": "USDC",
+    "decimals": 6,
+    "is_verified": true,
+    "holders": 98765,
+    "freeze_authority_disabled": true,
+    "total_supply": 5000000000,
+    "price": 1.0,
+    "market_cap": 5000000000
+  },
+  "token_x_amount": 1000.0,
+  "token_y_amount": 500.0,
+  "created_at": 1700000000,
+  "vault_x": "VaultXBothModeAddress11111111111111111111111111",
+  "vault_y": "VaultYBothModeAddress22222222222222222222222222",
+  "alpha_vault": "AlphaVaultBothModeAddress33333333333333333333333",
+  "pool_config": {
+    "collect_fee_mode": 0,
+    "base_fee_mode": 0,
+    "base_fee_pct": 25,
+    "protocol_fee_pct": 5,
+    "partner_fee_pct": 0,
+    "referral_fee_pct": 0,
+    "dynamic_fee_initialized": false,
+    "pool_type": 0,
+    "concentrated_liquidity": true,
+    "min_price": 0.000001,
+    "max_price": 0.0001,
+    "activation_type": 0,
+    "activation_point": 0
+  },
+  "tvl": 277672.23,
+  "current_price": 0.5,
+  "has_farm": false,
+  "farm_apr": 45.2,
+  "farm_apy": 0.0,
+  "permanent_lock_liquidity": 0,
+  "vested_liquidity": { "months_3": 0, "months_6": 0 },
+  "volume": {
+    "30m": 123.45,
+    "1h": 234.56,
+    "2h": 345.67,
+    "4h": 456.78,
+    "12h": 567.89,
+    "24h": 12345.67
+  },
+  "fees": {
+    "30m": 1.23,
+    "1h": 2.34,
+    "2h": 3.45,
+    "4h": 3.84,
+    "12h": 4.15,
+    "24h": 4.424238
+  },
+  "protocol_fees": {
+    "30m": 0.06,
+    "1h": 0.12,
+    "2h": 0.18,
+    "4h": 0.19,
+    "12h": 0.21,
+    "24h": 0.22
+  },
+  "fee_tvl_ratio": {
+    "30m": 0.0044,
+    "1h": 0.0084,
+    "2h": 0.0124,
+    "4h": 0.0138,
+    "12h": 0.0149,
+    "24h": 0.0159
+  },
+  "cumulative_metrics": {
+    "volume": 999999.5,
+    "fees": 277672.23
+  },
+  "is_blacklisted": false,
+  "launchpad": null,
+  "tags": []
+}
