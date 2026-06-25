@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Blockchain Integration & Pre-flight Safety** - SDK upgrade, on-chain parameter mapping, holdback math, and transaction simulation (completed 2026-05-26)
 - [x] **Phase 5: Service Orchestration, Persistence & Detail Pages** - Full launch flow wiring, database persistence, and token detail page enhancement (completed 2026-05-26)
 - [ ] **Phase 5.1: Detail Page & Form UX Polish** - Reorganize token detail layout, move RPC to server-side env, invert holdback to locked liquidity, convert price to market cap, two-column form, percent-based fees (INSERTED)
-- [ ] **Phase 6: Background Jobs & Hardening** - Mode-aware fee updater, both-token fee tracking, and final safety hardening
+- [x] **Phase 6: Background Jobs & Hardening** - Mode-aware fee updater, both-token fee tracking, and final safety hardening (completed 2026-06-25)
 
 ## Phase Details
 
@@ -128,12 +128,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Quote-token-only fee tracking continues to work exactly as before for tokens using the default mode
   3. When fee token mode is set to "both tokens," the fee updater correctly tracks and reports fees from both base and quote tokens
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 **Plan list:**
 
 - [x] 06-01-PLAN.md — Test harness (RED tests) + stale schema column + BLOCKING drizzle-kit push
 - [x] 06-02-PLAN.md — Meteora client rewrite + DB service stale filter + markPoolStale
-- [ ] 06-03-PLAN.md — Cron rewrite: USD microunits, feeTokenMode read, circuit breaker
+- [x] 06-03-PLAN.md — Cron rewrite: USD microunits, feeTokenMode read, circuit breaker
 
 **UI hint**: no
 
@@ -149,4 +149,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Advanced Parameters, Fee Modes & Complex Validation | 5/5 | Complete   | 2026-05-26 |
 | 4. Blockchain Integration & Pre-flight Safety | 3/3 | Complete | 2026-05-26 |
 | 5. Service Orchestration, Persistence & Detail Pages | 2/2 | Complete | 2026-05-26 |
-| 6. Background Jobs & Hardening | 2/3 | In Progress|  |
+| 6. Background Jobs & Hardening | 3/3 | Complete   | 2026-06-25 |
