@@ -128,7 +128,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Quote-token-only fee tracking continues to work exactly as before for tokens using the default mode
   3. When fee token mode is set to "both tokens," the fee updater correctly tracks and reports fees from both base and quote tokens
 
-**Plans**: TBD
+**Plans:** 3 plans
+**Plan list:**
+
+- [ ] 06-01-PLAN.md — Test harness (RED tests) + stale schema column + BLOCKING drizzle-kit push
+- [ ] 06-02-PLAN.md — Meteora client rewrite + DB service stale filter + markPoolStale
+- [ ] 06-03-PLAN.md — Cron rewrite: USD microunits, feeTokenMode read, circuit breaker
+
 **UI hint**: no
 
 ## Progress
