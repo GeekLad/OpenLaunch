@@ -33,6 +33,9 @@ export const feeUpdateSchedule = sqliteTable('fee_update_schedule', {
   consecutiveFailures: integer('consecutive_failures').notNull().default(0),
   lastError: text('last_error'), // Last error message (if any)
   lastErrorAt: integer('last_error_at', { mode: 'timestamp' }), // When the error occurred
+
+  // Circuit breaker flag — when true, cron skips this pool entirely (D-14/D-15)
+  stale: integer('stale', { mode: 'boolean' }).notNull().default(false),
 }, (table) => ({
   // Index for efficient polling queries
   // Query pattern: "Get all pools that need updating (nextUpdate <= now)"

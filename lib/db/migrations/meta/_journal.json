@@ -43,6 +43,13 @@
       "when": 1750000000004,
       "tag": "0006_cleanup_obsolete_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1750000000005,
+      "tag": "0007_circuit_breaker_stale_flag",
+      "breakpoints": true
     }
   ]
 }
