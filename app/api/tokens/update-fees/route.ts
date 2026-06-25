@@ -3,11 +3,17 @@ import { getPoolMetrics } from "@/lib/meteora/client";
 import * as dbService from "@/lib/db/service";
 
 /**
+ * USD microunits conversion factor (D-02). All Meteora API monetary values are
+ * USD floats; storage is integer microunits (6 decimals) as string-encoded integers.
+ */
+const USD_MICROUNITS = 1_000_000;
+
+/**
  * API endpoint to update pool fees from Meteora API
  * POST /api/tokens/update-fees
  * Body: { tokenId?: number, poolAddress?: string }
  *
- * Updates cumulative fees for a specific token or all tokens
+ * Updates cumulative fees for a specific token or all tokens.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -32,28 +38,30 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Calculate cumulative fees from 30-day LP fees (in lamports)
-      const cumulativeFeesLamports = Math.floor(metrics.lp_fee30d * 1e9);
+      // Convert API USD floats → USD microunits (integer strings) for storage (D-02).
+      const cumulativeFeesMicro = Math.floor(
+        (metrics.cumulative_metrics?.fees ?? 0) * USD_MICROUNITS
+      );
 
       // Update cumulative fees snapshot
       await dbService.updateCumulativeFeesSnapshot(
         tokenId,
-        cumulativeFeesLamports.toString()
+        cumulativeFeesMicro.toString()
       );
 
-       // Save to pool stats history
-       await dbService.createPoolStatsSnapshot(tokenId, token.poolAddress, {
-         totalFeesGenerated: cumulativeFeesLamports.toString(),
-         fees24h: Math.floor(metrics.lp_fee24h * 1e9).toString(),
-         volume24h: Math.floor(metrics.volume24h * 1e9).toString(),
-         currentLiquidity: Math.floor(metrics.tvl * 1e9).toString(),
-         apr: metrics.apr,
-       });
+      // Save to pool stats history
+      await dbService.createPoolStatsSnapshot(tokenId, token.poolAddress, {
+        totalFeesGenerated: cumulativeFeesMicro.toString(),
+        fees24h: Math.floor(metrics.fees["24h"] * USD_MICROUNITS).toString(),
+        volume24h: Math.floor(metrics.volume["24h"] * USD_MICROUNITS).toString(),
+        currentLiquidity: Math.floor(metrics.tvl * USD_MICROUNITS).toString(),
+        apr: metrics.farm_apr ?? null,
+      });
 
       return NextResponse.json({
         success: true,
         tokenId,
-        cumulativeFees: cumulativeFeesLamports.toString(),
+        cumulativeFees: cumulativeFeesMicro.toString(),
         updatedAt: new Date().toISOString(),
       });
     } else if (poolAddress) {
@@ -74,28 +82,30 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Calculate cumulative fees from 30-day LP fees (in lamports)
-      const cumulativeFeesLamports = Math.floor(metrics.lp_fee30d * 1e9);
+      // Convert API USD floats → USD microunits (integer strings) for storage (D-02).
+      const cumulativeFeesMicro = Math.floor(
+        (metrics.cumulative_metrics?.fees ?? 0) * USD_MICROUNITS
+      );
 
       // Update cumulative fees snapshot
       await dbService.updateCumulativeFeesSnapshot(
         token.id.toString(),
-        cumulativeFeesLamports.toString()
+        cumulativeFeesMicro.toString()
       );
 
-       // Save to pool stats history
-       await dbService.createPoolStatsSnapshot(token.id, poolAddress, {
-         totalFeesGenerated: cumulativeFeesLamports.toString(),
-         fees24h: Math.floor(metrics.lp_fee24h * 1e9).toString(),
-         volume24h: Math.floor(metrics.volume24h * 1e9).toString(),
-         currentLiquidity: Math.floor(metrics.tvl * 1e9).toString(),
-         apr: metrics.apr,
-       });
+      // Save to pool stats history
+      await dbService.createPoolStatsSnapshot(token.id, poolAddress, {
+        totalFeesGenerated: cumulativeFeesMicro.toString(),
+        fees24h: Math.floor(metrics.fees["24h"] * USD_MICROUNITS).toString(),
+        volume24h: Math.floor(metrics.volume["24h"] * USD_MICROUNITS).toString(),
+        currentLiquidity: Math.floor(metrics.tvl * USD_MICROUNITS).toString(),
+        apr: metrics.farm_apr ?? null,
+      });
 
       return NextResponse.json({
         success: true,
         tokenId: token.id,
-        cumulativeFees: cumulativeFeesLamports.toString(),
+        cumulativeFees: cumulativeFeesMicro.toString(),
         updatedAt: new Date().toISOString(),
       });
     } else {
@@ -107,26 +117,28 @@ export async function POST(request: NextRequest) {
         try {
           const metrics = await getPoolMetrics(token.poolAddress);
           if (metrics) {
-            // Calculate cumulative fees from 30-day LP fees (in lamports)
-            const cumulativeFeesLamports = Math.floor(metrics.lp_fee30d * 1e9);
+            // Convert API USD floats → USD microunits (integer strings) for storage (D-02).
+            const cumulativeFeesMicro = Math.floor(
+              (metrics.cumulative_metrics?.fees ?? 0) * USD_MICROUNITS
+            );
 
             await dbService.updateCumulativeFeesSnapshot(
               token.id.toString(),
-              cumulativeFeesLamports.toString()
+              cumulativeFeesMicro.toString()
             );
 
-             await dbService.createPoolStatsSnapshot(token.id, token.poolAddress, {
-               totalFeesGenerated: cumulativeFeesLamports.toString(),
-               fees24h: Math.floor(metrics.lp_fee24h * 1e9).toString(),
-               volume24h: Math.floor(metrics.volume24h * 1e9).toString(),
-               currentLiquidity: Math.floor(metrics.tvl * 1e9).toString(),
-               apr: metrics.apr,
-             });
+            await dbService.createPoolStatsSnapshot(token.id, token.poolAddress, {
+              totalFeesGenerated: cumulativeFeesMicro.toString(),
+              fees24h: Math.floor(metrics.fees["24h"] * USD_MICROUNITS).toString(),
+              volume24h: Math.floor(metrics.volume["24h"] * USD_MICROUNITS).toString(),
+              currentLiquidity: Math.floor(metrics.tvl * USD_MICROUNITS).toString(),
+              apr: metrics.farm_apr ?? null,
+            });
 
             results.push({
               tokenId: token.id,
               success: true,
-              cumulativeFees: cumulativeFeesLamports.toString(),
+              cumulativeFees: cumulativeFeesMicro.toString(),
             });
           } else {
             results.push({
