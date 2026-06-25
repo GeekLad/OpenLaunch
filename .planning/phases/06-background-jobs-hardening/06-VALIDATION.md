@@ -39,12 +39,11 @@ created: 2026-06-25
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
 | 6-01-01 | 01 | 0 | CRON-* | — | N/A | unit | `npx vitest run --reporter=dot` | ❌ W0 | ⬜ pending |
+| 6-01-02 | 01 | 0 | CRON-* | T-06-SC | N/A | integration | `npx drizzle-kit push && node -e "..."` | ❌ W0 | ⬜ pending |
 | 6-02-01 | 02 | 1 | CRON-01 | — | N/A | unit | `npx vitest run --reporter=dot` | ❌ W0 | ⬜ pending |
-| 6-02-02 | 02 | 1 | CRON-02 | — | USD microunits conversion correct | unit | `npx vitest run --reporter=dot` | ❌ W0 | ⬜ pending |
+| 6-02-02 | 02 | 1 | CRON-02 | — | Stale pools excluded from query | unit | `npx vitest run --reporter=dot` | ❌ W0 | ⬜ pending |
 | 6-03-01 | 03 | 2 | CRON-01 | — | feeTokenMode read from DB | unit | `npx vitest run --reporter=dot` | ❌ W0 | ⬜ pending |
-| 6-03-02 | 03 | 2 | CRON-03 | — | Both-token ≡ quote-only equivalence | unit | `npx vitest run --reporter=dot` | ❌ W0 | ⬜ pending |
-| 6-03-03 | 03 | 2 | CRON-* | — | Circuit breaker triggers at threshold | unit | `npx vitest run --reporter=dot` | ❌ W0 | ⬜ pending |
-| 6-04-01 | 04 | 3 | CRON-* | — | Stale pools excluded from query | unit | `npx vitest run --reporter=dot` | ❌ W0 | ⬜ pending |
+| 6-03-02 | 03 | 2 | CRON-03 | — | Both-token ≡ quote-only equivalence; circuit breaker triggers at threshold | unit | `npx vitest run --reporter=dot` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 

@@ -509,14 +509,14 @@ if (metrics) {
 | A3 | The devnet new URL `https://damm-v2-api.dev.metdev.io` is correct and stable. | Standard Stack, Code Examples | Verified returns 200 to a `/pools?limit=1` probe, but did not fetch a specific devnet pool. LOW risk — matches OpenAPI `servers` block exactly. |
 | A4 | `recordUpdateFailure` returns void and a separate `getFeeUpdateSchedule` re-fetch is needed to read the post-increment count. | Pattern 3, Pitfall 4 | If `recordUpdateFailure` were changed to return the updated row, the re-fetch would be redundant (harmless). Verified void return at `service.ts:456-468`. LOW risk. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Which APR semantics does the product want in `pool_stats_history.apr`?**
+1. **Which APR semantics does the product want in `pool_stats_history.apr`?** — RESOLVED: Use `farm_apr` (per D-03 "stored as-is from the API"; Plan 03 Task 2 defaults to `metrics.farm_apr ?? null`). The real API exposes `farm_apr` as the only APR-like top-level field. Flagged in SUMMARY guidance for the display phase to revisit if charts show wrong APR semantics for non-farm pools.
    - What we know: The old (broken) interface had a top-level `apr` field that doesn't exist in the real API. The real API has `farm_apr` (farm reward APR) and `fee_tvl_ratio` (fee/TVL ratio per window). D-03 says "APR is a percentage, stored as-is from the API" but doesn't name the field.
    - What's unclear: Should `apr` be `farm_apr` (only meaningful if pool has a farm), `fee_tvl_ratio["24h"]` (annualized fee yield), or something computed?
    - Recommendation: Planner should add a `checkpoint:human-verify` for the APR field choice, OR default to `farm_apr` with a logged warning when `has_farm === false` (yields 0.0). This is the one genuinely ambiguous decision in the phase.
 
-2. **Should `MAX_CONSECUTIVE_FAILURES` live in `config/defaults.ts` or inline in `fee-updater.ts`?**
+2. **Should `MAX_CONSECUTIVE_FAILURES` live in `config/defaults.ts` or inline in `fee-updater.ts`?** — RESOLVED: `config/defaults.ts` (Plan 03 Task 1 places the constant there alongside `DEFAULT_FEE_TOKEN_MODE`, matching the RESEARCH recommendation and existing config-centralization pattern).
    - What we know: D-17 says "configurable via a constant... in `lib/cron/fee-updater.ts` or `config/defaults.ts`".
    - What's unclear: Project convention leans toward `config/defaults.ts` for tunables, but this is a cron-internal knob.
    - Recommendation: Put it in `config/defaults.ts` alongside `DEFAULT_FEE_TOKEN_MODE` for consistency with existing config-centralization pattern. Low stakes either way.
