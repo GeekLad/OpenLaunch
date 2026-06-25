@@ -54,9 +54,9 @@
 
 ### Background Jobs
 
-- [ ] **CRON-01**: Fee updater cron job reads `collectFeeMode` from database
-- [ ] **CRON-02**: Fee updater correctly handles quote-only fee tracking (current behavior preserved)
-- [ ] **CRON-03**: Fee updater supports both-token fee tracking when `collectFeeMode` is "both" (deferred if not feasible in v1)
+- [x] **CRON-01**: Fee updater cron job reads `collectFeeMode` from database
+- [x] **CRON-02**: Fee updater correctly handles quote-only fee tracking (current behavior preserved)
+- [x] **CRON-03**: Fee updater supports both-token fee tracking when `collectFeeMode` is "both" (deferred if not feasible in v1)
 
 ## v2 Requirements
 
@@ -118,11 +118,12 @@
 | PERS-01 | Phase 1 | Pending |
 | PERS-02 | Phase 5 | Pending |
 | PERS-03 | Phase 1 | Pending |
-| CRON-01 | Phase 6 | Pending |
-| CRON-02 | Phase 6 | Pending |
-| CRON-03 | Phase 6 | Pending |
+| CRON-01 | Phase 6 | Complete |
+| CRON-02 | Phase 6 | Complete |
+| CRON-03 | Phase 6 | Complete |
 
 **Coverage:**
+
 - v1 requirements: 29 total
 - Mapped to phases: 29
 - Unmapped: 0 ✓
