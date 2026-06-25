@@ -2,6 +2,7 @@ import * as cron from "node-cron";
 import { getPoolMetrics } from "@/lib/meteora/client";
 import { calculateNextUpdateTime } from "@/lib/meteora/polling-strategy";
 import * as dbService from "@/lib/db/service";
+import { MAX_CONSECUTIVE_FAILURES } from "@/config/defaults";
 
 /**
  * Background cron service to automatically update pool fees
@@ -42,31 +43,50 @@ export async function updateTokenFees() {
           continue;
         }
 
+        // CRON-01 (D-05): read feeTokenMode for awareness/logging only.
+        // The fetch + store path is IDENTICAL regardless of mode (D-05/D-22) —
+        // the Meteora API returns aggregate USD fees regardless of collect_fee_mode.
+        if (token.feeTokenMode === 'bothTokens') {
+          console.log(
+            `[Cron] Pool ${token.poolAddress} uses both-token fee mode; ` +
+            `tracking aggregate USD fees (per-side tracking deferred per CRON-03)`
+          );
+        }
+
         const metrics = await getPoolMetrics(token.poolAddress);
 
         if (metrics) {
-          // Calculate cumulative fees from 30-day LP fees (in lamports)
-          // Meteora returns fees in SOL, convert to lamports
-          const cumulativeFeesLamports = Math.floor(metrics.lp_fee30d * 1e9);
+          // CRON-02 (D-01/D-02/D-08/D-09): all monetary metrics from the Meteora
+          // API are USD floats. Convert to integer USD microunits (x1e6) for
+          // integer-safe storage in text columns. APR (farm_apr) is a percentage
+          // stored as-is as a real float (D-03) — no multiplication.
+          const USD_MICROUNITS = 1_000_000;
+          const cumulativeFeesMicro = Math.floor(
+            (metrics.cumulative_metrics?.fees ?? 0) * USD_MICROUNITS
+          );
+          const fees24hMicro = Math.floor(metrics.fees["24h"] * USD_MICROUNITS);
+          const volume24hMicro = Math.floor(metrics.volume["24h"] * USD_MICROUNITS);
+          const tvlMicro = Math.floor(metrics.tvl * USD_MICROUNITS);
+          const apr = metrics.farm_apr ?? null; // real column, no conversion (D-03)
 
-          // Update cumulative fees snapshot
+          // Update cumulative fees snapshot (text-encoded USD microunits)
           await dbService.updateCumulativeFeesSnapshot(
             token.mintAddress,
-            cumulativeFeesLamports.toString()
+            cumulativeFeesMicro.toString()
           );
 
-           // Save to pool stats history
-           await dbService.createPoolStatsSnapshot(
-             token.id,
-             token.poolAddress,
-             {
-               totalFeesGenerated: cumulativeFeesLamports.toString(),
-               fees24h: Math.floor(metrics.lp_fee24h * 1e9).toString(),
-               volume24h: Math.floor(metrics.volume24h * 1e9).toString(),
-               currentLiquidity: Math.floor(metrics.tvl * 1e9).toString(),
-               apr: metrics.apr,
-             }
-           );
+          // Save snapshot to pool stats history (text-encoded USD microunits)
+          await dbService.createPoolStatsSnapshot(
+            token.id,
+            token.poolAddress,
+            {
+              totalFeesGenerated: cumulativeFeesMicro.toString(),
+              fees24h: fees24hMicro.toString(),
+              volume24h: volume24hMicro.toString(),
+              currentLiquidity: tvlMicro.toString(),
+              apr,
+            }
+          );
 
           // Calculate next update time based on token age
           const { nextUpdate, intervalMinutes } = calculateNextUpdateTime(
@@ -83,19 +103,30 @@ export async function updateTokenFees() {
 
           successCount++;
           console.log(
-            `[Cron] ✓ Updated fees for token ${token.id} (${token.symbol}): ${cumulativeFeesLamports} lamports (${metrics.lp_fee30d} SOL)`
+            `[Cron] ✓ Updated fees for token ${token.id} (${token.symbol}): ${cumulativeFeesMicro} USD microunits (cumulative=${metrics.cumulative_metrics?.fees ?? 0} USD, mode=${token.feeTokenMode})`
           );
         } else {
           failCount++;
           console.warn(
             `[Cron] ✗ Failed to fetch metrics for token ${token.id} (${token.symbol}) - Pool may not exist in Meteora DAMMv2`
           );
-          
+
           // Record failure with more specific error
           await dbService.recordUpdateFailure(
             token.id,
             "Pool not found in Meteora DAMMv2 API (404)"
           );
+
+          // Circuit breaker (D-14/D-17, Pitfall 4): recordUpdateFailure returns
+          // void and increments via SQL, so re-fetch the schedule row to read
+          // the post-increment consecutiveFailures count.
+          const updated = await dbService.getFeeUpdateSchedule(token.id);
+          if (updated && updated.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+            await dbService.markPoolStale(token.id);
+            console.warn(
+              `[Cron] ⚠️ Pool ${token.poolAddress} marked stale after ${MAX_CONSECUTIVE_FAILURES} consecutive failures`
+            );
+          }
         }
       } catch (error) {
         failCount++;
@@ -104,12 +135,23 @@ export async function updateTokenFees() {
           `[Cron] Error updating pool schedule ${schedule.id} (token ${schedule.tokenId}):`,
           errorMessage
         );
-        
+
         // Record failure with detailed error
         await dbService.recordUpdateFailure(
           schedule.tokenId,
           errorMessage
         );
+
+        // Circuit breaker (D-14/D-17, Pitfall 4): re-fetch to read post-increment
+        // count, then mark stale if threshold reached. Uses schedule.poolAddress
+        // (the catch block cannot reference the try-scoped `token`).
+        const updated = await dbService.getFeeUpdateSchedule(schedule.tokenId);
+        if (updated && updated.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+          await dbService.markPoolStale(schedule.tokenId);
+          console.warn(
+            `[Cron] ⚠️ Pool ${schedule.poolAddress ?? 'unknown'} marked stale after ${MAX_CONSECUTIVE_FAILURES} consecutive failures`
+          );
+        }
       }
     }
 
