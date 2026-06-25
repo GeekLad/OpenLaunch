@@ -16,6 +16,11 @@ export const DEFAULT_QUOTE_TOKEN_MINT = 'So1111111111111111111111111111111111111
 export const DEFAULT_FEE_SCHEDULER_MODE = 'market-cap-based' as const;
 export const DEFAULT_FEE_TOKEN_MODE = 'quoteOnly' as const;
 
+// Circuit breaker threshold — after this many consecutive cron failures, a pool
+// is marked stale and skipped (D-14/D-17). Stale pools are excluded from
+// getPoolsDueForUpdate; manual DB reset required (D-16).
+export const MAX_CONSECUTIVE_FAILURES = 10 as const;
+
 // Market cap defaults
 export const DEFAULT_INITIAL_MARKET_CAP = 1_000;
 export const DEFAULT_MARKET_CAP_RANGE_MAX = 100_000;
