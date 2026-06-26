@@ -2,7 +2,7 @@
 
 import { useTheme } from "@/components/providers/ThemeProvider";
 import Image from "next/image";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Activity } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface ExternalLinksProps {
@@ -64,9 +64,7 @@ export function ExternalLinks({ mintAddress, poolAddress }: ExternalLinksProps) 
     <Card>
       <CardContent className="pt-6">
         <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-          </svg>
+          <Activity className="h-4 w-4" />
           Trading & analytics
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

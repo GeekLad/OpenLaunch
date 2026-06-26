@@ -5,7 +5,7 @@ import { use, useEffect, useState } from "react";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Token } from "@/lib/db/schema";
-import { Copy, Check, Percent } from "lucide-react";
+import { Copy, Check, Percent, ExternalLink, SlidersHorizontal, Clock } from "lucide-react";
 import { Countdown } from "@/components/ui/countdown";
 import { getSolscanTxUrl } from "@/lib/utils";
 import { ExternalLinks } from "@/components/token-detail/ExternalLinks";
@@ -217,9 +217,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                     rel="noopener noreferrer"
                     className="text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
+                    <ExternalLink className="h-4 w-4" />
                   </a>
                 </div>
               </div>
@@ -248,9 +246,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
           <Card>
             <CardContent className="pt-6">
               <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
+                <SlidersHorizontal className="h-4 w-4" />
                 Pool config
               </h3>
               <div className="space-y-3">
@@ -334,10 +330,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
         <Card>
           <CardContent className="pt-6">
             <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
+              <Clock className="h-4 w-4" />
               Transaction history
             </h3>
             <div className="space-y-4">
@@ -350,9 +343,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                   className="text-primary hover:underline text-sm font-mono flex items-start gap-1"
                 >
                   <span className="break-all">{isMobile ? truncString(token.mintTxSignature) : token.mintTxSignature}</span>
-                  <svg className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
+                  <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
                 </a>
               </div>
               <div>
@@ -364,9 +355,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                   className="text-primary hover:underline text-sm font-mono flex items-start gap-1"
                 >
                   <span className="break-all">{isMobile ? truncString(token.metadataTxSignature) : token.metadataTxSignature}</span>
-                  <svg className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
+                  <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
                 </a>
               </div>
               <div>
@@ -378,9 +367,7 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
                   className="text-primary hover:underline text-sm font-mono flex items-start gap-1"
                 >
                   <span className="break-all">{isMobile ? truncString(token.poolTxSignature) : token.poolTxSignature}</span>
-                  <svg className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
+                  <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
                 </a>
               </div>
             </div>
