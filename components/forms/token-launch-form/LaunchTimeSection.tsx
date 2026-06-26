@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UseFormRegister } from "react-hook-form";
 import { TokenFormSchemaType } from "./schema";
+import { Calendar } from "lucide-react";
 
 interface LaunchTimeSectionProps {
   register: UseFormRegister<TokenFormSchemaType>;
@@ -42,7 +43,10 @@ export function LaunchTimeSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Launch Time</CardTitle>
+        <div className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-muted-foreground" />
+          <CardTitle>Launch Time</CardTitle>
+        </div>
         <CardDescription>Schedule when your token becomes tradeable</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

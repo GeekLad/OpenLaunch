@@ -28,8 +28,6 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
   const [launchHour, setLaunchHour] = useState<string>("");
   const [launchMinute, setLaunchMinute] = useState<string>("");
   const [launchPeriod, setLaunchPeriod] = useState<"AM" | "PM">("AM");
-  const [isLaunchParamsOpen, setIsLaunchParamsOpen] = useState(false);
-  const [isFeeScheduleOpen, setIsFeeScheduleOpen] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSubmitData, setPendingSubmitData] = useState<TokenFormSchemaType | null>(null);
   const [isValidating, setIsValidating] = useState(false);
@@ -345,15 +343,11 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
     handleLogoChange,
 
     // Launch params UI state
-    isLaunchParamsOpen,
-    setIsLaunchParamsOpen,
     isModified,
     isLowLockedLiquidity,
     resetLaunchParams,
 
     // Fee schedule UI state
-    isFeeScheduleOpen,
-    setIsFeeScheduleOpen,
     isFeeModified,
     resetFeeSchedule,
 

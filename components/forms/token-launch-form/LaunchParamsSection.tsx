@@ -5,11 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { NumberInput } from "@/components/ui/number-input";
-import { ChevronDown, ChevronUp, AlertTriangle, RotateCcw } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { AlertTriangle, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { TokenFormSchemaType } from "./schema";
 
 interface LaunchParamsSectionProps {
@@ -19,8 +17,6 @@ interface LaunchParamsSectionProps {
   watchedQuoteToken: string | undefined;
   watchedLocked: number | undefined;
   allFieldErrors: Record<string, string>;
-  isLaunchParamsOpen: boolean;
-  setIsLaunchParamsOpen: (open: boolean) => void;
   isModified: boolean;
   isLowLockedLiquidity: boolean;
   resetLaunchParams: () => void;
@@ -33,19 +29,15 @@ export function LaunchParamsSection({
   watchedQuoteToken,
   watchedLocked,
   allFieldErrors,
-  isLaunchParamsOpen,
-  setIsLaunchParamsOpen,
   isModified,
   isLowLockedLiquidity,
   resetLaunchParams,
 }: LaunchParamsSectionProps) {
   return (
     <Card>
-      <CardHeader
-        className="cursor-pointer flex flex-row items-center justify-between"
-        onClick={() => setIsLaunchParamsOpen(!isLaunchParamsOpen)}
-      >
+      <CardHeader>
         <div className="flex items-center gap-2">
+          <SlidersHorizontal className="h-5 w-5 text-muted-foreground" />
           <CardTitle>Launch Parameters</CardTitle>
           {isModified && (
             <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
@@ -63,20 +55,9 @@ export function LaunchParamsSection({
               </button>
             </span>
           )}
-          {!isLaunchParamsOpen && isLowLockedLiquidity && (
-            <Badge variant="destructive" className="text-xs">
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              Low Liquidity Lock
-            </Badge>
-          )}
         </div>
-        {isLaunchParamsOpen ? (
-          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        )}
       </CardHeader>
-      <CardContent className={cn("space-y-4", !isLaunchParamsOpen && "hidden")}>
+      <CardContent className="space-y-4">
         {/* Total Supply + Quote Token (side by side) */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UseFormRegister, FieldErrors } from "react-hook-form";
 import { TokenFormSchemaType } from "./schema";
+import { Coins } from "lucide-react";
 
 interface TokenInfoSectionProps {
   register: UseFormRegister<TokenFormSchemaType>;
@@ -27,7 +28,10 @@ export function TokenInfoSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Token Information</CardTitle>
+        <div className="flex items-center gap-2">
+          <Coins className="h-5 w-5 text-muted-foreground" />
+          <CardTitle>Token Information</CardTitle>
+        </div>
         <CardDescription>Basic information about your meme token</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

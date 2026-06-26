@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { UseFormRegister, FieldErrors } from "react-hook-form";
 import { TokenFormSchemaType } from "./schema";
+import { Key } from "lucide-react";
 
 interface CustomCASectionProps {
   register: UseFormRegister<TokenFormSchemaType>;
@@ -23,7 +24,10 @@ export function CustomCASection({
   return (
     <Card className={enableCustomPrivateKey ? "border-red-500 border-2" : ""}>
       <CardHeader>
-        <CardTitle className="text-red-600">⚠️ Custom CA</CardTitle>
+        <div className="flex items-center gap-2">
+          <Key className="h-5 w-5 text-red-600" />
+          <CardTitle className="text-red-600">Custom CA</CardTitle>
+        </div>
         <CardDescription className="text-red-600">
           Use a custom keypair for the token mint address. Warning: requires secure key management.
         </CardDescription>

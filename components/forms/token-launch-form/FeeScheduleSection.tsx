@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { NumberInput } from "@/components/ui/number-input";
-import { ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { Percent, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TokenFormSchemaType } from "./schema";
 import { FeeScheduleChart, type XAxisMode, type XScaleMode } from "./FeeScheduleChart";
@@ -18,8 +18,6 @@ interface FeeScheduleSectionProps {
   watchedFeeMode: "market-cap-based" | "time-based" | "fixed" | undefined;
   symbol: string | undefined;
   allFieldErrors: Record<string, string>;
-  isFeeScheduleOpen: boolean;
-  setIsFeeScheduleOpen: (open: boolean) => void;
   isFeeModified: boolean;
   resetFeeSchedule: () => void;
   watchedFeeMcapStartRate: number | undefined;
@@ -40,8 +38,6 @@ export function FeeScheduleSection({
   watchedFeeMode,
   symbol,
   allFieldErrors,
-  isFeeScheduleOpen,
-  setIsFeeScheduleOpen,
   isFeeModified,
   resetFeeSchedule,
   watchedFeeMcapStartRate,
@@ -61,11 +57,9 @@ export function FeeScheduleSection({
 
   return (
     <Card>
-      <CardHeader
-        className="cursor-pointer flex flex-row items-center justify-between"
-        onClick={() => setIsFeeScheduleOpen(!isFeeScheduleOpen)}
-      >
+      <CardHeader>
         <div className="flex items-center gap-2">
+          <Percent className="h-5 w-5 text-muted-foreground" />
           <CardTitle>Fee Schedule</CardTitle>
           {isFeeModified && (
             <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
@@ -84,13 +78,8 @@ export function FeeScheduleSection({
             </span>
           )}
         </div>
-        {isFeeScheduleOpen ? (
-          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        )}
       </CardHeader>
-      <CardContent className={cn("space-y-4", !isFeeScheduleOpen && "hidden")}>
+      <CardContent className="space-y-4">
         {watchedFeeMode === "fixed" ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">

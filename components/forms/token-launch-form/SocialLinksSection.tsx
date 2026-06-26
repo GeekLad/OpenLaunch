@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UseFormRegister, FieldErrors } from "react-hook-form";
 import { TokenFormSchemaType } from "./schema";
+import { Link } from "lucide-react";
 
 interface SocialLinksSectionProps {
   register: UseFormRegister<TokenFormSchemaType>;
@@ -16,7 +17,10 @@ export function SocialLinksSection({ register, errors, isLoading }: SocialLinksS
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Social Links</CardTitle>
+        <div className="flex items-center gap-2">
+          <Link className="h-5 w-5 text-muted-foreground" />
+          <CardTitle>Social Links</CardTitle>
+        </div>
         <CardDescription>Optional social media links for your token</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
