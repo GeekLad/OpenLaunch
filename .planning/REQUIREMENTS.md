@@ -7,50 +7,50 @@
 
 ### Launch Parameters — Core
 
-- [ ] **LAUN-01**: User can set total token supply (default: 1,000,000,000)
-- [ ] **LAUN-02**: User can set initial price (default: 0.00001)
-- [ ] **LAUN-03**: User can set price range minimum (default: 0.000001)
-- [ ] **LAUN-04**: User can set price range maximum (default: 0.0001)
-- [ ] **LAUN-05**: Validation ensures min price < initial price < max price
+- [x] **LAUN-01**: User can set total token supply (default: 1,000,000,000)
+- [x] **LAUN-02**: User can set initial price (default: 0.00001)
+- [x] **LAUN-03**: User can set price range minimum (default: 0.000001)
+- [x] **LAUN-04**: User can set price range maximum (default: 0.0001)
+- [x] **LAUN-05**: Validation ensures min price < initial price < max price
 
 ### Launch Parameters — Advanced
 
-- [ ] **LAUN-06**: User can set token holdback percentage via slider (default: 0%, max: 100%)
-- [ ] **LAUN-07**: UI shows red-flag warning when holdback > 10% ("Holding back more than 10% may be seen as a red flag by traders")
-- [ ] **LAUN-08**: Holdback tokens are sent to the creator's wallet; remaining supply goes to the pool
-- [ ] **LAUN-09**: User can select quote token: SOL (default) or USDC
-- [ ] **LAUN-10**: Price math correctly handles SOL (9 decimals) and USDC (6 decimals)
+- [x] **LAUN-06**: User can set token holdback percentage via slider (default: 0%, max: 100%)
+- [x] **LAUN-07**: UI shows red-flag warning when holdback > 10% ("Holding back more than 10% may be seen as a red flag by traders")
+- [x] **LAUN-08**: Holdback tokens are sent to the creator's wallet; remaining supply goes to the pool
+- [x] **LAUN-09**: User can select quote token: SOL (default) or USDC
+- [x] **LAUN-10**: Price math correctly handles SOL (9 decimals) and USDC (6 decimals)
 
 ### Fee Configuration
 
-- [ ] **FEE-01**: User can select fee scheduler mode: Market-Cap Based (default), Time-Based, or Disabled
-- [ ] **FEE-02**: When Market-Cap Based is selected, user can configure starting market cap and ending market cap
-- [ ] **FEE-03**: When Time-Based is selected, user can configure fee start rate, fee end rate, and total duration
-- [ ] **FEE-04**: When Disabled, user can configure a fixed base fee (in basis points)
-- [ ] **FEE-05**: User can select fee token mode: Quote Token Only (default) or Both Quote + Base Token
-- [ ] **FEE-06**: Fee token mode selection is correctly passed to Meteora SDK `CollectFeeMode`
+- [x] **FEE-01**: User can select fee scheduler mode: Market-Cap Based (default), Time-Based, or Disabled
+- [x] **FEE-02**: When Market-Cap Based is selected, user can configure starting market cap and ending market cap
+- [x] **FEE-03**: When Time-Based is selected, user can configure fee start rate, fee end rate, and total duration
+- [x] **FEE-04**: When Disabled, user can configure a fixed base fee (in basis points)
+- [x] **FEE-05**: User can select fee token mode: Quote Token Only (default) or Both Quote + Base Token
+- [x] **FEE-06**: Fee token mode selection is correctly passed to Meteora SDK `CollectFeeMode`
 
 ### Form UI
 
-- [ ] **FORM-01**: Default launch form shows only essential fields (name, symbol, logo, description)
-- [ ] **FORM-02**: All configurable parameters (LAUN-01 through FEE-06) are grouped in an "Advanced Options" collapsible section
-- [ ] **FORM-03**: Advanced Options section can be expanded/collapsed without losing form state
-- [ ] **FORM-04**: Form pre-fills all advanced fields with current environment defaults
-- [ ] **FORM-05**: Red-flag warnings (e.g., holdback >10%) are visible even when Advanced Options is collapsed
-- [ ] **FORM-06**: Launch confirmation modal highlights any non-default advanced selections
+- [x] **FORM-01**: Default launch form shows only essential fields (name, symbol, logo, description)
+- [x] **FORM-02**: All configurable parameters (LAUN-01 through FEE-06) are grouped in an "Advanced Options" collapsible section
+- [x] **FORM-03**: Advanced Options section can be expanded/collapsed without losing form state
+- [x] **FORM-04**: Form pre-fills all advanced fields with current environment defaults
+- [x] **FORM-05**: Red-flag warnings (e.g., holdback >10%) are visible even when Advanced Options is collapsed
+- [x] **FORM-06**: Launch confirmation modal highlights any non-default advanced selections
 
 ### Validation & Safety
 
-- [ ] **VALID-01**: Frontend Zod schema validates all user inputs with human-friendly error messages
-- [ ] **VALID-02**: Server-side validation enforces SDK-specific constraints (e.g., fee rates, liquidity percentages)
-- [ ] **VALID-03**: Pre-flight transaction simulation runs before submitting on-chain transactions
-- [ ] **VALID-04**: If pool creation simulation fails, mint/setup transactions are not submitted
+- [x] **VALID-01**: Frontend Zod schema validates all user inputs with human-friendly error messages
+- [x] **VALID-02**: Server-side validation enforces SDK-specific constraints (e.g., fee rates, liquidity percentages)
+- [x] **VALID-03**: Pre-flight transaction simulation runs before submitting on-chain transactions
+- [x] **VALID-04**: If pool creation simulation fails, mint/setup transactions are not submitted
 
 ### Persistence
 
-- [ ] **PERS-01**: Database schema extended to store all configurable launch parameters per token
-- [ ] **PERS-02**: Token detail page displays stored launch parameters (holdback %, fee scheduler mode, quote token, fee token mode)
-- [ ] **PERS-03**: Existing tokens in database remain compatible (nullable columns or sensible defaults)
+- [x] **PERS-01**: Database schema extended to store all configurable launch parameters per token
+- [x] **PERS-02**: Token detail page displays stored launch parameters (holdback %, fee scheduler mode, quote token, fee token mode)
+- [x] **PERS-03**: Existing tokens in database remain compatible (nullable columns or sensible defaults)
 
 ### Background Jobs
 
@@ -89,35 +89,35 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LAUN-01 | Phase 2 | Pending |
-| LAUN-02 | Phase 2 | Pending |
-| LAUN-03 | Phase 2 | Pending |
-| LAUN-04 | Phase 2 | Pending |
-| LAUN-05 | Phase 2 | Pending |
-| LAUN-06 | Phase 3 | Pending |
-| LAUN-07 | Phase 3 | Pending |
-| LAUN-08 | Phase 3 | Pending |
-| LAUN-09 | Phase 3 | Pending |
-| LAUN-10 | Phase 4 | Pending |
-| FEE-01 | Phase 3 | Pending |
-| FEE-02 | Phase 3 | Pending |
-| FEE-03 | Phase 3 | Pending |
-| FEE-04 | Phase 3 | Pending |
-| FEE-05 | Phase 3 | Pending |
-| FEE-06 | Phase 4 | Pending |
-| FORM-01 | Phase 2 | Pending |
-| FORM-02 | Phase 2 | Pending |
-| FORM-03 | Phase 2 | Pending |
-| FORM-04 | Phase 2 | Pending |
-| FORM-05 | Phase 3 | Pending |
-| FORM-06 | Phase 3 | Pending |
-| VALID-01 | Phase 2 | Pending |
-| VALID-02 | Phase 3 | Pending |
-| VALID-03 | Phase 4 | Pending |
-| VALID-04 | Phase 5 | Pending |
-| PERS-01 | Phase 1 | Pending |
-| PERS-02 | Phase 5 | Pending |
-| PERS-03 | Phase 1 | Pending |
+| LAUN-01 | Phase 2 | Complete |
+| LAUN-02 | Phase 2 | Complete |
+| LAUN-03 | Phase 2 | Complete |
+| LAUN-04 | Phase 2 | Complete |
+| LAUN-05 | Phase 2 | Complete |
+| LAUN-06 | Phase 3 | Complete |
+| LAUN-07 | Phase 3 | Complete |
+| LAUN-08 | Phase 3 | Complete |
+| LAUN-09 | Phase 3 | Complete |
+| LAUN-10 | Phase 4 | Complete |
+| FEE-01 | Phase 3 | Complete |
+| FEE-02 | Phase 3 | Complete |
+| FEE-03 | Phase 3 | Complete |
+| FEE-04 | Phase 3 | Complete |
+| FEE-05 | Phase 3 | Complete |
+| FEE-06 | Phase 4 | Complete |
+| FORM-01 | Phase 2 | Complete |
+| FORM-02 | Phase 2 | Complete |
+| FORM-03 | Phase 2 | Complete |
+| FORM-04 | Phase 2 | Complete |
+| FORM-05 | Phase 3 | Complete |
+| FORM-06 | Phase 3 | Complete |
+| VALID-01 | Phase 2 | Complete |
+| VALID-02 | Phase 3 | Complete |
+| VALID-03 | Phase 4 | Complete |
+| VALID-04 | Phase 5 | Complete |
+| PERS-01 | Phase 1 | Complete |
+| PERS-02 | Phase 5 | Complete |
+| PERS-03 | Phase 1 | Complete |
 | CRON-01 | Phase 6 | Complete |
 | CRON-02 | Phase 6 | Complete |
 | CRON-03 | Phase 6 | Complete |
@@ -127,7 +127,10 @@
 - v1 requirements: 29 total
 - Mapped to phases: 29
 - Unmapped: 0 ✓
+- Complete: 29 ✓
+
+**Reconciliation note (2026-06-26):** Requirements tracker was not maintained during execution. Checkboxes and traceability status were reconciled from phase VERIFICATION.md and UAT.md evidence at milestone close. All 29 v1 requirements verified satisfied by their mapped phases' UAT/verification reports. CRON-03 per-side fee split deferred per its explicit v1 acceptance text.
 
 ---
 *Requirements defined: 2026-05-23*
-*Last updated: 2026-05-23 after roadmap creation*
+*Last updated: 2026-06-26 after requirements reconciliation at v1.4.3 milestone close*

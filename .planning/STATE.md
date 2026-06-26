@@ -1,13 +1,13 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.4.3
-milestone_name: milestone
-status: Milestone complete
-stopped_at: Completed 06-03-PLAN.md
-last_updated: "2026-06-25T15:06:31.961Z"
+milestone_name: Configurable Launch
+status: Milestone archived
+stopped_at: Milestone v1.4.3 archived
+last_updated: "2026-06-26T13:30:00.000Z"
 progress:
-  total_phases: 6
-  completed_phases: 6
+  total_phases: 7
+  completed_phases: 7
   total_plans: 19
   completed_plans: 19
   percent: 100
@@ -17,31 +17,35 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-23)
+See: .planning/PROJECT.md (updated 2026-06-26)
 
 **Core value:** Users can launch a token with a liquidity pool in a single guided flow, without writing code or manually building transactions.
-**Current focus:** Phase 06 — background-jobs-hardening
+**Current focus:** Planning next milestone (v1.4.3 archived 2026-06-26)
 
 ## Current Position
 
-Phase: 06
-Plan: Not started
-Phase: 2 (Core Form Parameters & Basic UI) — COMPLETE
-Phase: 3 (Advanced Parameters, Fee Modes & Complex Validation) — COMPLETE
-Phase: 4 (Blockchain Integration & Pre-flight Safety) — COMPLETE
-Phase: 5 (Service Orchestration, Persistence & Detail Pages) — COMPLETE (UAT: passed, Security: 0 open threats)
-Phase: 5.1 (Detail Page & Form UX Polish) — COMPLETE (INSERTED)
-Phase: 6 (Background Jobs & Hardening) — IN PROGRESS (Plan 1/3 complete)
+Milestone v1.4.3 (Configurable Launch) — ARCHIVED 2026-06-26
 
-Progress: [█████████░] 89%
+All phases complete:
+- Phase 1 (Types, Schema & Defaults Foundation) — COMPLETE
+- Phase 2 (Core Form Parameters & Basic UI) — COMPLETE
+- Phase 3 (Advanced Parameters, Fee Modes & Complex Validation) — COMPLETE
+- Phase 4 (Blockchain Integration & Pre-flight Safety) — COMPLETE
+- Phase 5 (Service Orchestration, Persistence & Detail Pages) — COMPLETE
+- Phase 5.1 (Detail Page & Form UX Polish) — COMPLETE (INSERTED, freeform)
+- Phase 6 (Background Jobs & Hardening) — COMPLETE
+
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 24
-- Average duration: 12m
-- Total execution time: ~82m
+- Total plans completed: 19 (GSD-tracked) + 1 freeform polish phase
+- Timeline: 33 days (2026-05-23 → 2026-06-25)
+- Commits: 89 (milestone-scoped)
+- Files changed: 160
+- Lines: +22,921 / −2,769
 
 **By Phase:**
 
@@ -52,10 +56,8 @@ Progress: [█████████░] 89%
 | 03-advanced-params-fee-modes-complex-validation | 5 | 5 | Complete |
 | 04-blockchain-integration-pre-flight-safety | 3 | 3 | Complete |
 | 05-service-orchestration-persistence-detail-pages | 2 | 2 | Complete |
-| 05.1-detail-page-form-ux-polish | 1 | 1 | Complete |
-| 06-background-jobs-hardening | 1/3 | — | In Progress |
-| Phase 06 P02 | 9min | 2 tasks | 3 files |
-| Phase 06 P03 | 3min | 2 tasks | 2 files |
+| 05.1-detail-page-form-ux-polish | freeform | freeform | Complete |
+| 06-background-jobs-hardening | 3 | 3 | Complete |
 
 ## Phase 5.1 Decisions Captured
 
@@ -70,14 +72,25 @@ Progress: [█████████░] 89%
 - D-05.1-09: Market-cap fee scheduler validation — both caps must be >= launch market cap
 - D-05.1-10: `priceMultiple` bug fixed in poolUtils.ts — direct ratio instead of nth root
 
+## Deferred Items
+
+Items deferred at milestone close on 2026-06-26:
+
+| Category | Item | Status |
+|----------|------|--------|
+| requirement | CRON-03 per-side fee split (both-token pools) | Deferred to v2 per acceptance text |
+| tech-debt | pool_stats_history unit inconsistency (lamports vs USD microunits) | Display-layer handling deferred |
+| tech-debt | Phase 5.1 no PLAN/SUMMARY artifacts (freeform commit) | Process gap — traceability lost |
+| tech-debt | Requirements tracker not maintained during execution | Reconciled from evidence at close |
+| feature | Stale pool recovery admin API endpoint | Out of scope — manual DB reset only |
+
 ## Session Continuity
 
-Last session: 2026-06-25T15:01:50.282Z
-Stopped at: Completed 06-03-PLAN.md
-Next: `/gsd-execute-phase 6` (Plan 2 of 3)
+Last session: 2026-06-26 (milestone close)
+Next: `/gsd-new-milestone` to start next milestone
 
 ## Decisions
 
-- [Phase ?]: MAX_CONSECUTIVE_FAILURES centralized in config/defaults.ts (RESEARCH Open Q #2)
-- [Phase ?]: Circuit breaker re-fetch pattern (Pitfall 4): recordUpdateFailure returns void so getFeeUpdateSchedule reads post-increment count
-- [Phase ?]: Both-token and quote-only pools follow identical aggregate-USD store path; feeTokenMode only affects a log warning (D-05/D-22)
+- [Phase 6]: MAX_CONSECUTIVE_FAILURES centralized in config/defaults.ts (RESEARCH Open Q #2)
+- [Phase 6]: Circuit breaker re-fetch pattern (Pitfall 4): recordUpdateFailure returns void so getFeeUpdateSchedule reads post-increment count
+- [Phase 6]: Both-token and quote-only pools follow identical aggregate-USD store path; feeTokenMode only affects a log warning (D-05/D-22)
