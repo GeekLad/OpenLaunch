@@ -10,8 +10,8 @@ import "../app/init";
 
 
 const inter = Inter({ subsets: ["latin"] });
-const title = `${APP_NAME} - Memecoin Launchpad`;
-const description = "Open Source memecoin launchpad on Solana, powered by Meteora's gud tek";
+const title = `${APP_NAME} - Open Source Token Launchpad`;
+const description = "Open source token launchpad on Solana. Create SPL tokens and launch DAMMv2 liquidity pools in a single guided flow.";
 
 const logoUrl = APP_URL
   ? `${APP_URL.replace(/\/$/, '')}/logo.png`

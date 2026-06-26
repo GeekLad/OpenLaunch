@@ -32,13 +32,13 @@ export function TokenInfoSection({
           <Coins className="h-5 w-5 text-muted-foreground" />
           <CardTitle>Token Information</CardTitle>
         </div>
-        <CardDescription>Basic information about your meme token</CardDescription>
+        <CardDescription>Basic information about your token</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="symbol">Token Symbol *</Label>
-            <Input id="symbol" placeholder="e.g., DOGE" {...register("symbol")} disabled={isLoading} />
+            <Input id="symbol" placeholder="e.g., ACME" {...register("symbol")} disabled={isLoading} />
             {errors.symbol && <p className="text-sm text-destructive">{errors.symbol.message}</p>}
           </div>
           <div className="space-y-2">

@@ -15,10 +15,10 @@ export default function Home() {
               <Image src="/logo.svg" alt={appName} width={800} height={300} className="h-40 sm:h-48 md:h-56 w-auto" priority />
             </div>
             <h2 className="text-4xl sm:text-5xl font-bold tracking-tight md:text-6xl">
-              Open Source Memecoin Launchpad
+              Open Source Token Launchpad
             </h2>
             <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
-              Launch cheap, earn forever - Powered by Meteora&apos;s gud tek
+              Raise capital not suspicion
             </p>
             <div className="mt-6 sm:mt-8 md:mt-10 flex items-center justify-center gap-x-6">
               <Link href="/launch">
@@ -42,7 +42,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <CardDescription className="text-base">
-                      Launch your token for less than 0.05 SOL! The most affordable way to get your meme token on Solana.
+                      Launch your token for less than 0.05 SOL! The most affordable way to launch a token on Solana.
                     </CardDescription>
                   </CardContent>
                 </Card>
@@ -64,7 +64,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <CardDescription className="text-base">
-                      100% liquidity is locked and you can earn and claim fees forever. Turn your token into a passive income machine!
+                      100% liquidity is locked and you can earn and claim fees forever. Earn ongoing liquidity fees from your token&apos;s pool.
                     </CardDescription>
                   </CardContent>
                 </Card>
@@ -75,7 +75,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <CardDescription className="text-base">
-                      Set the exact time for your launch! Share the CA early, build anticipation, and hype up your community before go-live.
+                      Set the exact time for your launch! Share the CA early and build community ahead of go-live.
                     </CardDescription>
                   </CardContent>
                 </Card>
@@ -86,7 +86,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <CardDescription className="text-base">
-                      Got a vanity contract address? Bring it! Perfect for nerds who want that extra flex on their token launch.
+                      Pre-generate a vanity contract address for your token launch.
                     </CardDescription>
                   </CardContent>
                 </Card>

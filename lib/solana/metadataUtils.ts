@@ -83,7 +83,7 @@ export async function createMetadataAccount(
             name: metadata.name,
             symbol: metadata.symbol,
             uri: uri,
-            sellerFeeBasisPoints: 0, // 0% royalty for meme tokens
+            sellerFeeBasisPoints: 0, // 0% royalty for launched tokens
             creators: null,
             collection: null,
             uses: null,
@@ -260,7 +260,7 @@ export function buildMetadata(
         image: imageUri,
         description:
             description ||
-            `${name} is a meme token launched on Solana via ${APP_NAME}`,
+            `${name} is a token launched on Solana via ${APP_NAME}`,
     };
 
     // Add external URL if website is provided

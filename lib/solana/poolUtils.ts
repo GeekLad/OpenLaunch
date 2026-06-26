@@ -36,7 +36,7 @@ export function sqrtPriceToPrice(sqrtPrice: BN, tokenADecimals: number, tokenBDe
 export interface CreatePoolParams {
   connection: Connection;
   payer: PublicKey;
-  tokenAMint: PublicKey; // Base token (our meme token) - Token A in Meteora
+  tokenAMint: PublicKey; // Base token (the launched token) - Token A in Meteora
   tokenBMint: PublicKey; // Quote token (SOL) - Token B in Meteora
   tokenAAmount: number; // Only token A amount for single-sided pool
   tokenADecimals: number;

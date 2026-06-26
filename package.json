@@ -20,13 +20,13 @@
   },
   "keywords": [
     "solana",
-    "meme-token",
+    "token-launchpad",
     "dammv2",
     "launchpad"
   ],
   "author": "",
   "license": "MIT",
-  "description": "Meme Token Launchpad on Solana with DAMMv2 Integration",
+  "description": "Open Source Token Launchpad on Solana with DAMMv2 Integration",
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@metaplex-foundation/mpl-token-metadata": "^3.4.0",

@@ -1,7 +1,7 @@
 <div align="center">
   <img src="public/logo.svg" alt="OpenLaunch" width="400">
 
-  # OpenLaunch - Meme Token Launchpad
+  # OpenLaunch - Open Source Token Launchpad
 
   A client-side decentralized application for launching SPL tokens on Solana with DAMMv2 liquidity integration and permanent authority revocation.
 </div>
@@ -144,8 +144,8 @@ openlaunch/
 
 1. **Connect Wallet**: Click "Connect Wallet" and select your Solana wallet
 2. **Fill Token Details**:
-   - Token Symbol (e.g., DOGE, max 10 chars)
-   - Token Name (e.g., Dogecoin, max 32 chars)
+   - Token Symbol (e.g., ACME, max 10 chars)
+   - Token Name (e.g., Acme Token, max 32 chars)
    - Upload logo image (PNG/JPG/GIF/WebP, max 1MB by default)
 3. **Configure Fee Schedule** (optional):
    - Enable fee scheduler
