@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { NumberInput } from "@/components/ui/number-input";
 import { cn } from "@/lib/utils";
+import { formatSubscript } from "@/lib/format";
 import { AlertTriangle, CheckCircle2, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { TokenFormSchemaType } from "./schema";
 
@@ -21,6 +22,30 @@ interface LaunchParamsSectionProps {
   isModified: boolean;
   isLowLockedLiquidity: boolean;
   resetLaunchParams: () => void;
+  watchedSupply: number | undefined;
+  watchedInitialMcap: number | undefined;
+  watchedMax: number | undefined;
+}
+
+/**
+ * Format a market-cap value as a per-token price readout, using the shared
+ * `0.0ₙ1234` subscript notation for tiny prices so the field matches the
+ * fee-schedule chart's price axis exactly.
+ */
+function formatPricePerToken(marketCap: number | undefined, supply: number | undefined, quoteSymbol: string): string {
+  const safeSupply = supply && supply > 0 ? supply : 1;
+  const price = (marketCap ?? 0) / safeSupply;
+  if (price === 0) return `≈ 0 ${quoteSymbol} / token`;
+  return `≈ ${formatSubscript(price, 4)} ${quoteSymbol} / token`;
+}
+
+function formatMultiplier(initial: number | undefined, max: number | undefined): string {
+  const safeInitial = initial && initial > 0 ? initial : 1;
+  const multiple = (max ?? 0) / safeInitial;
+  if (multiple < 1) return "";
+  if (multiple >= 1000) return `${Math.round(multiple).toLocaleString()}×`;
+  if (Number.isInteger(multiple)) return `${multiple}×`;
+  return `${multiple.toFixed(1)}×`;
 }
 
 export function LaunchParamsSection({
@@ -33,7 +58,11 @@ export function LaunchParamsSection({
   isModified,
   isLowLockedLiquidity,
   resetLaunchParams,
+  watchedSupply,
+  watchedInitialMcap,
+  watchedMax,
 }: LaunchParamsSectionProps) {
+  const quoteSymbol = watchedQuoteToken === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? "USDC" : "SOL";
   return (
     <Card>
       <CardHeader>
@@ -118,13 +147,20 @@ export function LaunchParamsSection({
                 />
               )}
             />
-            <p className="text-sm text-muted-foreground">Market cap at launch</p>
+            <p className="text-sm text-blue-500">{formatPricePerToken(watchedInitialMcap, watchedSupply, quoteSymbol)}</p>
             {errors.initialMarketCap && <p className="text-sm text-destructive">{errors.initialMarketCap.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="marketCapRangeMax">
-              Max Market Cap {watchedQuoteToken === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? "(in USDC)" : "(in SOL)"}
-            </Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="marketCapRangeMax">
+                Max Market Cap {watchedQuoteToken === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? "(in USDC)" : "(in SOL)"}
+              </Label>
+              {watchedInitialMcap && watchedMax && watchedMax >= watchedInitialMcap && (
+                <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                  {formatMultiplier(watchedInitialMcap, watchedMax)}
+                </span>
+              )}
+            </div>
             <Controller
               name="marketCapRangeMax"
               control={control}
@@ -138,7 +174,7 @@ export function LaunchParamsSection({
                 />
               )}
             />
-            <p className="text-sm text-muted-foreground">Max market cap for pool liquidity</p>
+            <p className="text-sm text-blue-500">{formatPricePerToken(watchedMax, watchedSupply, quoteSymbol)}</p>
             {allFieldErrors["marketCapRangeMax"] && <p className="text-sm text-destructive">{allFieldErrors["marketCapRangeMax"]}</p>}
           </div>
         </div>

@@ -46,6 +46,9 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
         isModified={form.isModified}
         isLowLockedLiquidity={form.isLowLockedLiquidity}
         resetLaunchParams={form.resetLaunchParams}
+        watchedSupply={form.watchedSupply}
+        watchedInitialMcap={form.watchedInitialMcap}
+        watchedMax={form.watchedMax}
       />
 
       <FeeScheduleSection

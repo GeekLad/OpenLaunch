@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { QUOTE_TOKEN_DECIMALS } from "@/config/defaults";
+import { formatSubscript } from "@/lib/format";
 
 type FeeMode = "market-cap-based" | "time-based" | "fixed";
 type DecayMode = "linear" | "exponential";
@@ -66,56 +67,16 @@ function formatMcapTick(value: number): string {
   return String(value);
 }
 
-const SUBSCRIPT_DIGITS = ["₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉"];
-
 /**
- * Format a small price value using `0.0ₙ123` notation, where `ₙ` is a subscript
- * digit representing the number of leading zeros after the decimal point.
- *
- * The subscript notation is used only when there are **more than 3** leading
- * zeros (i.e. value < 0.001). Otherwise the value is rendered as a plain
- * decimal string with up to 6 significant figures.
- *
- * Examples:
- *   0.001      -> "0.001"
- *   0.000123   -> "0.000123"
- *   0.0000123  -> "0.0₄123"
- *   0.00000123 -> "0.0₅123"
+ * Format a small price value for chart tick labels using `0.0ₙ1234` subscript
+ * notation for tiny values. Delegates to the shared `formatSubscript` helper
+ * so the chart axis and the launch-params price readouts render identically.
  *
  * @param value — price per token (price = marketCap / totalSupply)
  * @returns formatted tick label string
  */
 function formatPriceTick(value: number): string {
-  if (!isFinite(value) || value <= 0) return "0";
-  if (value >= 1) {
-    return value >= 1000
-      ? `${value.toExponential(2)}`
-      : value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2);
-  }
-
-  // Count leading zeros after the decimal point.
-  const str = value.toFixed(20);
-  const fractional = str.split(".")[1] ?? "";
-  let leadingZeros = 0;
-  for (const ch of fractional) {
-    if (ch === "0") leadingZeros++;
-    else break;
-  }
-
-  if (leadingZeros <= 3) {
-    // Plain decimal — up to 6 significant figures.
-    return value.toPrecision(4).replace(/0+$/, "").replace(/\.$/, "");
-  }
-
-  // Subscript notation: 0.0ₙ followed by significant digits.
-  const significant = fractional.slice(leadingZeros);
-  const trimmed = significant.replace(/0+$/, "").slice(0, 4);
-  const n = leadingZeros;
-  const subscript = String(n)
-    .split("")
-    .map((d) => SUBSCRIPT_DIGITS[Number(d)] ?? d)
-    .join("");
-  return `0.0${subscript}${trimmed}`;
+  return formatSubscript(value, 4);
 }
 
 interface TimeAxisUnit {

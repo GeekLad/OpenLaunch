@@ -392,6 +392,10 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
     symbol,
     logoFile,
 
+    // Watched values for launch params
+    watchedInitialMcap,
+    watchedMax,
+
     // Watched fee schedule values (for live chart preview)
     watchedStartMcap,
     watchedEndMcap,
