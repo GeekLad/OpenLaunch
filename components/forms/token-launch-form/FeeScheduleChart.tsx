@@ -123,6 +123,7 @@ interface TimeAxisUnit {
   label: string;
   divisor: number;
   tickFormatter: (value: number) => string;
+  logTickFormatter: (value: number) => string;
 }
 
 /**
@@ -138,6 +139,7 @@ function pickTimeUnit(durationMinutes: number): TimeAxisUnit {
       label: "Minutes",
       divisor: 1,
       tickFormatter: (v) => `${Math.round(v)}m`,
+      logTickFormatter: (v) => (v < 1 ? `${Math.round(v * 100) / 100}m` : `${Math.round(v)}m`),
     };
   }
   if (durationMinutes <= 60 * 24) {
@@ -146,6 +148,7 @@ function pickTimeUnit(durationMinutes: number): TimeAxisUnit {
       label: "Hours",
       divisor: 60,
       tickFormatter: (v) => `${v % 1 === 0 ? v : v.toFixed(1)}h`,
+      logTickFormatter: (v) => (v < 1 ? `${Math.round(v * 100) / 100}h` : `${Math.round(v)}h`),
     };
   }
   return {
@@ -153,6 +156,7 @@ function pickTimeUnit(durationMinutes: number): TimeAxisUnit {
     label: "Days",
     divisor: 60 * 24,
     tickFormatter: (v) => `${v % 1 === 0 ? v : v.toFixed(1)}d`,
+    logTickFormatter: (v) => (v < 1 ? `${Math.round(v * 100) / 100}d` : `${Math.round(v)}d`),
   };
 }
 
@@ -247,8 +251,11 @@ function buildMarketCapData(
 /**
  * Build the step-curve data points for a time-based schedule.
  *
- * The SDK spaces periods evenly in time, so x is linear. The fee still decays
- * exponentially (or linearly) across the periods.
+ * The SDK spaces periods evenly in time, so x is the real elapsed time in the
+ * chosen unit. When `xScaleMode` is `"log"`, the *axis* is rendered on a log
+ * scale (compressing later times) while the data points keep their true time
+ * values. Because a log scale cannot plot zero, the first sample (t=0) is
+ * clamped to one period so the start of the curve stays visible.
  * `x` is stored in the chosen unit (min/hr/day) for axis tick formatting.
  */
 function buildTimeData(
@@ -256,17 +263,22 @@ function buildTimeData(
   startRate: number,
   endRate: number,
   unit: TimeAxisUnit,
-  decayMode: DecayMode
+  decayMode: DecayMode,
+  xScaleMode: XScaleMode
 ): ChartDatum[] {
   const safeDuration = durationMinutes > 0 ? durationMinutes : 1;
   const totalInUnit = safeDuration / unit.divisor;
   const safeStartRate = startRate > 0 ? startRate : 0;
   const safeEndRate = endRate >= 0 ? endRate : 0;
+  // Smallest positive time we are willing to plot — log(0) is undefined, so
+  // the t=0 sample is nudged up to a single period in log mode.
+  const minX = totalInUnit / NUM_PERIODS;
 
   const data: ChartDatum[] = [];
   for (let p = 0; p <= NUM_PERIODS; p++) {
-    // Linear time spacing across periods (SDK is linear in time).
-    const xVal = totalInUnit * (p / NUM_PERIODS);
+    const progress = p / NUM_PERIODS;
+    let xVal = totalInUnit * progress;
+    if (xScaleMode === "log" && xVal < minX) xVal = minX;
     const fee = feeAtPeriod(safeStartRate, safeEndRate, p, NUM_PERIODS, decayMode);
     data.push({ x: xVal, xLabel: unit.tickFormatter(xVal), fee });
   }
@@ -378,12 +390,15 @@ export function FeeScheduleChart({
       const startRate = feeStartRate ?? 0;
       const endRate = feeEndRate ?? 0;
       const unit = pickTimeUnit(durationMinutes);
+      const totalInUnit = durationMinutes / unit.divisor;
+      // Time-based fee schedule is always linear in real time; the log x-axis
+      // is intentionally disabled because it distorts the exponential decay curve.
       return {
-        data: buildTimeData(durationMinutes, startRate, endRate, unit, decayMode),
+        data: buildTimeData(durationMinutes, startRate, endRate, unit, decayMode, "linear"),
         xAxisLabel: unit.label,
         xDataKey: "x" as const,
         xTickFormatter: (v: number) => unit.tickFormatter(v),
-        xDomain: [0, durationMinutes / unit.divisor] as [number, number],
+        xDomain: [0, totalInUnit] as [number, number],
         xScale: "linear" as const,
       };
     }

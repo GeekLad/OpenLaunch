@@ -72,6 +72,12 @@ Progress: [██████████] 100%
 - D-05.1-09: Market-cap fee scheduler validation — both caps must be >= launch market cap
 - D-05.1-10: `priceMultiple` bug fixed in poolUtils.ts — direct ratio instead of nth root
 
+## Quick Tasks Completed
+
+| Date | Slug | Description | Verification |
+|------|------|-------------|--------------|
+| 2026-06-27 | linear-x-axis-time-fee | Added Linear/Log x-axis toggle to time-based fee scheduler chart | Type check passed; existing tests passed (14/14); ESLint runner has pre-existing infra failure unrelated to changes |
+
 ## Deferred Items
 
 Items deferred at milestone close on 2026-06-26:

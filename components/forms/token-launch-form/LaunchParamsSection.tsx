@@ -7,7 +7,8 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { NumberInput } from "@/components/ui/number-input";
-import { AlertTriangle, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { AlertTriangle, CheckCircle2, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { TokenFormSchemaType } from "./schema";
 
 interface LaunchParamsSectionProps {
@@ -146,7 +147,9 @@ export function LaunchParamsSection({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="lockedLiquidityPercentage">Locked Liquidity</Label>
-            <span className="text-sm font-bold">{watchedLocked ?? 100}%</span>
+            <span className={`text-sm font-bold ${isLowLockedLiquidity ? "text-red-500" : "text-green-500"}`}>
+              {watchedLocked ?? 100}%
+            </span>
           </div>
           <Controller
             name="lockedLiquidityPercentage"
@@ -154,27 +157,55 @@ export function LaunchParamsSection({
             render={({ field: { onChange, value } }) => (
               <Slider
                 id="lockedLiquidityPercentage"
-                min={0}
+                min={50}
                 max={100}
                 step={1}
                 value={[value ?? 100]}
                 onValueChange={([val]) => onChange(val)}
                 disabled={isLoading}
+                trackClassName="bg-secondary"
+                rangeClassName={isLowLockedLiquidity ? "bg-red-500" : "bg-green-500"}
+                thumbClassName={isLowLockedLiquidity ? "bg-red-500" : "bg-green-500"}
               />
             )}
           />
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>50%</span>
+            <span>60%</span>
+            <span>70%</span>
+            <span>80%</span>
+            <span>90%</span>
+            <span>100%</span>
+          </div>
           <p className="text-sm text-muted-foreground">
             Percentage of supply sent to the liquidity pool. Remainder goes to the creator&apos;s wallet.
           </p>
-          {isLowLockedLiquidity && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Warning</AlertTitle>
-              <AlertDescription>
-                Locking less than 90% of liquidity may be seen as a red flag by traders
+          <Alert
+            className={cn(
+              "flex items-start gap-3",
+              isLowLockedLiquidity
+                ? "border-red-500/30 bg-red-950/40 text-red-400"
+                : "border-green-500/30 bg-green-950/40 text-green-400"
+            )}
+          >
+            {isLowLockedLiquidity ? (
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+            ) : (
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-500" />
+            )}
+            <div>
+              <AlertTitle className={isLowLockedLiquidity ? "text-red-500" : "text-green-500"}>
+                {isLowLockedLiquidity
+                  ? "Locking less than 90% of liquidity may be seen as a red flag by traders"
+                  : `Liquidity locked at ${watchedLocked ?? 100}% — meets the recommended threshold.`}
+              </AlertTitle>
+              <AlertDescription className={isLowLockedLiquidity ? "text-red-400" : "text-green-400"}>
+                {isLowLockedLiquidity
+                  ? "Raise to 90% or above to meet the standard threshold for trusted launches."
+                  : "Traders will see this as a strong trust signal."}
               </AlertDescription>
-            </Alert>
-          )}
+            </div>
+          </Alert>
         </div>
       </CardContent>
     </Card>

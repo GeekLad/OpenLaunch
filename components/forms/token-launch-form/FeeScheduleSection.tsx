@@ -324,7 +324,18 @@ export function FeeScheduleSection({
 
         {/* Time-Based sub-fields */}
         <div className={cn("space-y-4", watchedFeeMode !== "time-based" && "hidden")}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="feeDurationHours">Fee Duration (hours)</Label>
+              <Controller
+                name="feeDurationHours"
+                control={control}
+                render={({ field: { onChange, value, onBlur } }) => (
+                  <NumberInput value={value ?? 1} onChangeValue={onChange} integer onBlur={onBlur} disabled={isLoading} />
+                )}
+              />
+              <p className="text-sm text-muted-foreground">Total hours for fee decay schedule</p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="feeStartRate">Fee Start Rate (%)</Label>
               <Controller
@@ -347,17 +358,6 @@ export function FeeScheduleSection({
               />
               <p className="text-sm text-muted-foreground">Ending fee (e.g., 0.5%)</p>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="feeDurationHours">Fee Duration (hours)</Label>
-            <Controller
-              name="feeDurationHours"
-              control={control}
-              render={({ field: { onChange, value, onBlur } }) => (
-                <NumberInput value={value ?? 1} onChangeValue={onChange} integer onBlur={onBlur} disabled={isLoading} />
-              )}
-            />
-            <p className="text-sm text-muted-foreground">Total hours for fee decay schedule</p>
           </div>
         </div>
 
