@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { TokenFormData } from "@/types/token";
 import { FeeSchedulerConfig } from "@/types/fee";
 import { getMaxImageSizeBytes, getMaxImageSizeMB } from "@/lib/services/ipfsService";
-import { DEFAULT_LAUNCH_PARAMS } from "@/config/defaults";
+import { DEFAULT_LAUNCH_PARAMS, getQuoteTokenMarketCapDefaults } from "@/config/defaults";
 import { validateMarketCapRange, validateFeeSchedulerMarketCap, type ValidationError } from "@/lib/validation/feeScheduler";
 import { tokenFormSchema, type TokenFormSchemaType, TOKEN_FORM_DEFAULTS } from "./schema";
 
@@ -99,22 +99,82 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
   const watchedFeeDuration = watch("feeDurationHours");
   const watchedFeeFixed = watch("feeFixedRate");
 
+  // ── Per-quote-token market cap memory ──────────────────────────────────
+  // When the user switches the quote token (SOL <-> USDC), we swap the
+  // market cap fields to the *other* token's last-used values (or that
+  // token's defaults on first use). This way flipping back and forth
+  // preserves each token's market cap settings independently.
+  const quoteTokenMemory = useRef<Record<string, {
+    initialMarketCap: number;
+    marketCapRangeMax: number;
+    startingMarketCap: number;
+    endingMarketCap: number;
+  }>>({});
+
+  const lastQuoteTokenRef = useRef<string | undefined>(watchedQuoteToken);
+  const quoteTokenChangeInitRef = useRef(false);
+
+  useEffect(() => {
+    // Initialize memory for the starting quote token on first run.
+    if (!quoteTokenChangeInitRef.current) {
+      quoteTokenChangeInitRef.current = true;
+      const mint = watchedQuoteToken ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint;
+      quoteTokenMemory.current[mint] = {
+        initialMarketCap: watchedInitialMcap ?? DEFAULT_LAUNCH_PARAMS.initialMarketCap,
+        marketCapRangeMax: watchedMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax,
+        startingMarketCap: watchedStartMcap ?? DEFAULT_LAUNCH_PARAMS.startingMarketCap,
+        endingMarketCap: watchedEndMcap ?? DEFAULT_LAUNCH_PARAMS.endingMarketCap,
+      };
+      lastQuoteTokenRef.current = mint;
+      return;
+    }
+
+    const prevMint = lastQuoteTokenRef.current;
+    const newMint = watchedQuoteToken ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint;
+    if (prevMint === newMint) return;
+
+    // Persist the outgoing token's current market cap values.
+    quoteTokenMemory.current[prevMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint] = {
+      initialMarketCap: watchedInitialMcap ?? DEFAULT_LAUNCH_PARAMS.initialMarketCap,
+      marketCapRangeMax: watchedMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax,
+      startingMarketCap: watchedStartMcap ?? DEFAULT_LAUNCH_PARAMS.startingMarketCap,
+      endingMarketCap: watchedEndMcap ?? DEFAULT_LAUNCH_PARAMS.endingMarketCap,
+    };
+
+    // Restore (or initialize) the incoming token's market cap values.
+    const remembered = quoteTokenMemory.current[newMint];
+    const defaults = getQuoteTokenMarketCapDefaults(newMint);
+    const next = remembered ?? defaults;
+
+    setValue("initialMarketCap", next.initialMarketCap, { shouldValidate: true, shouldDirty: true });
+    setValue("marketCapRangeMax", next.marketCapRangeMax, { shouldValidate: true, shouldDirty: true });
+    setValue("startingMarketCap", next.startingMarketCap, { shouldValidate: true, shouldDirty: true });
+    setValue("endingMarketCap", next.endingMarketCap, { shouldValidate: true, shouldDirty: true });
+
+    lastQuoteTokenRef.current = newMint;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedQuoteToken]);
+
   const isModified = useMemo(() => {
+    const qDefaults = getQuoteTokenMarketCapDefaults(watchedQuoteToken);
     return (
       watchedSupply !== DEFAULT_LAUNCH_PARAMS.totalSupply ||
-      watchedInitialMcap !== DEFAULT_LAUNCH_PARAMS.initialMarketCap ||
-      watchedMax !== DEFAULT_LAUNCH_PARAMS.marketCapRangeMax ||
+      watchedInitialMcap !== qDefaults.initialMarketCap ||
+      watchedMax !== qDefaults.marketCapRangeMax ||
+      watchedStartMcap !== qDefaults.startingMarketCap ||
+      watchedEndMcap !== qDefaults.endingMarketCap ||
       watchedLocked !== DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage ||
       watchedQuoteToken !== DEFAULT_LAUNCH_PARAMS.quoteTokenMint
     );
-  }, [watchedSupply, watchedInitialMcap, watchedMax, watchedLocked, watchedQuoteToken]);
+  }, [watchedSupply, watchedInitialMcap, watchedMax, watchedStartMcap, watchedEndMcap, watchedLocked, watchedQuoteToken]);
 
   const isFeeModified = useMemo(() => {
+    const qDefaults = getQuoteTokenMarketCapDefaults(watchedQuoteToken);
     return (
       watchedFeeMode !== DEFAULT_LAUNCH_PARAMS.feeSchedulerMode ||
       watchedFeeToken !== DEFAULT_LAUNCH_PARAMS.feeTokenMode ||
-      watchedStartMcap !== DEFAULT_LAUNCH_PARAMS.startingMarketCap ||
-      watchedEndMcap !== DEFAULT_LAUNCH_PARAMS.endingMarketCap ||
+      watchedStartMcap !== qDefaults.startingMarketCap ||
+      watchedEndMcap !== qDefaults.endingMarketCap ||
       watchedTimeStartRate !== DEFAULT_LAUNCH_PARAMS.feeStartPercent ||
       watchedTimeEndRate !== DEFAULT_LAUNCH_PARAMS.feeEndPercent ||
       watchedFeeMcapStartRate !== DEFAULT_LAUNCH_PARAMS.feeMarketCapStartPercent ||
@@ -125,7 +185,7 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
   }, [
     watchedFeeMode, watchedFeeToken, watchedStartMcap, watchedEndMcap,
     watchedTimeStartRate, watchedTimeEndRate, watchedFeeMcapStartRate,
-    watchedFeeMcapEndRate, watchedFeeDuration, watchedFeeFixed,
+    watchedFeeMcapEndRate, watchedFeeDuration, watchedFeeFixed, watchedQuoteToken,
   ]);
 
   const isLowLockedLiquidity = useMemo(() => {
@@ -233,6 +293,7 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
 
   const buildConfirmContent = useCallback((): ConfirmSection[] => {
     const values = getValues();
+    const qDefaults = getQuoteTokenMarketCapDefaults(values.quoteTokenMint);
     const sections: ConfirmSection[] = [];
 
     const addSection = (title: string, pairs: [string, string | number | undefined][]) => {
@@ -250,8 +311,8 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
 
     addSection("Launch Parameters", [
       ["Total Supply", values.totalSupply !== DEFAULT_LAUNCH_PARAMS.totalSupply ? new Intl.NumberFormat().format(values.totalSupply) : undefined],
-      ["Initial Market Cap", values.initialMarketCap !== DEFAULT_LAUNCH_PARAMS.initialMarketCap ? values.initialMarketCap : undefined],
-      ["Market Cap Range", values.marketCapRangeMax !== DEFAULT_LAUNCH_PARAMS.marketCapRangeMax ? `${values.initialMarketCap} – ${values.marketCapRangeMax}` : undefined],
+      ["Initial Market Cap", values.initialMarketCap !== qDefaults.initialMarketCap ? values.initialMarketCap : undefined],
+      ["Market Cap Range", values.marketCapRangeMax !== qDefaults.marketCapRangeMax ? `${values.initialMarketCap} – ${values.marketCapRangeMax}` : undefined],
       ["Locked Liquidity", values.lockedLiquidityPercentage !== DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage ? `${values.lockedLiquidityPercentage}%` : undefined],
       ["Quote Token", values.quoteTokenMint !== DEFAULT_LAUNCH_PARAMS.quoteTokenMint ? (values.quoteTokenMint === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? "USDC" : "SOL") : undefined],
     ]);
@@ -259,8 +320,8 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
     addSection("Fee Configuration", [
       ["Fee Mode", values.feeSchedulerMode !== DEFAULT_LAUNCH_PARAMS.feeSchedulerMode ? values.feeSchedulerMode : undefined],
       ["Fee Token Mode", values.feeTokenMode !== DEFAULT_LAUNCH_PARAMS.feeTokenMode ? values.feeTokenMode : undefined],
-      ["Starting Market Cap", values.startingMarketCap !== DEFAULT_LAUNCH_PARAMS.startingMarketCap ? values.startingMarketCap : undefined],
-      ["Ending Market Cap", values.endingMarketCap !== DEFAULT_LAUNCH_PARAMS.endingMarketCap ? values.endingMarketCap : undefined],
+      ["Starting Market Cap", values.startingMarketCap !== qDefaults.startingMarketCap ? values.startingMarketCap : undefined],
+      ["Ending Market Cap", values.endingMarketCap !== qDefaults.endingMarketCap ? values.endingMarketCap : undefined],
       ["Fee Start Rate", values.feeStartRate !== DEFAULT_LAUNCH_PARAMS.feeStartPercent ? `${values.feeStartRate}%` : undefined],
       ["Fee End Rate", values.feeEndRate !== DEFAULT_LAUNCH_PARAMS.feeEndPercent ? `${values.feeEndRate}%` : undefined],
       ["Fee Duration (hrs)", values.feeDurationHours !== 1 ? values.feeDurationHours : undefined],
@@ -323,29 +384,25 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
   }, [pendingSubmitData, onSubmit]);
 
   const resetLaunchParams = useCallback(() => {
+    const qDefaults = getQuoteTokenMarketCapDefaults(watchedQuoteToken);
+    const mint = watchedQuoteToken ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint;
     setValue("totalSupply", DEFAULT_LAUNCH_PARAMS.totalSupply);
-    setValue("initialMarketCap", DEFAULT_LAUNCH_PARAMS.initialMarketCap);
-    setValue("marketCapRangeMax", DEFAULT_LAUNCH_PARAMS.marketCapRangeMax);
+    setValue("initialMarketCap", qDefaults.initialMarketCap);
+    setValue("marketCapRangeMax", qDefaults.marketCapRangeMax);
     setValue("lockedLiquidityPercentage", DEFAULT_LAUNCH_PARAMS.lockedLiquidityPercentage);
     setValue("quoteTokenMint", DEFAULT_LAUNCH_PARAMS.quoteTokenMint);
-    setValue("feeSchedulerMode", DEFAULT_LAUNCH_PARAMS.feeSchedulerMode);
-    setValue("feeTokenMode", DEFAULT_LAUNCH_PARAMS.feeTokenMode);
-    setValue("startingMarketCap", DEFAULT_LAUNCH_PARAMS.startingMarketCap);
-    setValue("endingMarketCap", DEFAULT_LAUNCH_PARAMS.endingMarketCap);
-    setValue("feeStartRate", DEFAULT_LAUNCH_PARAMS.feeStartPercent);
-    setValue("feeEndRate", DEFAULT_LAUNCH_PARAMS.feeEndPercent);
-    setValue("feeMarketCapStartRate", DEFAULT_LAUNCH_PARAMS.feeMarketCapStartPercent);
-    setValue("feeMarketCapEndRate", DEFAULT_LAUNCH_PARAMS.feeMarketCapEndPercent);
-    setValue("feeDurationHours", 1);
-    setValue("feeFixedRate", DEFAULT_LAUNCH_PARAMS.feeFixedPercent);
+    setValue("startingMarketCap", qDefaults.startingMarketCap);
+    setValue("endingMarketCap", qDefaults.endingMarketCap);
+    quoteTokenMemory.current[mint] = qDefaults;
     trigger();
-  }, [setValue, trigger]);
+  }, [setValue, trigger, watchedQuoteToken]);
 
   const resetFeeSchedule = useCallback(() => {
+    const qDefaults = getQuoteTokenMarketCapDefaults(watchedQuoteToken);
     setValue("feeSchedulerMode", DEFAULT_LAUNCH_PARAMS.feeSchedulerMode);
     setValue("feeTokenMode", DEFAULT_LAUNCH_PARAMS.feeTokenMode);
-    setValue("startingMarketCap", DEFAULT_LAUNCH_PARAMS.startingMarketCap);
-    setValue("endingMarketCap", DEFAULT_LAUNCH_PARAMS.endingMarketCap);
+    setValue("startingMarketCap", qDefaults.startingMarketCap);
+    setValue("endingMarketCap", qDefaults.endingMarketCap);
     setValue("feeStartRate", DEFAULT_LAUNCH_PARAMS.feeStartPercent);
     setValue("feeEndRate", DEFAULT_LAUNCH_PARAMS.feeEndPercent);
     setValue("feeMarketCapStartRate", DEFAULT_LAUNCH_PARAMS.feeMarketCapStartPercent);
@@ -353,7 +410,7 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
     setValue("feeDurationHours", 1);
     setValue("feeFixedRate", DEFAULT_LAUNCH_PARAMS.feeFixedPercent);
     trigger();
-  }, [setValue, trigger]);
+  }, [setValue, trigger, watchedQuoteToken]);
 
   return {
     // Form

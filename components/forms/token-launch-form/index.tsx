@@ -70,6 +70,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
         watchedSupply={form.watchedSupply}
         watchedStartMcap={form.watchedStartMcap}
         watchedEndMcap={form.watchedEndMcap}
+        solUsdPrice={form.solUsdPrice}
       />
 
       <LaunchTimeSection

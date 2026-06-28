@@ -21,15 +21,59 @@ export const DEFAULT_FEE_TOKEN_MODE = 'quoteOnly' as const;
 // getPoolsDueForUpdate; manual DB reset required (D-16).
 export const MAX_CONSECUTIVE_FAILURES = 10 as const;
 
-// Market cap defaults
+// Market cap defaults (SOL quote token)
 export const DEFAULT_INITIAL_MARKET_CAP = 1_000;
 export const DEFAULT_MARKET_CAP_RANGE_MAX = 100_000;
 
-// Fee scheduler market cap defaults
+// Fee scheduler market cap defaults (SOL quote token)
 // Starting market cap defaults to the initial market cap (launch market cap)
 export const DEFAULT_STARTING_MARKET_CAP = DEFAULT_INITIAL_MARKET_CAP;
 // Ending market cap for the fee scheduler (decoupled from the pool max range)
 export const DEFAULT_ENDING_MARKET_CAP = 10_000;
+
+// Market cap defaults (USDC quote token)
+export const DEFAULT_INITIAL_MARKET_CAP_USDC = 100_000;
+export const DEFAULT_MARKET_CAP_RANGE_MAX_USDC = 10_000_000;
+export const DEFAULT_STARTING_MARKET_CAP_USDC = DEFAULT_INITIAL_MARKET_CAP_USDC;
+export const DEFAULT_ENDING_MARKET_CAP_USDC = 1_000_000;
+
+export const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+
+/**
+ * Per-quote-token default market cap settings. Used to restore the
+ * appropriate defaults when the user switches quote tokens, and to detect
+ * whether the launch params have been modified away from the current
+ * quote token's defaults.
+ */
+export interface QuoteTokenMarketCapDefaults {
+  initialMarketCap: number;
+  marketCapRangeMax: number;
+  startingMarketCap: number;
+  endingMarketCap: number;
+}
+
+/**
+ * Return the market cap defaults for the given quote token mint.
+ * Falls back to SOL defaults for any unknown (or undefined) mint.
+ */
+export function getQuoteTokenMarketCapDefaults(
+  quoteTokenMint: string | undefined
+): QuoteTokenMarketCapDefaults {
+  if (quoteTokenMint === USDC_MINT) {
+    return {
+      initialMarketCap: DEFAULT_INITIAL_MARKET_CAP_USDC,
+      marketCapRangeMax: DEFAULT_MARKET_CAP_RANGE_MAX_USDC,
+      startingMarketCap: DEFAULT_STARTING_MARKET_CAP_USDC,
+      endingMarketCap: DEFAULT_ENDING_MARKET_CAP_USDC,
+    };
+  }
+  return {
+    initialMarketCap: DEFAULT_INITIAL_MARKET_CAP,
+    marketCapRangeMax: DEFAULT_MARKET_CAP_RANGE_MAX,
+    startingMarketCap: DEFAULT_STARTING_MARKET_CAP,
+    endingMarketCap: DEFAULT_ENDING_MARKET_CAP,
+  };
+}
 
 // Fee rate defaults (stored as percent values in the UI, 0.5% = 50 bps)
 export const DEFAULT_FEE_START_PERCENT = 50;

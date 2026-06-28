@@ -11,6 +11,18 @@ import { cn } from "@/lib/utils";
 import { TokenFormSchemaType } from "./schema";
 import { FeeScheduleChart, type XAxisMode, type XScaleMode } from "./FeeScheduleChart";
 
+/**
+ * Format a USD-equivalent market cap. Returns "" when the value is missing
+ * or zero so the helper line can be omitted cleanly. Pass the USD price per
+ * quote token — `solUsdPrice` for SOL, or `1` for USDC (1:1 with USD).
+ */
+function formatUsdEquivalent(marketCap: number | undefined, usdPricePerQuote: number | null): string {
+  if (usdPricePerQuote == null || !marketCap) return "";
+  const usd = marketCap * usdPricePerQuote;
+  if (!Number.isFinite(usd) || usd <= 0) return "";
+  return `≈ $${Math.round(usd).toLocaleString("en-US")} USD`;
+}
+
 interface FeeScheduleSectionProps {
   control: Control<TokenFormSchemaType>;
   isLoading: boolean;
@@ -29,6 +41,7 @@ interface FeeScheduleSectionProps {
   watchedSupply: number | undefined;
   watchedStartMcap: number | undefined;
   watchedEndMcap: number | undefined;
+  solUsdPrice: number | null;
 }
 
 export function FeeScheduleSection({
@@ -49,8 +62,11 @@ export function FeeScheduleSection({
   watchedSupply,
   watchedStartMcap,
   watchedEndMcap,
+  solUsdPrice,
 }: FeeScheduleSectionProps) {
   const quoteTokenSymbol = watchedQuoteToken === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? "USDC" : "SOL";
+  const isSol = watchedQuoteToken !== "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+  const usdPerQuote = isSol ? solUsdPrice : 1;
   const showChart = watchedFeeMode === "market-cap-based" || watchedFeeMode === "time-based" || watchedFeeMode === "fixed";
   const [xAxisMode, setXAxisMode] = useState<XAxisMode>("marketCap");
   const [xScaleMode, setXScaleMode] = useState<XScaleMode>("log");
@@ -279,6 +295,9 @@ export function FeeScheduleSection({
                 )}
               />
               <p className="text-sm text-muted-foreground">Must be &gt;= initial market cap</p>
+              {formatUsdEquivalent(watchedStartMcap, usdPerQuote) && (
+                <p className="text-sm font-bold text-green-500">{formatUsdEquivalent(watchedStartMcap, usdPerQuote)}</p>
+              )}
               {allFieldErrors["startingMarketCap"] && <p className="text-sm text-destructive">{allFieldErrors["startingMarketCap"]}</p>}
             </div>
             <div className="space-y-2">
@@ -293,6 +312,9 @@ export function FeeScheduleSection({
                 )}
               />
               <p className="text-sm text-muted-foreground">Must be &lt;= pool max market cap</p>
+              {formatUsdEquivalent(watchedEndMcap, usdPerQuote) && (
+                <p className="text-sm font-bold text-green-500">{formatUsdEquivalent(watchedEndMcap, usdPerQuote)}</p>
+              )}
               {allFieldErrors["endingMarketCap"] && <p className="text-sm text-destructive">{allFieldErrors["endingMarketCap"]}</p>}
             </div>
           </div>
