@@ -44,5 +44,14 @@ export const FEE_UPDATE_INTERVAL_1_24H = 5;
 export const FEE_UPDATE_INTERVAL_1_4D = 10;
 export const FEE_UPDATE_INTERVAL_4D_PLUS = 60;
 
+// ── Claim fees UI ─────────────────────────────────────────────
+// How often (ms) the token detail page silently refreshes unclaimed
+// fees for the creator. Override at build time with
+// NEXT_PUBLIC_CLAIM_FEES_REFRESH_INTERVAL_MS.
+export const CLAIM_FEES_REFRESH_INTERVAL_MS =
+  (typeof process !== "undefined" &&
+    Number(process.env.NEXT_PUBLIC_CLAIM_FEES_REFRESH_INTERVAL_MS)) ||
+  30_000;
+
 // ── Feature flags ────────────────────────────────────────────
 export const ENABLE_FEES_DISPLAY = false;

@@ -9,6 +9,7 @@ import { Copy, Check, Percent, ExternalLink, SlidersHorizontal, Clock } from "lu
 import { Countdown } from "@/components/ui/countdown";
 import { getSolscanTxUrl } from "@/lib/utils";
 import { ExternalLinks } from "@/components/token-detail/ExternalLinks";
+import { ClaimFees } from "@/components/token-detail/ClaimFees";
 
 interface TokenDetailPageProps {
   params: Promise<{
@@ -151,6 +152,16 @@ export default function TokenDetailPage({ params }: TokenDetailPageProps) {
               <p className="text-green-600 dark:text-green-300 text-sm mt-1">Launched on {launchDate.toLocaleString()}</p>
             </CardContent>
           </Card>
+        )}
+
+        {/* Unclaimed fees (creator only, only after launch) */}
+        {!isUpcoming && (
+          <ClaimFees
+            mintAddress={token.mintAddress}
+            creatorWallet={token.creatorWallet}
+            feeTokenMode={token.feeTokenMode}
+            quoteTokenLabel={quoteTokenLabel}
+          />
         )}
 
         {/* Token Header */}

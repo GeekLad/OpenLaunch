@@ -1,5 +1,5 @@
 import { Connection, PublicKey, Transaction, Keypair } from "@solana/web3.js";
-import { CpAmm, type PoolFeesParams, getFeeTimeSchedulerParams, getFeeMarketCapSchedulerParams, BaseFeeMode, CollectFeeMode, getDynamicFeeParams, getSqrtPriceFromPrice, getPriceFromSqrtPrice } from "@meteora-ag/cp-amm-sdk";
+import { CpAmm, type PoolFeesParams, getFeeTimeSchedulerParams, getFeeMarketCapSchedulerParams, BaseFeeMode, CollectFeeMode, getDynamicFeeParams, getSqrtPriceFromPrice, getPriceFromSqrtPrice, getUnClaimLpFee } from "@meteora-ag/cp-amm-sdk";
 import { getMint, Mint, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import BN from "bn.js";
 import { DEFAULT_NUMBER_OF_PERIODS, DEFAULT_SCHEDULER_EXPIRATION_SECONDS, percentToBps } from "@/config/defaults";
@@ -360,4 +360,136 @@ export async function poolExists(
   } catch {
     return false;
   }
+}
+
+// ============================================================================
+// Fee claiming helpers
+// ============================================================================
+
+/**
+ * Result of reading the creator's position and its unclaimed fees for a pool.
+ */
+export interface PositionFeeInfo {
+  position: PublicKey;
+  positionNftAccount: PublicKey;
+  feePendingA: BN;
+  feePendingB: BN;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+  pool: PublicKey;
+  /** True when the position NFT is held by `ownerWallet`. */
+  isOwner: boolean;
+}
+
+/**
+ * Fetches the creator's position for a pool and its unclaimed fee balances.
+ *
+ * The position address is not persisted in the database, so it is discovered
+ * on-chain via `CpAmm.getUserPositionByPool(pool, ownerWallet)`. When the
+ * owner holds multiple positions for the same pool, fees are aggregated and
+ * the first position is returned (used only for the claim instruction).
+ *
+ * @param connection - Solana RPC connection
+ * @param poolAddress - DAMMv2 pool address
+ * @param ownerWallet - Expected position NFT holder (the token creator)
+ * @returns Position fee info, or null when the owner has no position in this pool
+ */
+export async function getCreatorPositionFees(
+  connection: Connection,
+  poolAddress: PublicKey,
+  ownerWallet: PublicKey
+): Promise<PositionFeeInfo | null> {
+  const cpAmm = new CpAmm(connection);
+  const poolState = await cpAmm.fetchPoolState(poolAddress);
+  if (!poolState) return null;
+
+  const positions = await cpAmm.getUserPositionByPool(poolAddress, ownerWallet);
+  if (positions.length === 0) return null;
+
+  // The pool account does not store the SPL token program ids; derive them
+  // from the mints the same way createDAMMv2Pool does.
+  const [tokenAMintInfo, tokenBMintInfo] = await Promise.all([
+    getMint(connection, poolState.tokenAMint),
+    getMint(connection, poolState.tokenBMint),
+  ]);
+  const tokenAProgram =
+    tokenAMintInfo.tlvData && tokenAMintInfo.tlvData.length > 0
+      ? TOKEN_2022_PROGRAM_ID
+      : TOKEN_PROGRAM_ID;
+  const tokenBProgram =
+    tokenBMintInfo.tlvData && tokenBMintInfo.tlvData.length > 0
+      ? TOKEN_2022_PROGRAM_ID
+      : TOKEN_PROGRAM_ID;
+
+  const first = positions[0];
+
+  // The on-chain `feeAPending`/`feeBPending` fields are only refreshed when a
+  // position is touched (deposit/withdraw/claim). Between touches the claimable
+  // fees must be derived from the pool's cumulative `feeAPerLiquidity` minus
+  // the position's `feeAPerTokenCheckpoint`, scaled by the position liquidity.
+  // The SDK's `getUnClaimLpFee` does exactly this and returns the real claimable
+  // amounts (it adds the stored pending fees on top of the checkpoint delta).
+  let feePendingA = new BN(0);
+  let feePendingB = new BN(0);
+  for (const p of positions) {
+    const unclaimed = getUnClaimLpFee(poolState, p.positionState);
+    feePendingA = feePendingA.add(unclaimed.feeTokenA);
+    feePendingB = feePendingB.add(unclaimed.feeTokenB);
+  }
+
+  return {
+    position: first.position,
+    positionNftAccount: first.positionNftAccount,
+    feePendingA,
+    feePendingB,
+    tokenAMint: poolState.tokenAMint,
+    tokenBMint: poolState.tokenBMint,
+    tokenAVault: poolState.tokenAVault,
+    tokenBVault: poolState.tokenBVault,
+    tokenAProgram,
+    tokenBProgram,
+    pool: poolAddress,
+    isOwner: true,
+  };
+}
+
+/**
+ * Parameters for building a claim-position-fee transaction client-side.
+ * All values are returned as base58 strings so they can be serialized to JSON
+ * by an API route and reconstructed into PublicKeys in the browser.
+ */
+export interface ClaimFeeTxParams {
+  owner: string;
+  position: string;
+  positionNftAccount: string;
+  pool: string;
+  tokenAMint: string;
+  tokenBMint: string;
+  tokenAVault: string;
+  tokenBVault: string;
+  tokenAProgram: string;
+  tokenBProgram: string;
+}
+
+/**
+ * Converts a {@link PositionFeeInfo} into the JSON-safe params shape needed by
+ * the client to call `CpAmm.claimPositionFee`.
+ */
+export function toClaimFeeTxParams(info: PositionFeeInfo, owner: PublicKey): ClaimFeeTxParams {
+  return {
+    owner: owner.toBase58(),
+    position: info.position.toBase58(),
+    positionNftAccount: info.positionNftAccount.toBase58(),
+    pool: info.pool.toBase58(),
+    tokenAMint: info.tokenAMint.toBase58(),
+    tokenBMint: info.tokenBMint.toBase58(),
+    tokenAVault: info.tokenAVault.toBase58(),
+    tokenBVault: info.tokenBVault.toBase58(),
+    tokenAProgram: info.tokenAProgram.toBase58(),
+    tokenBProgram: info.tokenBProgram.toBase58(),
+  };
 }
