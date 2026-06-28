@@ -37,19 +37,19 @@ export function TokenInfoSection({
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="symbol">Token Symbol *</Label>
+            <Label htmlFor="symbol">Token Symbol</Label>
             <Input id="symbol" placeholder="e.g., DOGE" {...register("symbol")} disabled={isLoading} />
             {errors.symbol && <p className="text-sm text-destructive">{errors.symbol.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="name">Token Name *</Label>
+            <Label htmlFor="name">Token Name</Label>
             <Input id="name" placeholder="e.g., Dogecoin" {...register("name")} disabled={isLoading} />
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="logoFile">Logo Image *</Label>
+          <Label htmlFor="logoFile">Logo Image</Label>
           <Input
             id="logoFile"
             type="file"
