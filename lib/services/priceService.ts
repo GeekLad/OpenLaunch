@@ -1,16 +1,27 @@
 /**
- * Price service for fetching token prices from external APIs
- * Currently supports SOL price from CoinGecko API
+ * Price service for fetching SOL/USD price from the Jupiter Price API.
+ *
+ * The Jupiter API key is held server-side (config/secrets.ts) and is only
+ * ever used here, which runs exclusively on the Next.js server (API routes
+ * and the cron fee-updater). It is never imported by client code.
  */
 
-interface CoinGeckoPriceResponse {
-  [key: string]: {
-    usd: number;
+import { JUPITER_API_KEY } from "@/config/secrets";
+import { QUOTE_TOKEN_MINT } from "@/config/public";
+
+/**
+ * Response shape from `GET https://api.jup.ag/price/v3?ids=<mint>`.
+ * The response object is keyed directly by the requested mint address.
+ */
+interface JupiterPriceResponse {
+  [mint: string]: {
+    usdPrice?: number;
+    [key: string]: unknown;
   };
 }
 
 /**
- * Cache for SOL price to avoid excessive API calls
+ * Cache for SOL price to avoid excessive API calls.
  */
 let solPriceCache: {
   price: number;
@@ -20,8 +31,10 @@ let solPriceCache: {
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 /**
- * Fetches SOL price from CoinGecko API
- * @returns SOL price in USD or null if failed
+ * Fetches SOL price in USD from the Jupiter Price API (price/v3).
+ *
+ * @returns SOL price in USD, or null if the fetch/parse failed and no
+ *          cached value is available.
  */
 export async function getSolPrice(): Promise<number | null> {
   // Check cache first
@@ -30,10 +43,12 @@ export async function getSolPrice(): Promise<number | null> {
   }
 
   try {
-    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd', {
-      method: 'GET',
+    const url = `https://api.jup.ag/price/v3?ids=${QUOTE_TOKEN_MINT}`;
+    const response = await fetch(url, {
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
+        ...(JUPITER_API_KEY ? { "x-api-key": JUPITER_API_KEY } : {}),
       },
     });
 
@@ -41,14 +56,15 @@ export async function getSolPrice(): Promise<number | null> {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const data: CoinGeckoPriceResponse = await response.json();
-    
-    if (!data?.solana?.usd) {
-      throw new Error('Invalid response format from CoinGecko API');
+    const data = (await response.json()) as JupiterPriceResponse;
+
+    const entry = data?.[QUOTE_TOKEN_MINT];
+    if (!entry || typeof entry.usdPrice !== "number") {
+      throw new Error("Invalid response format from Jupiter Price API");
     }
 
-    const solPrice = data.solana.usd;
-    
+    const solPrice = entry.usdPrice;
+
     // Update cache
     solPriceCache = {
       price: solPrice,
@@ -58,20 +74,20 @@ export async function getSolPrice(): Promise<number | null> {
     console.log(`[Price Service] ✓ SOL price updated: $${solPrice.toFixed(4)}`);
     return solPrice;
   } catch (error) {
-    console.error('[Price Service] Error fetching SOL price:', error);
-    
+    console.error("[Price Service] Error fetching SOL price:", error);
+
     // Return cached price if available, even if expired
     if (solPriceCache) {
-      console.log('[Price Service] Using cached SOL price as fallback');
+      console.log("[Price Service] Using cached SOL price as fallback");
       return solPriceCache.price;
     }
-    
+
     return null;
   }
 }
 
 /**
- * Gets the current SOL price, with fallback to a default value
+ * Gets the current SOL price, with fallback to a default value.
  * @returns SOL price in USD
  */
 export async function getSolPriceWithFallback(): Promise<number> {
@@ -80,7 +96,7 @@ export async function getSolPriceWithFallback(): Promise<number> {
 }
 
 /**
- * Clears the SOL price cache (useful for testing or force refresh)
+ * Clears the SOL price cache (useful for testing or force refresh).
  */
 export function clearSolPriceCache(): void {
   solPriceCache = null;

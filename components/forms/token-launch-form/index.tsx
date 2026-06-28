@@ -49,6 +49,7 @@ export function TokenLaunchForm({ onSubmit, isLoading = false }: TokenLaunchForm
         watchedSupply={form.watchedSupply}
         watchedInitialMcap={form.watchedInitialMcap}
         watchedMax={form.watchedMax}
+        solUsdPrice={form.solUsdPrice}
       />
 
       <FeeScheduleSection

@@ -25,6 +25,7 @@ interface LaunchParamsSectionProps {
   watchedSupply: number | undefined;
   watchedInitialMcap: number | undefined;
   watchedMax: number | undefined;
+  solUsdPrice: number | null;
 }
 
 /**
@@ -48,6 +49,18 @@ function formatMultiplier(initial: number | undefined, max: number | undefined):
   return `${multiple.toFixed(1)}×`;
 }
 
+/**
+ * Format a USD-equivalent market cap. Returns "" when the value is missing
+ * or zero so the helper line can be omitted cleanly. Pass the USD price per
+ * quote token — `solUsdPrice` for SOL, or `1` for USDC (1:1 with USD).
+ */
+function formatUsdEquivalent(marketCap: number | undefined, usdPricePerQuote: number | null): string {
+  if (usdPricePerQuote == null || !marketCap) return "";
+  const usd = marketCap * usdPricePerQuote;
+  if (!Number.isFinite(usd) || usd <= 0) return "";
+  return `≈ $${Math.round(usd).toLocaleString("en-US")} USD`;
+}
+
 export function LaunchParamsSection({
   control,
   errors,
@@ -61,8 +74,12 @@ export function LaunchParamsSection({
   watchedSupply,
   watchedInitialMcap,
   watchedMax,
+  solUsdPrice,
 }: LaunchParamsSectionProps) {
-  const quoteSymbol = watchedQuoteToken === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? "USDC" : "SOL";
+  const isSol = watchedQuoteToken !== "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+  const quoteSymbol = isSol ? "SOL" : "USDC";
+  // USD price per quote token: live SOL/USD price for SOL, 1:1 for USDC.
+  const usdPerQuote = isSol ? solUsdPrice : 1;
   return (
     <Card>
       <CardHeader>
@@ -147,6 +164,9 @@ export function LaunchParamsSection({
                 />
               )}
             />
+            {formatUsdEquivalent(watchedInitialMcap, usdPerQuote) && (
+              <p className="text-sm font-bold text-green-500">{formatUsdEquivalent(watchedInitialMcap, usdPerQuote)}</p>
+            )}
             <p className="text-sm text-blue-500">{formatPricePerToken(watchedInitialMcap, watchedSupply, quoteSymbol)}</p>
             {errors.initialMarketCap && <p className="text-sm text-destructive">{errors.initialMarketCap.message}</p>}
           </div>
@@ -174,6 +194,9 @@ export function LaunchParamsSection({
                 />
               )}
             />
+            {formatUsdEquivalent(watchedMax, usdPerQuote) && (
+              <p className="text-sm font-bold text-green-500">{formatUsdEquivalent(watchedMax, usdPerQuote)}</p>
+            )}
             <p className="text-sm text-blue-500">{formatPricePerToken(watchedMax, watchedSupply, quoteSymbol)}</p>
             {allFieldErrors["marketCapRangeMax"] && <p className="text-sm text-destructive">{allFieldErrors["marketCapRangeMax"]}</p>}
           </div>

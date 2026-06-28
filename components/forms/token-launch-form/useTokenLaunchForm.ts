@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TokenFormData } from "@/types/token";
@@ -31,6 +31,36 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSubmitData, setPendingSubmitData] = useState<TokenFormSchemaType | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+
+  // ── SOL/USD price (proxied through /api/price/sol so the Jupiter API key
+  // is never exposed to the browser). Cached in-component for 5 minutes.
+  const [solUsdPrice, setSolUsdPrice] = useState<number | null>(null);
+  const solPriceFetchedAt = useRef<number>(0);
+  const SOL_PRICE_CACHE_MS = 5 * 60 * 1000;
+
+  useEffect(() => {
+    let cancelled = false;
+    const lastFetchAge = Date.now() - solPriceFetchedAt.current;
+    if (lastFetchAge < SOL_PRICE_CACHE_MS && solPriceFetchedAt.current !== 0) {
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch("/api/price/sol");
+        if (!res.ok) return;
+        const data = (await res.json()) as { price: number | null };
+        if (!cancelled && typeof data.price === "number") {
+          setSolUsdPrice(data.price);
+          solPriceFetchedAt.current = Date.now();
+        }
+      } catch {
+        // Silent failure — the form just won't show a USD equivalent.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const {
     register,
@@ -395,6 +425,7 @@ export function useTokenLaunchForm({ onSubmit }: UseTokenLaunchFormProps) {
     // Watched values for launch params
     watchedInitialMcap,
     watchedMax,
+    solUsdPrice,
 
     // Watched fee schedule values (for live chart preview)
     watchedStartMcap,
