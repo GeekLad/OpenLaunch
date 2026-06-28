@@ -205,58 +205,19 @@ export class TokenLaunchService {
       let launchTimeAdjusted = false;
       let requestedLaunchTime: Date | undefined = undefined;
 
-      // Step 4.5: Check if launch time is in the past
+      // Step 4.5: Validate pool configuration
+      // Note: We no longer proactively adjust close-to-now launch times. If the
+      // on-chain activation point is already in the past when the pool tx lands,
+      // the program returns InvalidActivationPoint and the reactive recovery
+      // path below (catch block at pool submission) recreates the pool for
+      // immediate activation. This preserves user-requested scheduling.
       this.updateStatus({
         step: "signing",
         message: "Validating pool configuration...",
         progress: 75,
       });
 
-      if (formData.enableTimedLaunch && formData.launchDateTime) {
-        const now = new Date();
-        const launchTime = new Date(formData.launchDateTime);
-        const timeUntilLaunch = launchTime.getTime() - now.getTime();
-        const twoMinutesInMs = 2 * 60 * 1000;
-
-        if (timeUntilLaunch < twoMinutesInMs) {
-          console.warn(
-            '⚠️ Launch time is too close or in the past. Auto-adjusting to immediate...'
-          );
-
-          launchTimeAdjusted = true;
-          requestedLaunchTime = formData.launchDateTime;
-
-          this.updateStatus({
-            step: "signing",
-            message: "Adjusting to immediate launch due to expired time...",
-            progress: 77,
-            launchTimeAdjusted: true,
-            requestedLaunchTime: formData.launchDateTime,
-          });
-
-          poolResult = await createDAMMv2Pool({
-            connection: this.connection,
-            payer: walletPublicKey,
-            tokenAMint: mintResult.mint,
-            tokenBMint: new PublicKey(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
-            tokenAAmount: poolTokenAmount,
-            tokenADecimals: TOKEN_DECIMALS,
-            tokenBDecimals: getQuoteTokenDecimals(formData.quoteTokenMint ?? DEFAULT_LAUNCH_PARAMS.quoteTokenMint),
-            initialMarketCap: formData.initialMarketCap ?? DEFAULT_LAUNCH_PARAMS.initialMarketCap,
-            totalSupply: formData.totalSupply ?? DEFAULT_LAUNCH_PARAMS.totalSupply,
-            marketCapRangeMax: formData.marketCapRangeMax ?? DEFAULT_LAUNCH_PARAMS.marketCapRangeMax,
-            tokenAProgram: TOKEN_PROGRAM_ID,
-            tokenBProgram: TOKEN_PROGRAM_ID,
-            launchTime: undefined,
-            feeSchedulerConfig: formData.feeSchedulerConfig,
-            collectFeeMode: formData.feeTokenMode === 'both' ? CollectFeeMode.BothToken : CollectFeeMode.OnlyB,
-          });
-
-          console.log("✓ Pool recreated for immediate activation");
-        }
-      }
-
-      // Ensure feePayer is set on the (possibly recreated) pool transaction
+      // Ensure feePayer is set on the pool transaction
       poolResult.transaction.feePayer = walletPublicKey;
 
       // Step 5: Get fresh blockhash
