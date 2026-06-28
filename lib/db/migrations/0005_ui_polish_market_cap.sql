@@ -1,14 +1,14 @@
 -- Phase 5.1: Add market cap and locked liquidity columns, rename fee rate columns
 
 -- Add new columns for market-cap-based pool params
-ALTER TABLE `tokens` ADD COLUMN `initial_market_cap` real NOT NULL DEFAULT 10000;
-ALTER TABLE `tokens` ADD COLUMN `market_cap_range_min` real NOT NULL DEFAULT 1000;
-ALTER TABLE `tokens` ADD COLUMN `market_cap_range_max` real NOT NULL DEFAULT 1000000;
+ALTER TABLE `tokens` ADD COLUMN `initial_market_cap` real NOT NULL DEFAULT 10000;--> statement-breakpoint
+ALTER TABLE `tokens` ADD COLUMN `market_cap_range_min` real NOT NULL DEFAULT 1000;--> statement-breakpoint
+ALTER TABLE `tokens` ADD COLUMN `market_cap_range_max` real NOT NULL DEFAULT 1000000;--> statement-breakpoint
 
 -- Add new percent-based fee rate columns
-ALTER TABLE `tokens` ADD COLUMN `start_rate_percent` real NOT NULL DEFAULT 0.5;
-ALTER TABLE `tokens` ADD COLUMN `end_rate_percent` real NOT NULL DEFAULT 0.25;
-ALTER TABLE `tokens` ADD COLUMN `fixed_base_fee_percent` real NOT NULL DEFAULT 0.25;
+ALTER TABLE `tokens` ADD COLUMN `start_rate_percent` real NOT NULL DEFAULT 0.5;--> statement-breakpoint
+ALTER TABLE `tokens` ADD COLUMN `end_rate_percent` real NOT NULL DEFAULT 0.25;--> statement-breakpoint
+ALTER TABLE `tokens` ADD COLUMN `fixed_base_fee_percent` real NOT NULL DEFAULT 0.25;--> statement-breakpoint
 
 -- Add locked liquidity column (inverse of holdback, default 100%)
 ALTER TABLE `tokens` ADD COLUMN `locked_liquidity_percentage` real NOT NULL DEFAULT 100;

@@ -256,6 +256,9 @@ export class TokenLaunchService {
         }
       }
 
+      // Ensure feePayer is set on the (possibly recreated) pool transaction
+      poolResult.transaction.feePayer = walletPublicKey;
+
       // Step 5: Get fresh blockhash
       this.updateStatus({
         step: "signing",
